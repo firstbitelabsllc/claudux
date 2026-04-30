@@ -769,6 +769,7 @@ if (owned.length > 0) {
   }
 }
 console.log('- Generation rule: preserve manifest page IDs, nav order, deletion_policy, and pinned sections unless docs-structure.json changes first.');
+console.log('- Cache provenance rule: use concrete HEAD values, counts, hashes, digests, and snapshot IDs for scoping only; do not repeat them in committed documentation prose.');
 NODE
 }
 
@@ -816,6 +817,7 @@ console.log('**SECTION PATCH MODE (manifest-enforced)**');
 console.log('- Direct documentation writes are disabled. Return patch JSON in your final response; claudux will apply it.');
 console.log('- Output exactly one payload between CLAUDUX_SECTION_PATCHES_JSON_START and CLAUDUX_SECTION_PATCHES_JSON_END.');
 console.log('- Schema: {"patches":[{"page_id":"...","section_id":"...","body_markdown":"markdown body without the heading"}]}');
+console.log('- Patch bodies must not include transient cache provenance such as concrete HEAD/checkpoint SHAs, manifest digests, ownership hashes, file counts, guard counts, or snapshot IDs.');
 console.log('- Pinned sections are read-only unless the human explicitly runs with CLAUDUX_UNLOCK_PINNED_SECTIONS=1 and the patch sets "unlock_pinned": true.');
 if (allowed.length > 0) {
   console.log('- Allowed generated sections:');
@@ -1046,6 +1048,18 @@ function bodyBoundaryHeading(body, section) {
   return null;
 }
 
+function cacheProvenanceViolation(body) {
+  const patterns = [
+    /\bfor this (?:dogfood|docs?|documentation) (?:refresh|pass|run)\b/i,
+    /\b(?:current|active|authoritative)\s+(?:static[- ]analysis\s+)?snapshot\b/i,
+    /\b\d{1,3}(?:,\d{3})*\s+(?:source files|documentation files|docs files|dependency edges|protected content blocks|tracked test files|source-owned pages|pinned pages|protected files)\b/i,
+    /\bownership hash\s+`?[0-9a-f]{8,64}`?/i,
+    /\bmanifest digest\s+`?[0-9a-f]{8,64}`?/i,
+    /\b(?:checkpoint|head)(?:\s+sha)?\s+`?[0-9a-f]{7,64}`?/i,
+  ];
+  return patterns.some(pattern => pattern.test(body));
+}
+
 function findSection(lines, section) {
   const headingPattern = new RegExp(
     `^#{${section.level}}\\s+${escapeRegExp(section.heading)}(?:\\s+\\{#[^}]+\\})?\\s*$`
@@ -1135,6 +1149,11 @@ if (!Array.isArray(patches)) {
     }
 
     const body = normalizeBody(rawBody, section);
+    if (cacheProvenanceViolation(body)) {
+      fail(`${page.id}#${section.id} contains transient cache-provenance prose; keep HEAD/checkpoint SHAs, manifest digests, ownership hashes, file counts, guard counts, and snapshot IDs in .claudux state/cache only`);
+      continue;
+    }
+
     const boundaryHeading = bodyBoundaryHeading(body, section);
     if (boundaryHeading) {
       fail(`${page.id}#${section.id} body contains h${boundaryHeading.level} heading "${boundaryHeading.heading}" on body line ${boundaryHeading.line}; section patches cannot create same-or-higher-level headings`);

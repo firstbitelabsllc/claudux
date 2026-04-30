@@ -688,6 +688,33 @@ assert_contains "section patcher preserves original body after boundary rejectio
 assert_not_contains "section patcher does not write escaping body" "$(cat /tmp/claudux-manifest-t16)" "This would become a sibling section."
 rm -rf "$TEST_DIR"
 
+# --- Test 16b: section patcher rejects transient cache-provenance prose ---
+TEST_DIR=$(setup_manifest_repo)
+(
+    cd "$TEST_DIR"
+    source "$LIB_DIR/docs-manifest.sh"
+    printf '%s\n' \
+        '{' \
+        '  "patches": [' \
+        '    {' \
+        '      "page_id": "technical.deterministic-generation",' \
+        '      "section_id": "generated-details",' \
+        '      "body_markdown": "For this dogfood refresh, the current static-analysis snapshot reports 75 source files, 15 documentation files, 34 dependency edges, and ownership hash `9d2f1eae1fa5`."' \
+        '    }' \
+        '  ]' \
+        '}' > /tmp/claudux-section-patches-t16b.json
+    if apply_manifest_section_patches /tmp/claudux-section-patches-t16b.json >/tmp/claudux-manifest-t16b-output 2>&1; then
+        echo "unexpected-pass"
+    else
+        cat /tmp/claudux-manifest-t16b-output
+    fi
+    cat docs/technical/deterministic-generation.md
+) > /tmp/claudux-manifest-t16b 2>&1
+assert_contains "section patcher rejects cache provenance prose" "$(cat /tmp/claudux-manifest-t16b)" "transient cache-provenance prose"
+assert_contains "section patcher preserves original body after provenance rejection" "$(cat /tmp/claudux-manifest-t16b)" "Old generated body."
+assert_not_contains "section patcher does not write transient cache prose" "$(cat /tmp/claudux-manifest-t16b)" "For this dogfood refresh"
+rm -rf "$TEST_DIR"
+
 # --- Test 17: cleanup refuses AI deletion when a manifest owns docs structure ---
 TEST_DIR=$(setup_manifest_repo)
 (
@@ -973,6 +1000,6 @@ rm -f /tmp/claudux-manifest-t25 /tmp/claudux-manifest-t25-output
 rm -f /tmp/claudux-manifest-t26 /tmp/claudux-manifest-t26-output
 rm -f /tmp/claudux-manifest-t27 /tmp/claudux-manifest-t27-output
 rm -f /tmp/claudux-section-patches-t11.json /tmp/claudux-section-patches-t12.json /tmp/claudux-section-patches-t14-allowed.json /tmp/claudux-section-patches-t14-blocked.json
-rm -f /tmp/claudux-section-patches-t5c.json /tmp/claudux-section-patches-t15.json /tmp/claudux-section-patches-t16.json
+rm -f /tmp/claudux-section-patches-t5c.json /tmp/claudux-section-patches-t15.json /tmp/claudux-section-patches-t16.json /tmp/claudux-section-patches-t16b.json
 
 test_summary
