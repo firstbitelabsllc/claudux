@@ -77,48 +77,38 @@ Backend controls stay explicit in patch mode: Claude is limited to `Read`, and C
 
 The static index is deterministic cache state written to `.claudux/index/static-analysis.json` by default. `CLAUDUX_INDEX_DIR` or `CLAUDUX_STATIC_INDEX_FILE` can relocate it, and prompt construction always reads the resolved path.
 
-`build_static_analysis_index()` rebuilds it from tracked files on every deterministic run. Every tracked markdown file under `docs/` becomes a docs entry. Every tracked non-doc file outside `docs/`, `.claudux/`, and nested `node_modules/` paths becomes a source entry.
+`build_static_analysis_index()` rebuilds it from tracked files on every deterministic run. Tracked markdown under `docs/` is indexed as documentation, and tracked non-doc files outside `docs/`, `.claudux/`, and nested `node_modules/` paths are indexed as sources.
 
 ### Recorded facts
 
-Each run records stable facts rather than prose:
+The index stores structured facts only:
 
-- `head_sha` from the current git checkout.
-- Manifest path, digest, page count, and source-owned page count when a resolved manifest exists.
-- `package.json` scripts.
-- CLI command tokens parsed from Bash `case` labels in `bin/claudux`.
-- Exported shell functions.
-- Tracked test file hashes.
-- Dependency edges from shell `source` and `.` statements, `REQUIRED_LIBS` in `bin/claudux`, the conditional `lib/codex-utils.sh` source, and repo-file references inside `package.json` scripts.
-- Source file hashes.
-- Docs file hashes plus heading inventories.
+- Manifest location and source-ownership metadata.
+- `package.json` scripts and CLI tokens parsed from Bash `case` labels in `bin/claudux`.
+- Exported shell functions and tracked test files.
+- Dependency edges from shell `source` and `.` statements, `REQUIRED_LIBS` in `bin/claudux`, the conditional `lib/codex-utils.sh` source, and repo-file references inside package scripts.
+- Source and docs file checksums plus markdown heading inventories.
 - Internal markdown docs links.
-- Protected skip blocks with markers, line numbers, and hashes.
+- Protected skip blocks with markers, line numbers, and checksums.
 - Manifest page and section source ownership.
 
-### Current claudux snapshot
+These are cache records, not documentation copy. Generated prose should not preserve run-specific values from the index, including concrete checkpoint SHAs, manifest digests, ownership hashes, file counts, guard counts, cache provenance, or snapshot identifiers.
 
-For this dogfood refresh, the authoritative index summary reports 75 source files, 15 documentation files, 10 tracked test files, 34 dependency edges, 10 protected content blocks, and a 15-page manifest with 15 source-owned pages.
+### Prompt summary
 
-The manifest remains `docs-structure.json`; commit-scoped values such as the active `HEAD` and manifest digest stay in the JSON index and checkpoint metadata instead of being repeated as long-lived prose on this page.
+`format_static_analysis_index_context()` projects the index into a compact, authoritative prompt summary before model output. That prompt can tell the model which scripts, command tokens, source-owned pages, and manifest preservation rules are current for the run, but manifest mode still requires the model to return bounded section patch JSON rather than direct documentation writes.
 
-For claudux itself, the current script inventory is `lint`, `test`, `test:all`, and `test:ci`.
+### Byte-stable caches
 
-The current CLI token inventory is `--`, `--check`, `--help`, `--message`, `--strict`, `--version`, `--with`, `-V`, `-h`, `-m`, `check`, `dev`, `diff`, `help`, `recreate`, `serve`, `server`, `status`, `template`, `update`, `validate`, and `version`. That list is intentionally broader than the public subcommand menu because `cliCommandsFromBin()` scans raw `case` labels and option-parser tokens, not just the canonical commands a human doc page would foreground.
+`static-analysis.json`, `docs-guard-snapshot.json`, and `impacted-docs.json` omit wall-clock timestamps and are written from reproducible inputs where the source graph permits it. For identical repo inputs, repeated cache rebuilds should produce identical bytes.
 
-The model does not receive the full JSON blob. `format_static_analysis_index_context()` projects it into a compact prompt summary with the resolved index path, current `HEAD`, counts, sorted script and command lists, source-owned page mappings, and the manifest preservation rule before any model output is accepted.
+After section patches land and the post-generation checks run, `update()` calls `refresh_deterministic_generation_caches()` before `save_claudux_state()`. That refresh rebuilds the static index against the final docs tree, recomputes the impact allowlist when an incremental changed-file list and allowlist path exist, and captures a fresh guard snapshot.
 
-The cache is intentionally reproducible. `static-analysis.json`, `docs-guard-snapshot.json`, and `impacted-docs.json` omit wall-clock timestamps, so identical repo state produces byte-stable deterministic artifacts.
-
-### Post-patch cache refresh
-
-After section patches land and the post-generation checks run, `update()` calls `refresh_deterministic_generation_caches()` before `save_claudux_state()`. That refresh rebuilds the static index against the final docs tree, recomputes the impact allowlist for incremental runs when a changed-file list and allowlist path exist, and captures a fresh guard snapshot.
-
-This matters because pre-generation cache bytes describe the docs before the model patch was applied. The final checkpoint should point at hashes and guard facts for the docs that actually remain on disk. `tests/test-docs-manifest.sh` covers this with a post-patch fixture that changes a generated section, verifies that the static index and guard snapshot change once, and then verifies that repeated refreshes stay byte-stable. The same fixture checks that the recorded docs file SHA matches the final markdown bytes.
+This matters because pre-generation cache bytes describe the docs before the model patch was applied. The final checkpoint should point at the hashes and guard facts for the docs that actually remain on disk. `tests/test-docs-manifest.sh` covers this with post-patch refresh fixtures that verify cache changes after a generated section edit, byte stability on repeated refresh, and a recorded docs checksum that matches the final markdown bytes.
 
 ### Boundary of the index
 
-The static index is authoritative for command existence and source ownership, not for provider-side model availability or VitePress route validity. Headers and status output may echo pass-through values such as `CODEX_MODEL`, but compatibility is checked at runtime, and VitePress nav and sidebar targets are validated later by `lib/validate-links.sh`.
+The static index is authoritative for source ownership, command existence, dependency expansion, and prompt scoping. It is not a provider compatibility check and it is not VitePress route validation. Backend model availability is checked at runtime, and nav/sidebar targets are validated later by `lib/validate-links.sh`.
 
 ## docs-structure.json Manifest
 
