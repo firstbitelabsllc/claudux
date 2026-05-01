@@ -35,102 +35,108 @@ The deterministic pipeline is:
 
 ## Section Patch Application
 
-When `docs-structure.json` exists, claudux removes direct `docs/**` write authority from the model. The model returns one marker-delimited JSON payload, and claudux extracts, validates, and applies it locally.
+When `docs-structure.json` exists, claudux removes direct documentation write authority from the model. The backend must return one marker-delimited JSON payload, and claudux extracts, validates, and applies that payload locally.
 
-The extracted payload is staged at `.claudux/index/section-patches.json` by default, and `CLAUDUX_SECTION_PATCH_FILE` can relocate that file for tests or harnesses.
+The extracted payload is staged at `.claudux/index/section-patches.json` by default. `CLAUDUX_SECTION_PATCH_FILE` can relocate it for tests, harnesses, or alternate scratch layouts.
 
-Before the model answers, `format_section_patch_contract()` prints the live allowlist of patchable `page_id#section_id` targets plus the separate pinned or read-only list. The manifest is therefore the addressing surface, not an informal heading search over the repo.
+`format_section_patch_contract()` prints the manifest-derived allowlist of patchable `page_id#section_id` targets and the separate read-only list before backend invocation. The manifest is the addressing surface. A generated section can be source-owned and still writable; read-only status comes from `pinned: true` or `generated: false`.
 
 ### Extractor behavior
 
-- It scans raw output plus nested JSONL string fields named `text`, `content`, `result`, and `message`.
-- Raw non-JSON lines are still searched, so plain final responses and JSONL event streams use the same contract.
-- Identical repeated payloads are deduplicated, covering repeated marker pairs and echoed `agent_message` or `result` payloads.
+- The extractor scans raw output plus nested JSONL string fields named `text`, `content`, `result`, and `message`.
+- Plain final responses and backend event streams use the same marker contract.
+- Identical repeated payloads are deduplicated, including repeated marker pairs and echoed agent/result events.
 - Conflicting repeated payloads, orphaned markers, end-before-start ordering, and invalid JSON fail the run.
 - Fenced JSON is accepted, and a bare array is normalized to an object with a `patches` array.
-- Turn-summary fields such as `summary` are ignored, so truncated recap text cannot satisfy the contract.
+- Turn-summary fields are ignored so truncated recap text cannot satisfy the contract.
 
 ### Patch application rules
 
-- Every patch must resolve to one manifest `page_id` plus `section_id`, and a batch cannot target the same section twice.
-- `body_markdown` is the contract field. `markdown` and `content` are accepted as compatibility aliases when reading a patch body.
-- If the model repeats the section heading inside the body, `normalizeBody()` strips that heading before writing.
-- `body_markdown` can contain deeper subheadings and code fences, but same-level or higher headings outside fences are rejected.
-- Missing on-disk headings fail unless `create_if_missing: true` is set. In that case claudux appends the declared manifest heading and then inserts the body under it.
-- Pinned sections and sections with `generated: false` stay read-only unless both `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` and `unlock_pinned: true` are present.
-- Incremental runs enforce `.claudux/index/impacted-docs.json`; full scans can touch any non-pinned generated section in the manifest.
-- Validation is all-or-nothing. One invalid, duplicate, pinned, out-of-scope, or boundary-escaping patch leaves every file unchanged.
+- Every patch must resolve to one manifest page and one manifest section, and a batch cannot target the same section twice.
+- `body_markdown` is the canonical body field. `markdown` and `content` remain compatibility aliases when reading older payloads.
+- If the body repeats the section heading, claudux strips that heading before writing.
+- A body can contain deeper subheadings and fenced examples, but same-level or higher headings outside fences are rejected.
+- Missing on-disk headings fail unless `create_if_missing: true` is set.
+- Pinned sections and `generated: false` sections require both `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` and per-patch `unlock_pinned: true`.
+- Incremental runs enforce the impacted-doc allowlist; full scans can touch any non-pinned generated section in the manifest.
+- Transient cache provenance is rejected from patch bodies. The prompt can use run-specific facts for scope, but committed prose must describe stable behavior.
+- Validation is all-or-nothing. One invalid, duplicate, read-only, out-of-scope, provenance-leaking, or boundary-escaping patch leaves every file unchanged.
 
-Write authority and source ownership are separate concerns. Section-level `source_patterns` influence impact scoping, but they do not make a section read-only. The read-only barrier comes from `pinned: true` or `generated: false`.
+After patches land, `update()` runs post-generation manifest validation, validates the pre-generation guard snapshot, runs link validation, refreshes deterministic caches, and only then saves the checkpoint. If extraction or application fails, `retain_generation_debug_log()` keeps the backend JSONL log available for inspection while the docs tree stays untouched.
 
-After patches land, `update()` runs post-generation manifest validation, validates the pre-generation guard snapshot, handles docs link validation, and then refreshes deterministic caches before checkpointing. A section patch can therefore succeed and still fail the run later if validation or cache refresh detects stale or inconsistent state.
-
-The behavior is covered mechanically in `tests/test-docs-manifest.sh`, including repeated marker dedupe, echoed JSONL payload dedupe, conflicting payload rejection, truncated summary-marker rejection, incremental allowlist blocking, mixed-batch rollback, same-or-higher-level heading rejection, and post-patch cache refresh.
-
-If extraction or application fails, claudux does not guess. `update()` copies the backend JSONL log to a retained `/tmp/claudux-*.jsonl.*` file through `retain_generation_debug_log()`, which keeps the rejected patch payload available for inspection while leaving the docs tree untouched.
-
-Patch mode constrains filesystem authority, not provider compatibility. On the Codex path, `run_codex_exec()` always forwards `CODEX_MODEL` to `codex exec -m`, while `get_codex_model_settings()` only prettifies a few known labels such as `gpt-5.4` and `gpt-5.3-codex` for logs. Unknown model strings still run under a generic `Codex <model>` label, so a value such as `gpt-5.5` can appear in headers or progress output even when the installed Codex CLI cannot satisfy it.
-
-Backend controls stay explicit in patch mode: Claude is limited to `Read`, and Codex keeps `approval_policy` set to `never` while defaulting to a read-only sandbox unless `CODEX_SANDBOX_MODE` overrides it. Unsupported model IDs never surface as section-patch validation errors. On modern Codex CLI builds they usually fail when the real `codex exec` run starts; on older builds without `codex login status`, the fallback auth probe in `check_codex()` can surface the same rejection earlier because it also runs `codex exec -m $CODEX_MODEL`.
+Patch mode constrains filesystem authority, not provider compatibility. Claude is limited to `Read`. Codex keeps `approval_policy` set to `never` and defaults to a read-only sandbox in section-patch mode unless `CODEX_SANDBOX_MODE` overrides it.
 
 ## Static Analysis Index
 
-The static index is deterministic cache state written to `.claudux/index/static-analysis.json` by default. `CLAUDUX_INDEX_DIR` or `CLAUDUX_STATIC_INDEX_FILE` can relocate it, and prompt construction always reads the resolved path.
+The static index is deterministic cache state written to `.claudux/index/static-analysis.json` by default. `CLAUDUX_INDEX_DIR` or `CLAUDUX_STATIC_INDEX_FILE` can relocate it, and prompt construction reads the resolved path.
 
-`build_static_analysis_index()` rebuilds it from tracked files on every deterministic run. Tracked markdown under `docs/` is indexed as documentation, and tracked non-doc files outside `docs/`, `.claudux/`, and nested `node_modules/` paths are indexed as sources.
+`build_static_analysis_index()` rebuilds the index from tracked files on every deterministic run. Markdown under `docs/` is indexed as documentation. Tracked non-doc files outside `docs/`, `.claudux/`, and nested `node_modules/` paths are indexed as sources.
 
 ### Recorded facts
 
-The index stores structured facts only:
+The index stores structured facts for deterministic scoping:
 
-- Manifest location and source-ownership metadata.
-- `package.json` scripts and CLI tokens parsed from Bash `case` labels in `bin/claudux`.
+- Manifest path, manifest hash, page ownership, and section ownership metadata.
+- Package scripts from `package.json`.
+- CLI tokens parsed from Bash `case` labels in `bin/claudux`.
 - Exported shell functions and tracked test files.
-- Dependency edges from shell `source` and `.` statements, `REQUIRED_LIBS` in `bin/claudux`, the conditional `lib/codex-utils.sh` source, and repo-file references inside package scripts.
-- Source and docs file checksums plus markdown heading inventories.
+- Dependency edges from shell `source` and `.` statements, `REQUIRED_LIBS`, the conditional Codex adapter source, and repo-file references inside package scripts.
+- Source and docs hashes plus markdown heading inventories.
 - Internal markdown docs links.
-- Protected skip blocks with markers, line numbers, and checksums.
+- Protected skip-marker blocks with marker text, line spans, and hashes.
 - Manifest page and section source ownership.
 
-These are cache records, not documentation copy. Generated prose should not preserve run-specific values from the index, including concrete checkpoint SHAs, manifest digests, ownership hashes, file counts, guard counts, cache provenance, or snapshot identifiers.
+These are cache records, not documentation copy. The prompt can use them to scope a generation pass, but committed prose should avoid run-specific cache values.
 
 ### Prompt summary
 
-`format_static_analysis_index_context()` projects the index into a compact, authoritative prompt summary before model output. That prompt can tell the model which scripts, command tokens, source-owned pages, and manifest preservation rules are current for the run, but manifest mode still requires the model to return bounded section patch JSON rather than direct documentation writes.
+`format_static_analysis_index_context()` projects the index into a compact authoritative prompt summary before model output. That summary tells the model which scripts, command tokens, tests, ownership mappings, and preservation rules are current for the run.
+
+Manifest mode still requires bounded section patch JSON. The static index can narrow what the model should consider, but it does not grant direct write access and it does not override the manifest allowlist.
 
 ### Byte-stable caches
 
-`static-analysis.json`, `docs-guard-snapshot.json`, and `impacted-docs.json` omit wall-clock timestamps and are written from reproducible inputs where the source graph permits it. For identical repo inputs, repeated cache rebuilds should produce identical bytes.
+`static-analysis.json`, `docs-guard-snapshot.json`, and `impacted-docs.json` omit wall-clock timestamps and are written from reproducible inputs where the source graph permits it.
 
-After section patches land and the post-generation checks run, `update()` calls `refresh_deterministic_generation_caches()` before `save_claudux_state()`. That refresh rebuilds the static index against the final docs tree, recomputes the impact allowlist when an incremental changed-file list and allowlist path exist, and captures a fresh guard snapshot.
-
-This matters because pre-generation cache bytes describe the docs before the model patch was applied. The final checkpoint should point at the hashes and guard facts for the docs that actually remain on disk. `tests/test-docs-manifest.sh` covers this with post-patch refresh fixtures that verify cache changes after a generated section edit, byte stability on repeated refresh, and a recorded docs checksum that matches the final markdown bytes.
+After section patches land and post-generation checks run, `update()` calls `refresh_deterministic_generation_caches()` before `save_claudux_state()`. That refresh rebuilds the static index against the final docs tree, recomputes the impact allowlist when the run has an incremental changed-file list, and captures a fresh guard snapshot.
 
 ### Boundary of the index
 
-The static index is authoritative for source ownership, command existence, dependency expansion, and prompt scoping. It is not a provider compatibility check and it is not VitePress route validation. Backend model availability is checked at runtime, and nav/sidebar targets are validated later by `lib/validate-links.sh`.
+The static index is authoritative for source ownership, command existence, dependency expansion, prompt scoping, docs-link inventories, and protected-block inventories. It is not a provider compatibility check and it is not the VitePress route validator. Backend model availability is checked at runtime, and nav/sidebar targets are validated by `lib/validate-links.sh`.
 
 ## docs-structure.json Manifest
 
-`docs-structure.json` is the default checked-in manifest, but claudux resolves the active manifest path through `docs_structure_path()`. Advanced runs and tests can override that path with `CLAUDUX_DOCS_STRUCTURE` or `DOCS_STRUCTURE_FILE` without changing the repo default.
+`docs-structure.json` is the default checked-in manifest, but claudux resolves the active manifest through `docs_structure_path()`. Advanced runs and tests can override the path with `CLAUDUX_DOCS_STRUCTURE` or `DOCS_STRUCTURE_FILE` without changing the repo default.
 
-The manifest is the operational contract for docs structure. `claudux.md` can influence taste, but the manifest owns patch addresses, navigation targets, required headings, source ownership, and deletion authority. When both `docs-structure.json` and `docs-map.md` exist, `build_generation_prompt()` treats the manifest as primary and keeps `docs-map.md` as supplemental legacy guidance only.
+The manifest is the operational contract for docs structure. `claudux.md` can influence taste, but the manifest owns patch addresses, navigation targets, required headings, source ownership, and deletion authority. When both `docs-structure.json` and `docs-map.md` exist, prompt construction treats the manifest as primary and keeps the docs map as supplemental legacy guidance.
 
-Key semantics are enforced mechanically:
+### Manifest schema rules
+
+Preflight validation enforces the structural contract before any backend runs:
 
 - Root `deletion_policy` must be `manifest_pages_require_manifest_change`.
 - Root `generated_sections_default` must be `bounded_patch`.
 - Each page `deletion_policy` must be `never_delete_without_manifest_change`.
-- Each page path must be a repo-relative markdown path under `docs/`, and page IDs, page paths, and page `order` values must be unique.
-- Navigation IDs and navigation `order` values must be unique. Navigation links must be non-empty root-relative docs links that resolve to manifest pages; blank titles, placeholder links, and external URLs fail validation.
-- Page `id`, section `id`, navigation `id`, and page `nav_group` values must match the stable manifest-key pattern `[a-z0-9][a-z0-9._-]*`.
-- Section IDs must be unique within a page, and a page cannot declare the same `level + heading` pair twice.
-- `source_patterns` must be repo-root relative; absolute paths, Windows drive prefixes, empty strings, non-string entries, and `..` traversal are rejected before impact mapping.
-- Authority fields such as `pinned`, `generated`, and `required` must be real JSON booleans, not strings.
+- Page paths must be repo-relative markdown paths under `docs/`.
+- Page IDs, page paths, page order values, navigation IDs, and navigation order values must be unique.
+- Navigation titles must be non-empty, and navigation links must be root-relative docs links that resolve to manifest pages.
+- Page IDs, section IDs, navigation IDs, and page `nav_group` values must match `[a-z0-9][a-z0-9._-]*`.
+- Section IDs must be unique within a page, and a page cannot declare the same heading level plus heading text twice.
+- `source_patterns` must be repo-root relative; absolute paths, drive prefixes, empty strings, non-string entries, and parent traversal are rejected before impact mapping.
+- Authority fields such as `pinned`, `generated`, and `required` must be real JSON booleans.
 - A section is required by default unless it explicitly sets `required: false`.
 - `generated: false` marks a section read-only even when it is not pinned.
 
-Those rules keep structure changes reviewable as manifest diffs instead of letting a model invent new patch keys, nav targets, order values, deletion behavior, or ambiguous section addresses from prose.
+### Post-generation rules
+
+Post-generation validation adds on-disk checks:
+
+- Every manifest page must exist.
+- Required headings must exist in their declared page.
+- Manifest-declared heading anchors must not be duplicated on disk.
+- The manifest must include pinned doctrine for the guard snapshot to preserve.
+
+These rules keep structure changes reviewable as manifest diffs instead of letting a model invent patch keys, nav targets, order values, deletion behavior, or ambiguous section addresses from prose.
 
 ## Pinned Pages and Sections
 
@@ -141,21 +147,22 @@ During patch application:
 - Ordinary generated sections can be rewritten when they are inside the current impact allowlist.
 - Sections with `pinned: true` are read-only by default.
 - Sections with `generated: false` are read-only by the same guard, even if they are not pinned.
-- Section-level `source_patterns` affect incremental ownership and allowlist scope, but they do not make a section read-only. A generated section can be source-owned and still remain patchable.
+- Section-level `source_patterns` affect incremental ownership and allowlist scope, but they do not make a section read-only.
+- A generated section can be source-owned and still patchable.
 
 During guard validation, claudux tracks every pinned section plus every section that is still required:
 
 - Pinned and required headings must still exist on disk after generation.
-- That captured sequence must stay in manifest order within the page.
-- Only read-only section bodies are hash-locked; editable generated sections can change as long as they stay within their declared boundary.
+- The captured sequence must stay in manifest order within the page.
+- Only read-only section bodies are hash-locked; editable generated sections can change as long as they stay inside their declared boundary.
 - `required: false` opts a non-pinned section out of the existence and order guard, but it does not make a `generated: false` section writable.
 - Manifest-owned pages themselves must remain present on disk.
 
-An intentional pinned rewrite needs two signals in the same run: `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` in the environment and `unlock_pinned: true` on the individual patch. That keeps a model-only run from silently editing doctrine.
+An intentional pinned rewrite needs two signals in the same run: `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` in the environment and `unlock_pinned: true` on the individual patch. That keeps model-only runs from silently editing doctrine.
 
-Page deletion is guarded separately from section editing. With a manifest present, the internal cleanup helper in `lib/cleanup.sh` refuses manifest-owned deletion unless `CLAUDUX_ALLOW_MANIFEST_CLEANUP=1` is set, and `claudux recreate` refuses the same deletion unless `CLAUDUX_ALLOW_MANIFEST_RECREATE=1` is set. The current public CLI exposes `recreate`, not a standalone `cleanup` subcommand.
+Page deletion is guarded separately from section editing. With a manifest present, the internal cleanup helper refuses manifest-owned deletion unless `CLAUDUX_ALLOW_MANIFEST_CLEANUP=1` is set, and `claudux recreate` refuses deletion unless `CLAUDUX_ALLOW_MANIFEST_RECREATE=1` is set. The public CLI exposes `recreate`, not a standalone cleanup subcommand.
 
-`recreate` now checks that deletion guard before backend validation. `bin/claudux` only acquires the lock for `recreate`, then `recreate_docs()` refuses manifest-owned deletion before it calls `validate_dependencies()` or `check_generation_backend()`. That ordering keeps an invalid Codex model, missing backend, or auth failure from masking the more important fact that a manifest-owned docs tree would be deleted. Only an explicit `CLAUDUX_ALLOW_MANIFEST_RECREATE=1` run proceeds to backend checks and the destructive confirmation prompt.
+`recreate` checks the deletion guard before backend validation. That ordering keeps a missing backend, auth failure, or unsupported model from masking the more important fact that a manifest-owned docs tree would be deleted.
 
 ## Content Protection Markers
 
@@ -168,16 +175,16 @@ Page deletion is guarded separately from section editing. With a manifest presen
 - SQL uses `-- skip` / `-- /skip`.
 - Unknown extensions fall back to the hash-comment form.
 
-Matching is trimmed, line-based, and literal. That means indented markers still count, and regex-looking markers such as `/* skip */` are handled as exact text rather than patterns.
+Matching is trimmed, line-based, and literal. Indented markers still count, and regex-looking markers such as the CSS pair are treated as exact text rather than patterns.
 
-The current deterministic path uses those boundaries in two enforced places:
+The deterministic path uses those boundaries in two enforced places:
 
-- `build_static_analysis_index` records protected blocks across tracked project files with markers, line numbers, and hashes.
-- The guard snapshot captures recorded protected blocks and later rejects runs that remove one of those blocks or change a recorded block hash.
+- `build_static_analysis_index()` records protected blocks across tracked project files with marker text, line spans, and hashes.
+- The guard snapshot captures recorded protected blocks and later rejects runs that remove a block or change a recorded block hash.
 
-`strip_protected_content` is still shipped as a utility helper in `lib/content-protection.sh` and covered by `tests/test-content-protection.sh`, but the manifest pipeline's protection guarantee comes from indexed block facts plus guard validation, not from a pre-prompt stripping pass inside `lib/docs-generation.sh`.
+`strip_protected_content()` is still shipped as a utility helper and is covered by `tests/test-content-protection.sh`, but the manifest pipeline preservation guarantee comes from indexed block facts plus guard validation, not from a pre-prompt stripping pass.
 
-Protected-block preservation is not limited to markdown docs. Any tracked file with a recognized marker pair can participate in the guard, which is why protected code snippets in `src/`, `tests/`, or top-level project files survive deterministic runs unchanged.
+Protected-block preservation is not limited to markdown docs. Any tracked file with a recognized marker pair can participate in the guard, which keeps protected code snippets, fixture notes, and top-level project files stable during deterministic runs.
 
 ## Dependency-Aware Scope
 
@@ -193,33 +200,31 @@ Dirty freshness signals are limited to files that can affect generated documenta
 - `.ai-docs-style.md`
 - `docs-site-plan.json`
 
-For those pathspecs, claudux includes unstaged changes, staged changes, and untracked files. This closes the dogfood gap where a section patch updates tracked docs while `HEAD` still matches `.claudux-state.json`. `claudux diff` now shows that dirty docs/config state instead of reporting an empty diff, and `claudux status` warns about it even when the checkpoint commit is otherwise current.
+For those pathspecs, claudux includes unstaged changes, staged changes, and untracked files. This closes the dogfood gap where a section patch updates tracked docs while `HEAD` still matches the saved checkpoint. `claudux diff` shows that dirty docs/config state, and `claudux status` warns about it even when the checkpoint commit is otherwise current.
 
 ### Incremental allowlist
 
-After the changed-file list is built, `resolve_impacted_docs_from_changed_files()` expands scope through manifest ownership and reverse dependency edges from the static index. The expansion is intentionally upstream: if `lib/ui.sh` changes, `bin/claudux` is pulled into scope because the router sources that library. That matters for pages like `home.index`, which own `bin/claudux` but do not own `lib/ui.sh` directly. Pages such as `api.index` may also move into scope on the same change, but there the direct `lib/*.sh` page ownership already matches before the reverse edge is even considered.
+After the changed-file list is built, `resolve_impacted_docs_from_changed_files()` expands scope through manifest ownership and reverse dependency edges from the static index. The expansion is intentionally upstream: if a sourced library changes, the router that sources it is pulled into scope. That matters for pages that own the router directly but not every library it loads.
 
 Dependency edges come from more than shell `source` statements:
 
 - Shell-like files contribute `source` and `.` relationships.
-- `bin/claudux` contributes explicit edges for every file in `REQUIRED_LIBS`, plus the conditional `lib/codex-utils.sh` source.
+- `bin/claudux` contributes explicit edges for files in `REQUIRED_LIBS` plus the conditional Codex adapter source.
 - `package.json` scripts contribute edges when they reference repo files under `bin/`, `lib/`, `tests/`, or `scripts/`.
 
-`resolve_impacted_docs_from_changed_files()` writes `.claudux/index/impacted-docs.json` by default, or the path from `CLAUDUX_IMPACT_ALLOWLIST_FILE`, with `changed_files`, `expanded_files`, `dependency_notes`, `pages`, and `sections`. Patch mode then uses that file as the incremental allowlist:
+`resolve_impacted_docs_from_changed_files()` writes `.claudux/index/impacted-docs.json` by default, or the path from `CLAUDUX_IMPACT_ALLOWLIST_FILE`. The allowlist records the changed files, dependency-expanded files, dependency notes, impacted pages, and impacted sections. Patch mode then uses that file as the incremental write boundary:
 
 - A section with its own `source_patterns` must be directly impacted to be patchable in an incremental run.
 - A generated section without its own ownership can be patched when its page is impacted.
 - Full scans skip the allowlist and can touch any non-pinned generated section in the manifest.
 
-For incremental section-patch runs, `refresh_deterministic_generation_caches()` reruns impact resolution with the same changed-file list and allowlist path after patches and validation. The refreshed allowlist is therefore cache state for the final run, not a stale pre-patch artifact.
-
-That keeps unrelated docs stable on larger repos while still letting structure-adjacent changes widen scope when the code graph, dirty docs/config state, or manifest ownership says they should.
+For incremental section-patch runs, `refresh_deterministic_generation_caches()` reruns impact resolution with the same changed-file list and allowlist path after patches and validation. The refreshed allowlist is cache state for the final run, not a stale pre-patch artifact.
 
 ## Validators
 
-Validation is layered rather than one big pass. `claudux update` validates the manifest before model invocation, builds the static index, captures the guard snapshot before generation, and then applies model output only through the manifest section-patch contract. After patches land, it re-runs post-generation manifest checks, validates the pre-generation guard snapshot, handles link validation, refreshes deterministic caches, and only then saves the checkpoint.
+Validation is layered rather than one big pass. `claudux update` validates the manifest before model invocation, builds the static index, captures the guard snapshot before generation, and then applies model output only through the manifest section-patch contract. After patches land, it re-runs post-generation manifest checks, validates the pre-generation guard snapshot, runs link validation, refreshes deterministic caches, and only then saves the checkpoint.
 
-The guard snapshot lives at `.claudux/index/docs-guard-snapshot.json` by default, and `CLAUDUX_GUARD_SNAPSHOT_FILE` can relocate it for test harnesses or alternate scratch layouts.
+The guard snapshot lives at `.claudux/index/docs-guard-snapshot.json` by default. `CLAUDUX_GUARD_SNAPSHOT_FILE` can relocate it for test harnesses or alternate scratch layouts.
 
 ### Manifest and guard validation
 
@@ -230,9 +235,9 @@ Manifest validation covers contract correctness:
 - Strict enums for deletion policy and generated-section defaults.
 - Non-empty navigation titles, root-relative docs links, and navigation targets that resolve to manifest pages.
 - Repo-root-relative `source_patterns` and real boolean values for `pinned`, `generated`, and `required`.
-- Unique section IDs plus unambiguous `level + heading` anchors within each page.
+- Unique section IDs plus unambiguous heading-level and heading-text pairs within each page.
 - Post-generation checks that manifest pages exist on disk, required headings still exist, and declared heading anchors are not duplicated on disk.
-- Post-generation runs also require at least one pinned section so the guard snapshot has doctrine to preserve.
+- Post-generation runs also require pinned doctrine so the guard snapshot has read-only content to preserve.
 
 The guard snapshot enforces preservation rules that schema validation cannot prove:
 
@@ -241,46 +246,39 @@ The guard snapshot enforces preservation rules that schema validation cannot pro
 - Files that carried recorded protected blocks must still exist on disk.
 - Recorded skip-marker blocks must keep at least the captured block count, and each captured block must keep the same content hash in order across docs and source files.
 
-The destructive `recreate` path uses the same manifest deletion posture but deliberately checks it before backend validation. A manifest-owned docs tree is refused before Codex or Claude model availability is consulted.
+The destructive `recreate` path uses the same manifest deletion posture but checks it before backend validation. A manifest-owned docs tree is refused before Codex or Claude availability is consulted.
 
 ### VitePress proof
 
-Current claudux site proof comes from `docs/.vitepress/config.ts` plus `lib/validate-links.sh`:
+The checked-in VitePress config follows the project preferences:
 
-- `base` is `process.env.DOCS_BASE || '/'`, `cleanUrls` is enabled, and the outline is `level: [2, 3]` with label `On this page`.
-- The top nav order is `Guide`, `Features`, `Technical`, and `API`, which matches `docs-structure.json.navigation`.
-- The sidebar defines `'/'`, `'/guide/'`, `'/features/'`, and `'/technical/'`. The root `'/'` entry is what keeps the sidebar visible on the homepage and provides the site-wide fallback.
-- The current internal nav/sidebar targets all resolve to checked-in docs files: `/guide/`, `/guide/installation`, `/guide/commands`, `/guide/configuration`, `/features/`, `/features/two-phase-generation`, `/features/smart-cleanup`, `/features/content-protection`, `/technical/`, `/technical/templates`, `/technical/deterministic-generation`, `/examples/`, `/api/`, and `/troubleshooting`.
-- Social links are absolute GitHub and npm URLs, not placeholders.
+- `base` is `process.env.DOCS_BASE || '/'`, `cleanUrls` is enabled, and the outline uses levels two and three with the label `On this page`.
+- The top nav order is Guide, Features, Technical, and API, matching the manifest navigation order.
+- The sidebar defines a root `/` entry so the sidebar appears on the homepage and provides the site-wide fallback.
+- Section-specific sidebar entries exist for Guide, Features, and Technical.
+- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Two-Phase Generation, Smart Cleanup, Content Protection, Technical, Templates, Deterministic Generation, Examples, API, and Troubleshooting.
+- Social links are absolute GitHub and npm URLs.
 
-`lib/validate-links.sh` proves those targets by extracting every `link:` entry from the VitePress config, resolving `/` to `docs/index.md`, `/path/` to `docs/path/index.md`, and `/path` to `docs/path.md`, and failing on any missing internal target. Before route checking it also runs `check_duplicate_ids()` across explicit markdown `{#id}` anchors. Hash fragments are stripped for file existence checks, so the validator proves route targets and explicit anchor uniqueness, not arbitrary heading text.
+`lib/validate-links.sh` proves config targets by extracting `link:` entries from the VitePress config, resolving `/` to `docs/index.md`, `/path/` to `docs/path/index.md`, and `/path` to `docs/path.md`. Before route checking it also rejects duplicate explicit markdown `{#id}` anchors. Hash fragments are stripped for file existence checks, so the validator proves route targets and explicit anchor uniqueness rather than arbitrary heading text.
 
 ### Link validation behavior
 
 Link validation adds docs-site checks on top of the manifest contract:
 
-- On the green path, `lib/validate-links.sh` prints `All internal links validated successfully!`, then `lib/ui.sh` adds the shared success prefix.
-- The failure path may re-run `lib/validate-links.sh --output <tmp>` to collect a machine-readable missing-file list for the single auto-fix pass; `--strict` turns any remaining broken links into a hard error.
+- On the green path, `lib/validate-links.sh` prints a single successful internal-link message, then the shared UI layer adds its own success prefix.
+- The failure path may re-run `lib/validate-links.sh --output <tmp>` to collect a machine-readable missing-file list for one auto-fix pass.
+- `--strict` turns any remaining broken links into a hard error.
 - `tests/run-tests.sh` includes the regression guard that `claudux validate` must not emit a doubled success prefix.
 
 ### Backend-aware verification boundary
 
 Verification intentionally distinguishes between configuration echo, backend preflight, and true generation failure:
 
-- `show_header` and `claudux check` report the active backend plus the current `CODEX_MODEL` and `CODEX_REASONING_EFFORT`, but they do not prove that the selected model is supported by the installed Codex CLI.
-- Commands that actually invoke a model go through `check_generation_backend()`. On the Codex path, that means `check_codex()` must find the CLI and verify auth before generation starts.
-- `claudux recreate` is the exception to the eager backend preflight: it reaches `recreate_docs()` first so the manifest deletion guard can refuse protected docs before backend checks run.
-- If a backend or patch-mode run still fails after launch, `update()` retains the raw JSONL log through `retain_generation_debug_log()` and prints backend-specific recovery steps instead of checkpointing a misleading success.
-
-### Read-only sandbox dogfood note
-
-Dogfooding claudux against claudux in a read-only agent sandbox can surface environment failures before logical validation:
-
-- `./bin/claudux validate` aborts in `lib/docs-manifest.sh` before manifest validation when the sandbox cannot create temporary files.
-- `bash tests/test-docs-manifest.sh` fails during `mktemp -d`, scratch-repo setup, git lockfile creation under `.git/worktrees/.../index.lock`, and fixture file writes inside the test repo.
-- `bash tests/test-content-protection.sh` fails on temp-file creation and fixture writes, which then cascades into missing-file assertion failures.
-
-Those are sandbox write failures, not manifest, patch-mode, or VitePress-route regressions in the checked-in code. The validator and test harness assume writable temp storage, writable scratch repos, and normal git lockfile creation.
+- `show_header` and `claudux check` report the active backend plus selected Codex settings, but they do not prove that the installed Codex CLI supports the selected model.
+- Commands that invoke a model go through `check_generation_backend()`. On the Codex path, `check_codex()` must find the CLI and verify auth before generation starts.
+- Modern Codex CLI builds use `codex login status` for a zero-token auth probe; older builds fall back to an exec probe.
+- `claudux recreate` is the exception to eager backend preflight because it reaches `recreate_docs()` first so the manifest deletion guard can refuse protected docs before backend checks run.
+- If a backend or patch-mode run fails after launch, `update()` retains the raw JSONL log and prints backend-specific recovery steps instead of checkpointing a misleading success.
 
 ## StrongYes Harness Example
 
@@ -303,44 +301,44 @@ Claudux's own `docs-structure.json` keeps this section pinned as doctrine, but i
 
 ## Checkpoint Contract
 
-`.claudux-state.json` is the local freshness checkpoint that powers `claudux diff` and `claudux status`. It is developer-local, ignored by git, and separate from the deterministic cache artifacts under `.claudux/index/`.
+`.claudux-state.json` is the local freshness checkpoint that powers `claudux diff` and `claudux status`. It is developer-local, ignored by git, and separate from deterministic cache artifacts under `.claudux/index/`.
 
 ### Saved fields
 
 A successful save writes:
 
-- `last_sha`: the Git `HEAD` recorded at checkpoint time.
-- `last_run`: the wall-clock timestamp for that successful save.
+- `last_sha`: the Git `HEAD` recorded at checkpoint time, or `unknown` outside a usable Git history.
+- `last_run`: the wall-clock timestamp for the successful save.
 - `backend`: the active backend, such as `claude` or `codex`.
-- `files_documented`: the tracked `docs/` files present at save time.
+- `files_documented`: tracked docs files present at save time.
 - `deterministic`: metadata derived from the static analysis index.
 
 The nested deterministic block includes:
 
 - `prompt_version`.
-- `index.path`, `index.version`, and `index.head_sha`.
-- `manifest_hash`.
-- `source_hashes` for tracked non-doc files.
-- `doc_section_hashes` for manifest sections currently found on disk.
-- `source_to_section_coverage` built from page and section `source_patterns`.
+- Index path, index version, and index head metadata.
+- The manifest hash.
+- Source hashes for tracked non-doc files.
+- Section hashes for manifest sections currently found on disk.
+- Source-to-section coverage built from page and section `source_patterns`.
 
-That nested block is intentionally best-effort. If Node is unavailable or the static index cannot be read, `build_deterministic_state_metadata_json()` still returns a fallback object with `index: null`, `manifest_hash: null`, empty coverage arrays, and an optional `error`, so a successful docs run can still checkpoint freshness instead of failing after the docs are already updated.
+That nested block is intentionally best-effort. If Node is unavailable or the static index cannot be read, `build_deterministic_state_metadata_json()` returns a fallback object with nullable index and manifest metadata plus empty coverage arrays, so a successful docs run can still checkpoint freshness instead of failing after docs already updated.
 
-The checkpoint intentionally records the backend but not the selected model or reasoning effort. A failed or retried Codex run might bounce from `CODEX_MODEL=gpt-5.5` back to `CODEX_MODEL=gpt-5.4`, yet the persisted freshness state still answers the narrower question of which backend produced the docs.
+The checkpoint records the backend but not the selected model or reasoning effort. A run can retry with different model settings while the persisted freshness state still answers the narrower question of which backend produced the docs.
 
-Failed runs do not advance the checkpoint. `save_claudux_state()` only runs on the success path after generation, patch application, post-generation validation, link-validation handling, deterministic cache refresh, and change analysis. If Codex rejects a requested model, section-patch extraction fails, link validation fails in strict mode, or cache refresh fails, claudux keeps the previous checkpoint and retains backend logs when available.
+Failed runs do not advance the checkpoint. `save_claudux_state()` only runs on the success path after generation, patch application, post-generation validation, link-validation handling, deterministic cache refresh, and change analysis. Backend rejection, section-patch extraction failure, strict link-validation failure, or cache-refresh failure keeps the previous checkpoint intact.
 
 ### Diff and status
 
 `claudux diff` compares `last_sha..HEAD`, then unions in uncommitted documentation/config changes under `docs/`, `docs-structure.json`, `docs-map.md`, `.ai-docs-style.md`, and `docs-site-plan.json`. That dirty-doc scan includes unstaged changes, staged changes, and untracked files for those pathspecs.
 
-`claudux status` uses the same checkpoint to report generation time, backend, documented-file count, and how many commits behind HEAD the docs are when the saved SHA still exists. It also reports dirty documentation/config files even when `HEAD` still matches the checkpoint, with a prompt to run `claudux diff` so the exact files are visible.
+`claudux status` uses the same checkpoint to report generation time, backend, documented-file inventory size, and whether the saved commit is behind the current head when the saved commit still exists. It also reports dirty documentation/config files even when the checkpoint otherwise matches the current commit, with a prompt to run `claudux diff` for exact paths.
 
 This makes the freshness model two-dimensional:
 
-- Source commits after `last_sha` mean the docs may be stale relative to code history.
+- Source commits after the saved commit mean the docs may be stale relative to code history.
 - Dirty docs/config files mean the worktree may contain generated or structural documentation changes that have not been committed or re-checkpointed.
 
-`tests/test-diff-calculation.sh` covers dirty tracked docs, staged docs, and untracked docs. `tests/test-integration.sh` covers the `claudux status` warning when the checkpoint is otherwise fresh.
+`tests/test-diff-calculation.sh` covers dirty tracked docs, staged docs, and untracked docs. `tests/test-integration.sh` covers the status warning when the checkpoint is otherwise fresh.
 
-The split is intentional: `last_run` is wall-clock state, while the nested deterministic metadata and deterministic cache files should stay stable when the repo inputs and manifest ownership have not changed.
+The split is intentional: `last_run` is wall-clock state, while deterministic metadata and deterministic cache files should stay stable when repo inputs and manifest ownership have not changed.
