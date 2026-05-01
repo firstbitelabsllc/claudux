@@ -74,7 +74,7 @@ show_detailed_changes() {
     warn "💡 Next steps:"
     warn "   • Review changes: git diff docs/"
     warn "   • Commit changes: git add docs/ && git commit -m '📚 Update documentation'"
-    warn "   • Undo if needed: git checkout -- docs/"
+    warn "   • Shelve safely if needed: git stash push -m 'claudux docs review' -- docs/"
 }
 
 # Check if we're in a git repository

@@ -575,6 +575,11 @@ assert_eq "CLAUDUX_TIMEOUT=0 guard exists" "guards-zero" "$(cat /tmp/claudux-har
 ) > /tmp/claudux-harden-t38 2>&1
 assert_eq "codex-utils.sh sources cleanly under set -u" "sourced-ok" "$(tail -1 /tmp/claudux-harden-t38)"
 
+# --- Test 39: user-facing recovery guidance avoids destructive checkout ---
+guidance_text="$(cat "$LIB_DIR/git-utils.sh" "$REPO_ROOT/docs/features/smart-cleanup.md")"
+assert_not_contains "recovery guidance does not suggest checkout discard" "$guidance_text" "git checkout -- docs/"
+assert_contains "recovery guidance suggests recoverable stash" "$guidance_text" "git stash push -m"
+
 # Cleanup
 rm -f /tmp/claudux-harden-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38}
 
