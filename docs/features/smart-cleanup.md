@@ -206,7 +206,7 @@ All cleanup actions are logged:
 
 Since claudux works with git repositories:
 - All changes are trackable via git history
-- Easy to revert: `git checkout -- docs/`
+- Easy to review or shelve: `git diff docs/` before committing, or `git stash push -m "claudux docs review" -- docs/` to keep a recoverable copy for later `git stash apply`.
 - Commit-by-commit review of cleanup decisions
 
 ## Best Practices
