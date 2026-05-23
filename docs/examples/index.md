@@ -240,6 +240,16 @@ claudux update
 claudux update -m "Document the shared-ui package components"
 ```
 
+### Vidux Team-Agent Repos
+
+For repos coordinated by vidux, claudux detects `vidux.config.json` or a root `PLAN.md` plus `projects/*/PLAN.md` and uses the vidux template:
+
+```bash
+claudux update -m "Refresh team-agent docs from PLAN.md, projects/*/PLAN.md, command scripts, and verification gates"
+```
+
+See [Vidux Team Agents](./vidux-team-agents.md) for the full dogfood flow.
+
 ### Migration Documentation
 
 When migrating between major versions:

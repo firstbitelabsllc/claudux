@@ -235,6 +235,20 @@
       "source_patterns": ["README.md", "docs/examples/**"]
     },
     {
+      "id": "examples.vidux-team-agents",
+      "path": "docs/examples/vidux-team-agents.md",
+      "title": "Vidux Team Agents",
+      "nav_group": "reference",
+      "order": 125,
+      "deletion_policy": "never_delete_without_manifest_change",
+      "source_patterns": [
+        "lib/project.sh",
+        "lib/templates/vidux-project-config.json",
+        "README.md",
+        "docs/examples/vidux-team-agents.md"
+      ]
+    },
+    {
       "id": "api.index",
       "path": "docs/api/index.md",
       "title": "API Reference",

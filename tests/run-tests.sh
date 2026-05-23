@@ -311,6 +311,17 @@ section "Project detection"
     echo "GO_TYPE=$result"
     rm -rf "$tmp"
 
+    # Test with a fake Vidux-managed team-agent project
+    tmp=$(mktemp -d)
+    cd "$tmp" || exit 1
+    printf '{"defaults":{}}\n' > vidux.config.json
+    printf '# Plan\n\n## Tasks\n' > PLAN.md
+    mkdir -p projects/demo
+    printf '# Demo Plan\n' > projects/demo/PLAN.md
+    result=$(detect_project_type)
+    echo "VIDUX_TYPE=$result"
+    rm -rf "$tmp"
+
     # Test with empty dir (generic)
     tmp=$(mktemp -d)
     cd "$tmp" || exit 1
@@ -350,11 +361,24 @@ else
     fail "detect_project_type: go.mod expected 'go'" "$actual"
 fi
 
+if echo "$detect_result" | grep -q "VIDUX_TYPE=vidux"; then
+    pass "detect_project_type: vidux config + plans -> vidux"
+else
+    actual=$(echo "$detect_result" | grep VIDUX_TYPE | head -1)
+    fail "detect_project_type: vidux config + plans expected 'vidux'" "$actual"
+fi
+
 if echo "$detect_result" | grep -q "EMPTY_TYPE=generic"; then
     pass "detect_project_type: empty dir -> generic"
 else
     actual=$(echo "$detect_result" | grep EMPTY_TYPE | head -1)
     fail "detect_project_type: empty dir expected 'generic'" "$actual"
+fi
+
+if [[ -f "$REPO_ROOT/lib/templates/vidux-project-config.json" ]] && grep -q '"type": "vidux"' "$REPO_ROOT/lib/templates/vidux-project-config.json"; then
+    pass "vidux team-agent template exists"
+else
+    fail "vidux team-agent template missing or malformed"
 fi
 
 # ── 10. Package.json consistency ──────────────────────────────────────

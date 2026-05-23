@@ -31,8 +31,11 @@ load_project_config() {
 
 # Detect project type from file patterns
 detect_project_type() {
+    # Vidux-managed team-agent project
+    if [[ -f "vidux.config.json" ]] || ([[ -f "PLAN.md" ]] && [[ -d "projects" ]] && find projects -maxdepth 2 -name "PLAN.md" -print -quit 2>/dev/null | grep -q .); then
+        echo "vidux"
     # iOS/Swift project
-    if [[ -f "Project.swift" ]] || [[ -n "$(find . -maxdepth 1 -name "*.xcodeproj" -o -name "*.xcworkspace" 2>/dev/null | head -1)" ]]; then
+    elif [[ -f "Project.swift" ]] || [[ -n "$(find . -maxdepth 1 -name "*.xcodeproj" -o -name "*.xcworkspace" 2>/dev/null | head -1)" ]]; then
         echo "ios"
     # Next.js project (check before React)
     elif [[ -f "next.config.js" ]] || [[ -f "next.config.mjs" ]] || [[ -f "next.config.ts" ]] || ([[ -f "package.json" ]] && grep -q '"next"' package.json 2>/dev/null); then

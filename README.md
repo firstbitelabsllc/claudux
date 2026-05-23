@@ -199,7 +199,7 @@ Claudux is not an API reference generator. It is designed for guides, architectu
 
 ## Sibling Project
 
-**[vidux](https://github.com/leojkwan/vidux)** is plan-first orchestration for AI coding agents. Claudux handles docs; vidux handles planning.
+**[vidux](https://github.com/leojkwan/vidux)** is plan-first orchestration for AI coding agents. Claudux handles docs; vidux handles planning. When claudux detects `vidux.config.json` or a root `PLAN.md` with `projects/*/PLAN.md`, it uses the vidux template so team-agent plans, drift logs, command surfaces, and verification gates become first-class documentation inputs.
 
 ## License
 

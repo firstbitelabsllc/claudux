@@ -72,6 +72,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Examples', link: '/examples/' },
+            { text: 'Vidux Team Agents', link: '/examples/vidux-team-agents' },
             { text: 'API Reference', link: '/api/' },
             { text: 'Troubleshooting', link: '/troubleshooting' }
           ]
