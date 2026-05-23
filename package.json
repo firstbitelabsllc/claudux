@@ -1,0 +1,65 @@
+{
+  "name": "claudux",
+  "version": "1.2.0",
+  "description": "AI-powered documentation generator with deterministic docs, multi-backend support, and no-AI readiness audits",
+  "main": "claudux",
+  "bin": {
+    "claudux": "./bin/claudux"
+  },
+  "scripts": {
+    "test": "bash tests/run-tests.sh",
+    "test:all": "bash tests/run-all.sh",
+    "test:ci": "bash tests/run-tests.sh && bash tests/run-all.sh",
+    "lint": "shellcheck -s bash -S warning bin/claudux lib/*.sh",
+    "secret-scan": "bash scripts/secret-scan.sh",
+    "release:check": "bash scripts/secret-scan.sh && bash bin/claudux audit --release && npm pack --dry-run >/dev/null"
+  },
+  "keywords": [
+    "documentation",
+    "docs",
+    "doc-generator",
+    "ai",
+    "anthropic",
+    "claude",
+    "claude-code",
+    "vitepress",
+    "codex",
+    "openai",
+    "multi-backend",
+    "cli",
+    "static-site",
+    "developer-tools",
+    "link-check",
+    "change-tracking",
+    "cleanup",
+    "docs-audit",
+    "team-agents"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firstbitelabsllc/claudux.git"
+  },
+  "homepage": "https://github.com/firstbitelabsllc/claudux",
+  "bugs": {
+    "url": "https://github.com/firstbitelabsllc/claudux/issues"
+  },
+  "author": "First Bite Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "preferGlobal": true,
+  "files": [
+    "bin",
+    "lib",
+    "scripts",
+    "assets",
+    "ARCHITECTURE.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "docs/technical/deterministic-generation.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {}
+}

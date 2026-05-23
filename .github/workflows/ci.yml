@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+jobs:
+  lint:
+    name: ShellCheck lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint bin/claudux
+        run: shellcheck -s bash -S warning bin/claudux
+
+      - name: Lint library scripts
+        run: |
+          for f in lib/*.sh; do
+            echo "--- shellcheck $f ---"
+            shellcheck -s bash -S warning "$f"
+          done
+
+  structure:
+    name: File structure checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Required files exist
+        run: |
+          status=0
+          for f in bin/claudux lib/colors.sh lib/project.sh lib/claude-utils.sh \
+                   lib/docs-generation.sh lib/cleanup.sh lib/server.sh lib/ui.sh \
+                   lib/git-utils.sh lib/content-protection.sh lib/validate-links.sh \
+                   package.json README.md LICENSE; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              status=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          exit $status
+
+      - name: bin/claudux is executable
+        run: test -x bin/claudux
+
+      - name: Library scripts are executable
+        run: |
+          status=0
+          for f in lib/*.sh; do
+            if [ ! -x "$f" ]; then
+              echo "NOT EXECUTABLE: $f"
+              status=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          exit $status
+
+  syntax:
+    name: Bash syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check bash syntax
+        run: |
+          status=0
+          for f in bin/claudux lib/*.sh; do
+            if ! bash -n "$f" 2>&1; then
+              echo "SYNTAX ERROR: $f"
+              status=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          exit $status
+
+  version:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: package.json has valid version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "package.json version: $version"
+          if [ -z "$version" ] || [ "$version" = "undefined" ]; then
+            echo "ERROR: No version found in package.json"
+            exit 1
+          fi
+
+      - name: --version flag returns version
+        run: |
+          pkg_version=$(node -p "require('./package.json').version")
+          cli_output=$(bash bin/claudux --version 2>&1 || true)
+          echo "CLI output: $cli_output"
+          if echo "$cli_output" | grep -q "$pkg_version"; then
+            echo "OK: version matches"
+          else
+            echo "MISMATCH: package.json=$pkg_version, CLI=$cli_output"
+            exit 1
+          fi
+
+  tests:
+    name: Test suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure git for tests
+        run: |
+          git config --global user.email "ci@claudux.dev"
+          git config --global user.name "CI"
+
+      - name: Run core tests (run-tests.sh)
+        run: bash tests/run-tests.sh
+
+      - name: Run extended tests (run-all.sh)
+        run: bash tests/run-all.sh
+
+  docs-build:
+    name: Docs build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install docs dependencies
+        working-directory: docs
+        run: npm ci --no-audit --no-fund
+
+      - name: Build docs
+        working-directory: docs
+        run: npm run docs:build:pages
+
+  release-readiness:
+    name: Release readiness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Root lockfile matches package metadata
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package-lock.json
+
+      - name: Secret scan
+        run: bash scripts/secret-scan.sh
+
+      - name: Release audit
+        run: bash bin/claudux audit --release
+
+      - name: Package dry run
+        run: |
+          npm pack --dry-run --json > /tmp/claudux-pack.json
+          node <<'NODE'
+          const fs = require('fs');
+          const pack = JSON.parse(fs.readFileSync('/tmp/claudux-pack.json', 'utf8'))[0];
+          const files = new Set(pack.files.map(file => file.path));
+          const required = [
+            'README.md',
+            'LICENSE',
+            'ARCHITECTURE.md',
+            'SECURITY.md',
+            'assets/claudux-banner.svg',
+            'assets/terminal-demo.svg',
+            'docs/technical/deterministic-generation.md',
+            'bin/claudux',
+            'scripts/secret-scan.sh',
+            'lib/audit.sh',
+            'lib/docs-generation.sh',
+            'package.json',
+          ];
+          const missing = required.filter(file => !files.has(file));
+          if (missing.length) {
+            console.error(`Missing package files: ${missing.join(', ')}`);
+            process.exit(1);
+          }
+          console.log(`Package dry run OK: ${pack.entryCount} files`);
+          NODE
