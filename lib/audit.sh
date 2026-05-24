@@ -149,13 +149,11 @@ claudux_audit() {
         fi
     fi
 
-    local checkpoint_status checkpoint_output changed_files changed_count
+    local checkpoint_status changed_files changed_count
     checkpoint_status="missing"
-    checkpoint_output=""
     changed_files=""
     if [[ -f "$STATE_FILE" ]]; then
-        checkpoint_output=$(claudux_status 2>&1)
-        if [[ $? -eq 0 ]]; then
+        if claudux_status >/dev/null 2>&1; then
             checkpoint_status="fresh"
         else
             checkpoint_status="stale"
