@@ -194,6 +194,12 @@ assert_contains "Claude patch mode downgrades allowed tools to Read" \
 assert_contains "Claude normal mode still has legacy write tools" \
     "$run_claude_body" \
     'allowed_tools="Read,Write,Edit,Delete"'
+assert_contains "Claude normal mode adds edit permission only outside patch mode" \
+    "$run_claude_body" \
+    'claude_args+=(--permission-mode acceptEdits)'
+assert_not_contains "Claude patch mode avoids empty permission array expansion under nounset" \
+    "$run_claude_body" \
+    'permission_args=()'
 assert_contains "section patches are extracted from model output" \
     "$update_fn" \
     'extract_section_patch_payload'

@@ -57,27 +57,26 @@ claudux update --with "Refresh CLI command docs from bin/claudux"
 
 ## How It Works
 
-Without a manifest, claudux follows the classic generate/update flow:
+Claudux is command-first: most commands inspect or serve local docs, and only `update`, `template`, or the interactive menu need an AI backend.
 
 ```mermaid
-flowchart LR
-    CODE["Codebase"] --> PLAN["Analyze project"]
-    PLAN --> WRITE["Generate VitePress docs"]
-    WRITE --> VALIDATE["Validate links"]
-    VALIDATE --> DONE["Checkpoint"]
-```
+flowchart TD
+    CLI["claudux"] --> COMMAND{"command"}
+    COMMAND --> MENU["interactive menu"]
+    COMMAND --> UPDATE["update [-m|--with] [--strict]"]
+    COMMAND --> AUDIT["audit [--json|--strict|--release|--handoff-strict]"]
+    COMMAND --> VALIDATE["validate"]
+    COMMAND --> SERVE["serve / status / diff / check"]
 
-With `docs-structure.json`, claudux uses the deterministic flow:
-
-```mermaid
-flowchart LR
-    MANIFEST["docs-structure.json"] --> INDEX["Static analysis index"]
-    CODE["Tracked source and docs"] --> INDEX
-    INDEX --> IMPACT["Impacted pages/sections"]
-    IMPACT --> PATCH["Model returns section patch JSON"]
-    PATCH --> APPLY["claudux validates and applies bounded patches"]
-    APPLY --> GUARD["Manifest, guard, and link validation"]
-    GUARD --> STATE[".claudux-state.json checkpoint"]
+    UPDATE --> SCAN["cleanup + detect project + build index"]
+    SCAN --> MANIFEST{"docs-structure.json?"}
+    MANIFEST -->|no| CLASSIC["classic docs update"]
+    MANIFEST -->|yes| INDEX["section patch contract + impacted sections"]
+    INDEX --> PATCH["backend returns section patch JSON"]
+    PATCH --> APPLY["validate and apply bounded patches"]
+    CLASSIC --> VERIFY["post-generation validation"]
+    APPLY --> VERIFY
+    VERIFY --> STATE["checkpoint"]
 ```
 
 Deterministic mode is meant for larger repos where the structure of the documentation is part of the product:

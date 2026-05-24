@@ -854,31 +854,78 @@ const startMarker = 'CLAUDUX_SECTION_PATCHES_JSON_START';
 const endMarker = 'CLAUDUX_SECTION_PATCHES_JSON_END';
 let insideRawPatchPayload = false;
 
-function collectStrings(value) {
+function collectTextContent(value, output = []) {
   if (typeof value === 'string') {
-    chunks.push(value);
-    return;
+    output.push(value);
+    return output;
   }
   if (Array.isArray(value)) {
-    for (const item of value) collectStrings(item);
-    return;
+    for (const item of value) collectTextContent(item, output);
+    return output;
   }
-  if (value && typeof value === 'object') {
-    for (const [key, nested] of Object.entries(value)) {
-      if (['text', 'content', 'result', 'message'].includes(key)) {
-        collectStrings(nested);
-      } else if (typeof nested === 'object') {
-        collectStrings(nested);
-      }
+  if (!value || typeof value !== 'object') {
+    return output;
+  }
+  if (value.role === 'user' || ['tool_result', 'tool_use'].includes(value.type)) {
+    return output;
+  }
+  if (typeof value.text === 'string') {
+    output.push(value.text);
+  }
+  if (typeof value.content === 'string') {
+    output.push(value.content);
+  } else if (Array.isArray(value.content)) {
+    collectTextContent(value.content, output);
+  }
+  if (typeof value.message === 'string') {
+    output.push(value.message);
+  } else if (value.message && typeof value.message === 'object' && value.message.role === 'assistant') {
+    collectTextContent(value.message.content ?? value.message.text ?? value.message.message, output);
+  }
+  return output;
+}
+
+function collectGeneratedStrings(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return [];
+  }
+  if (entry.role === 'user' || entry.type === 'user') {
+    return [];
+  }
+  if (entry.role === 'assistant' || entry.type === 'message') {
+    return entry.role === 'assistant' ? collectTextContent(entry.content ?? entry.text ?? entry.message) : [];
+  }
+  if (entry.type === 'assistant') {
+    const message = entry.message ?? entry;
+    if (message.role && message.role !== 'assistant') {
+      return [];
     }
+    return collectTextContent(message.content ?? message.text ?? message.message);
   }
+  if (entry.type === 'item.completed') {
+    const item = entry.item ?? {};
+    if (item.type === 'agent_message' || item.role === 'assistant') {
+      return collectTextContent(item.content ?? item.text ?? item.message ?? item);
+    }
+    return [];
+  }
+  if (entry.type === 'result') {
+    const output = [];
+    collectTextContent(entry.result, output);
+    collectTextContent(entry.message, output);
+    collectTextContent(entry.content, output);
+    return output;
+  }
+  return [];
 }
 
 for (const line of raw.split(/\r?\n/)) {
   if (!line.trim()) continue;
   try {
     const before = chunks.length;
-    collectStrings(JSON.parse(line));
+    for (const text of collectGeneratedStrings(JSON.parse(line))) {
+      chunks.push(text);
+    }
     if (chunks.length === before && insideRawPatchPayload) {
       chunks.push(line);
     }

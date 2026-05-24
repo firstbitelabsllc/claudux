@@ -564,7 +564,29 @@ NODE
 assert_contains "section patch extraction ignores truncated summary markers" "$(cat /tmp/claudux-manifest-t13g)" "1:generated-details:Summary-safe body."
 rm -rf "$TEST_DIR"
 
-# --- Test 13h: section patch payload extraction preserves raw JSON lines inside plain marker blocks ---
+# --- Test 13h: section patch payload extraction ignores prompt/tool echoes ---
+TEST_DIR=$(setup_manifest_repo)
+(
+    cd "$TEST_DIR"
+    source "$LIB_DIR/docs-manifest.sh"
+    printf '%s\n' \
+        '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"fixture: CLAUDUX_SECTION_PATCHES_JSON_START\n{\"patches\":[{\"page_id\":\"technical.deterministic-generation\",\"section_id\":\"generated-details\",\"body_markdown\":\"Fixture body.\"}]}\nCLAUDUX_SECTION_PATCHES_JSON_END"}]}}' \
+        '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","input":{"prompt":"CLAUDUX_SECTION_PATCHES_JSON_START\n{\"patches\":[{\"page_id\":\"technical.deterministic-generation\",\"section_id\":\"generated-details\",\"body_markdown\":\"Tool-use body.\"}]}\nCLAUDUX_SECTION_PATCHES_JSON_END"}},{"type":"text","text":"CLAUDUX_SECTION_PATCHES_JSON_START\n{\"patches\":[{\"page_id\":\"technical.deterministic-generation\",\"section_id\":\"generated-details\",\"body_markdown\":\"Generated body.\"}]}\nCLAUDUX_SECTION_PATCHES_JSON_END"}]}}' \
+        '{"type":"result","result":"CLAUDUX_SECTION_PATCHES_JSON_START\n{\"patches\":[{\"page_id\":\"technical.deterministic-generation\",\"section_id\":\"generated-details\",\"body_markdown\":\"Generated body.\"}]}\nCLAUDUX_SECTION_PATCHES_JSON_END"}' \
+        > /tmp/claudux-manifest-t13h-log.jsonl
+    extract_section_patch_payload /tmp/claudux-manifest-t13h-log.jsonl /tmp/claudux-manifest-t13h-patches.json
+    node - /tmp/claudux-manifest-t13h-patches.json <<'NODE'
+const fs = require('fs');
+const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+console.log(`${payload.patches.length}:${payload.patches[0].section_id}:${payload.patches[0].body_markdown}`);
+NODE
+) > /tmp/claudux-manifest-t13h 2>&1
+assert_contains "section patch extraction ignores prompt/tool echoes" "$(cat /tmp/claudux-manifest-t13h)" "1:generated-details:Generated body."
+assert_not_contains "section patch extraction ignores fixture echo" "$(cat /tmp/claudux-manifest-t13h)" "Fixture body."
+assert_not_contains "section patch extraction ignores tool-use echo" "$(cat /tmp/claudux-manifest-t13h)" "Tool-use body."
+rm -rf "$TEST_DIR"
+
+# --- Test 13i: section patch payload extraction preserves raw JSON lines inside plain marker blocks ---
 TEST_DIR=$(setup_manifest_repo)
 (
     cd "$TEST_DIR"
@@ -576,14 +598,14 @@ TEST_DIR=$(setup_manifest_repo)
         'CLAUDUX_SECTION_PATCHES_JSON_START' \
         '{"patches":[{"page_id":"technical.deterministic-generation","section_id":"generated-details","body_markdown":"Second raw body."}]}' \
         'CLAUDUX_SECTION_PATCHES_JSON_END' \
-        > /tmp/claudux-manifest-t13h-log.txt
-    if extract_section_patch_payload /tmp/claudux-manifest-t13h-log.txt /tmp/claudux-manifest-t13h-patches.json >/tmp/claudux-manifest-t13h-output 2>&1; then
+        > /tmp/claudux-manifest-t13i-log.txt
+    if extract_section_patch_payload /tmp/claudux-manifest-t13i-log.txt /tmp/claudux-manifest-t13i-patches.json >/tmp/claudux-manifest-t13i-output 2>&1; then
         echo "unexpected-pass"
     else
-        cat /tmp/claudux-manifest-t13h-output
+        cat /tmp/claudux-manifest-t13i-output
     fi
-) > /tmp/claudux-manifest-t13h 2>&1
-assert_contains "section patch extraction rejects conflicting raw payload blocks" "$(cat /tmp/claudux-manifest-t13h)" "expected exactly one unique section patch payload"
+) > /tmp/claudux-manifest-t13i 2>&1
+assert_contains "section patch extraction rejects conflicting raw payload blocks" "$(cat /tmp/claudux-manifest-t13i)" "expected exactly one unique section patch payload"
 rm -rf "$TEST_DIR"
 
 # --- Test 14: incremental impact allowlist blocks unrelated generated sections ---

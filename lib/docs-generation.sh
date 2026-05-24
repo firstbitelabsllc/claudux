@@ -824,27 +824,24 @@ $base_prompt"
         # Always be verbose when streaming JSON
         local verbose_flag="--verbose"
         local allowed_tools="Read,Write,Edit,Delete"
-        local permission_args=(--permission-mode acceptEdits)
         if $section_patch_mode; then
             allowed_tools="Read"
-            permission_args=()
             info "Section patch mode: direct docs writes disabled for Claude"
-        fi
-
-        local output_format_args=()
-        if [[ -n "$output_format_flag" ]]; then
-            output_format_args=(--output-format stream-json)
         fi
 
         local claude_args=(
             --print
             --model "$model"
             --allowedTools "$allowed_tools"
-            "${permission_args[@]}"
-            "$verbose_flag"
-            "${output_format_args[@]}"
-            "$prompt"
         )
+        if ! $section_patch_mode; then
+            claude_args+=(--permission-mode acceptEdits)
+        fi
+        claude_args+=("$verbose_flag")
+        if [[ -n "$output_format_flag" ]]; then
+            claude_args+=(--output-format stream-json)
+        fi
+        claude_args+=("$prompt")
 
         if command -v stdbuf &> /dev/null; then
             ( stdbuf -o0 -e0 claude "${claude_args[@]}" 2>&1 | tee "$claude_log" ) | $formatter &

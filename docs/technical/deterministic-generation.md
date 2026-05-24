@@ -256,7 +256,7 @@ The checked-in VitePress config follows the project preferences:
 - The top nav order is Guide, Features, Technical, and API, matching the manifest navigation order.
 - The sidebar defines a root `/` entry so the sidebar appears on the homepage and provides the site-wide fallback.
 - Section-specific sidebar entries exist for Guide, Features, and Technical.
-- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Two-Phase Generation, Smart Cleanup, Content Protection, Technical, Templates, Deterministic Generation, Examples, API, and Troubleshooting.
+- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Two-Phase Generation, Audit Snapshots, Smart Cleanup, Content Protection, Technical, Templates, Deterministic Generation, Examples, Vidux Team Agents, API, and Troubleshooting.
 - Social links are absolute GitHub and npm URLs.
 
 `lib/validate-links.sh` proves config targets by extracting `link:` entries from the VitePress config, resolving `/` to `docs/index.md`, `/path/` to `docs/path/index.md`, and `/path` to `docs/path.md`. Before route checking it also rejects duplicate explicit markdown `{#id}` anchors. Hash fragments are stripped for file existence checks, so the validator proves route targets and explicit anchor uniqueness rather than arbitrary heading text.
