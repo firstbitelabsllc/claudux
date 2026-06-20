@@ -6,9 +6,12 @@
 - Base: `origin/main@3f5fcec`
 - Worktree: `/Users/leokwan/Development/claudux-worktrees/eve-studio-20260620`
 - Branch: `codex/eve-studio-claudux-20260620`
-- Receiver commits: `a7e98c1 chore: add Eve local cockpit`, `ed0ce79 docs: record Claudux Eve receiver PR`
-- Draft PR: `https://github.com/firstbitelabsllc/claudux/pull/82`
-- PR state: `OPEN`, draft, `MERGEABLE/UNSTABLE`, base `main`
+- Receiver commits before this evidence refresh: `a7e98c1 chore: add Eve local
+  cockpit`, `ed0ce79 docs: record Claudux Eve receiver PR`, `697a284 docs:
+  record Claudux Eve readiness proof`
+- PR: `https://github.com/firstbitelabsllc/claudux/pull/82`
+- PR state after readiness proof: `OPEN`, non-draft, `MERGEABLE/CLEAN`, base
+  `main`
 - Primary checkout preserved: `/Users/leokwan/Development/claudux`
 
 ## Installed
@@ -31,6 +34,9 @@
   Node 18/npm 10 lockfile-normalization step removed six Linux `@rolldown`
   optional-package `libc` arrays from `package-lock.json`. The lockfile now
   matches that CI-normalized form.
+- PR #82 was marked ready after the lockfile normalization; hosted checks then
+  passed on head `697a284a76b353b535b46d306ce5562f9f3317f1` before this
+  evidence-only refresh.
 - `tools/eve-capability-check.mjs` now verifies package.json, package-lock, and
   installed `node_modules` versions for `eve`, `ai`, and transitive `zod`, plus
   `node_modules/.bin/eve`. It also asserts the repo package-gate scripts
@@ -78,7 +84,7 @@ npm run release:check
 => pass; release audit valid, lockfile clean, package packable, npm pack dry-run listed 54 package files and did not include tools/eve-capability-check.mjs
 
 gh pr view 82 --repo firstbitelabsllc/claudux --json number,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,url,headRefOid
-=> OPEN, draft, MERGEABLE/UNSTABLE, head codex/eve-studio-claudux-20260620, base main, head a7e98c1e040139062bc1b197416243c01c46e91e
+=> initial receiver readback was OPEN/draft; final readiness readback below supersedes this state
 ```
 
 Readiness reproof:
@@ -131,6 +137,15 @@ npm run release:check
 
 POST /api/coding/handoffs + GET /api/coding/handoffs/abe9e254-9d53-4f1e-82eb-aa531d899f13
 => ok:true, label claudux-eve-true-integration, proposedAction codex-verifier
+
+gh pr ready 82 --repo firstbitelabsllc/claudux
+=> marked ready for review
+
+gh pr checks 82 --repo firstbitelabsllc/claudux --watch --interval 10
+=> pass: Release readiness, ShellCheck lint, Version consistency, Bash syntax check, File structure checks, Test suite, Docs build, CodeQL, Graphite / mergeability_check; Graphite / AI Reviews skipped
+
+gh pr view 82 --repo firstbitelabsllc/claudux --json number,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,url,headRefOid
+=> OPEN, non-draft, MERGEABLE/CLEAN, head codex/eve-studio-claudux-20260620, base main, head 697a284a76b353b535b46d306ce5562f9f3317f1
 ```
 
 ## Non-Claims
