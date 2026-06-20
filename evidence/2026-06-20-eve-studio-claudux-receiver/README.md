@@ -2,10 +2,13 @@
 
 ## Scope
 
-- Repo: `git@github.com:leojkwan/claudux.git`
+- Repo: `git@github.com:firstbitelabsllc/claudux.git` (GitHub redirects from the old `leojkwan/claudux` remote)
 - Base: `origin/main@3f5fcec`
 - Worktree: `/Users/leokwan/Development/claudux-worktrees/eve-studio-20260620`
 - Branch: `codex/eve-studio-claudux-20260620`
+- Commit: `a7e98c1 chore: add Eve local cockpit`
+- Draft PR: `https://github.com/firstbitelabsllc/claudux/pull/82`
+- PR state: `OPEN`, draft, `MERGEABLE/UNSTABLE`, base `main`
 - Primary checkout preserved: `/Users/leokwan/Development/claudux`
 
 ## Installed
@@ -58,6 +61,9 @@ npm run secret-scan
 
 npm run release:check
 => pass; release audit valid, lockfile clean, package packable, npm pack dry-run listed 54 package files and did not include tools/eve-capability-check.mjs
+
+gh pr view 82 --repo firstbitelabsllc/claudux --json number,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,url,headRefOid
+=> OPEN, draft, MERGEABLE/UNSTABLE, head codex/eve-studio-claudux-20260620, base main, head a7e98c1e040139062bc1b197416243c01c46e91e
 ```
 
 ## Non-Claims
