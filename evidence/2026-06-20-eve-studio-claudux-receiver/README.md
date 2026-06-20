@@ -6,7 +6,7 @@
 - Base: `origin/main@3f5fcec`
 - Worktree: `/Users/leokwan/Development/claudux-worktrees/eve-studio-20260620`
 - Branch: `codex/eve-studio-claudux-20260620`
-- Receiver commits before this evidence refresh: `a7e98c1 chore: add Eve local
+- Receiver setup/readiness commits include: `a7e98c1 chore: add Eve local
   cockpit`, `ed0ce79 docs: record Claudux Eve receiver PR`, `697a284 docs:
   record Claudux Eve readiness proof`
 - PR: `https://github.com/firstbitelabsllc/claudux/pull/82`
@@ -34,9 +34,9 @@
   Node 18/npm 10 lockfile-normalization step removed six Linux `@rolldown`
   optional-package `libc` arrays from `package-lock.json`. The lockfile now
   matches that CI-normalized form.
-- PR #82 was marked ready after the lockfile normalization; hosted checks then
-  passed on head `697a284a76b353b535b46d306ce5562f9f3317f1` before this
-  evidence-only refresh.
+- PR #82 was marked ready after the lockfile normalization; hosted checks passed.
+  The exact current PR head and post-refresh check readback are recorded in the
+  command-center receipt because this evidence file itself can move the head.
 - `tools/eve-capability-check.mjs` now verifies package.json, package-lock, and
   installed `node_modules` versions for `eve`, `ai`, and transitive `zod`, plus
   `node_modules/.bin/eve`. It also asserts the repo package-gate scripts
@@ -145,7 +145,7 @@ gh pr checks 82 --repo firstbitelabsllc/claudux --watch --interval 10
 => pass: Release readiness, ShellCheck lint, Version consistency, Bash syntax check, File structure checks, Test suite, Docs build, CodeQL, Graphite / mergeability_check; Graphite / AI Reviews skipped
 
 gh pr view 82 --repo firstbitelabsllc/claudux --json number,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,url,headRefOid
-=> OPEN, non-draft, MERGEABLE/CLEAN, head codex/eve-studio-claudux-20260620, base main, head 697a284a76b353b535b46d306ce5562f9f3317f1
+=> OPEN, non-draft, MERGEABLE/CLEAN, head codex/eve-studio-claudux-20260620, base main
 ```
 
 ## Non-Claims
