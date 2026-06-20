@@ -6,7 +6,7 @@
 - Base: `origin/main@3f5fcec`
 - Worktree: `/Users/leokwan/Development/claudux-worktrees/eve-studio-20260620`
 - Branch: `codex/eve-studio-claudux-20260620`
-- Commit: `a7e98c1 chore: add Eve local cockpit`
+- Receiver commits: `a7e98c1 chore: add Eve local cockpit`, `ed0ce79 docs: record Claudux Eve receiver PR`
 - Draft PR: `https://github.com/firstbitelabsllc/claudux/pull/82`
 - PR state: `OPEN`, draft, `MERGEABLE/UNSTABLE`, base `main`
 - Primary checkout preserved: `/Users/leokwan/Development/claudux`
@@ -20,6 +20,21 @@
   package payload; `release:check` tarball dry-run lists only `scripts/secret-scan.sh`
   from `scripts/`)
 - Generated artifacts ignored: `.eve/`, `.output/`
+- Moussey verifier handoff:
+  `abe9e254-9d53-4f1e-82eb-aa531d899f13`
+
+## True-Integration Readiness Update
+
+- Current target branch check: `origin/main@3f5fcec` is already an ancestor of
+  the receiver branch, so no replay merge was required.
+- The hosted `Release readiness` check failed before this update because its
+  Node 18/npm 10 lockfile-normalization step removed six Linux `@rolldown`
+  optional-package `libc` arrays from `package-lock.json`. The lockfile now
+  matches that CI-normalized form.
+- `tools/eve-capability-check.mjs` now verifies package.json, package-lock, and
+  installed `node_modules` versions for `eve`, `ai`, and transitive `zod`, plus
+  `node_modules/.bin/eve`. It also asserts the repo package-gate scripts
+  `lint` and `release:check`.
 
 ## Proof
 
@@ -64,6 +79,58 @@ npm run release:check
 
 gh pr view 82 --repo firstbitelabsllc/claudux --json number,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,url,headRefOid
 => OPEN, draft, MERGEABLE/UNSTABLE, head codex/eve-studio-claudux-20260620, base main, head a7e98c1e040139062bc1b197416243c01c46e91e
+```
+
+Readiness reproof:
+
+```sh
+npm install --package-lock=false --fetch-timeout=120000 --fetch-retries=5
+=> exit 0; 0 vulnerabilities
+
+npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+=> exit 0; no additional lockfile changes after Linux libc normalization
+
+npm ci --dry-run
+=> exit 0
+
+npm ci --no-audit --fetch-timeout=120000 --fetch-retries=5
+=> exit 0
+
+npm ls eve ai zod --depth=0
+=> top-level eve@0.11.5 and ai@7.0.0-beta.178 present; zod is transitive and verified by the capability checker
+
+node --check tools/eve-capability-check.mjs
+=> pass
+
+git diff --check
+=> pass
+
+npm run eve:capabilities -- --json
+=> ok:true, installed dependency versions reported, errors:[], warnings:[]
+
+npm run eve:info -- --json
+=> eve v0.11.5, status:ready, diagnostics 0 errors / 0 warnings
+
+npm run eve:build
+=> pass; built .output successfully
+
+npm run test
+=> 104/104 passed
+
+npm run test:all
+=> all suites passed: backend router 50/50, content protection 12/12, diff calculation 18/18, docs manifest 98/98, hardening 59/59, integration 31/31, state file 26/26
+
+npm run lint
+=> pass via shellcheck
+
+npm run secret-scan
+=> pass
+
+npm run release:check
+=> pass; release audit valid, lockfile clean, package packable, npm pack dry-run listed 54 package files and did not include tools/eve-capability-check.mjs
+
+POST /api/coding/handoffs + GET /api/coding/handoffs/abe9e254-9d53-4f1e-82eb-aa531d899f13
+=> ok:true, label claudux-eve-true-integration, proposedAction codex-verifier
 ```
 
 ## Non-Claims

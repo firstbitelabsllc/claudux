@@ -36,7 +36,9 @@ const requiredScripts = [
   "eve:capabilities",
   "test",
   "test:all",
+  "lint",
   "secret-scan",
+  "release:check",
 ];
 
 const requiredExactDevDeps = {
@@ -153,18 +155,59 @@ if (!fs.existsSync(canonicalCommandCenterPlan)) {
 const packageJson = readJson("package.json");
 const packageLock = readJson("package-lock.json");
 
+const dependencyVersions = {};
+const lockDependencyVersions = {};
+const installedDependencyVersions = {};
+
+function installedPackage(name) {
+  const packagePath = `node_modules/${name}/package.json`;
+  if (!exists(packagePath)) {
+    errors.push(`Installed dependency missing: ${packagePath}`);
+    return null;
+  }
+
+  const parsed = readJson(packagePath);
+  installedDependencyVersions[name] = parsed.version ?? null;
+  if (parsed.name !== name) {
+    errors.push(`${packagePath} package name must be ${name}, got ${parsed.name ?? "missing"}`);
+  }
+  return parsed;
+}
+
 for (const script of requiredScripts) {
   if (!packageJson.scripts?.[script]) errors.push(`Missing package script: ${script}`);
 }
 
 for (const [name, version] of Object.entries(requiredExactDevDeps)) {
   const actual = packageJson.devDependencies?.[name];
+  dependencyVersions[name] = actual ?? null;
   if (actual !== version) errors.push(`Dev dependency ${name} must be ${version}, got ${actual ?? "missing"}`);
+
+  const lockVersion = packageLock.packages?.[`node_modules/${name}`]?.version;
+  lockDependencyVersions[name] = lockVersion ?? null;
+  if (lockVersion !== version) {
+    errors.push(`package-lock dependency ${name} must be ${version}, got ${lockVersion ?? "missing"}`);
+  }
+
+  const installed = installedPackage(name);
+  if (installed && installed.version !== version) {
+    errors.push(`node_modules/${name}/package.json version must be ${version}, got ${installed.version ?? "missing"}`);
+  }
 }
 
 const lockedZod = packageLock.packages?.["node_modules/zod"]?.version;
+lockDependencyVersions.zod = lockedZod ?? null;
 if (lockedZod !== "4.4.3") {
   errors.push(`Locked zod must be 4.4.3, got ${lockedZod ?? "missing"}`);
+}
+
+const installedZod = installedPackage("zod");
+if (installedZod && installedZod.version !== "4.4.3") {
+  errors.push(`node_modules/zod/package.json version must be 4.4.3, got ${installedZod.version ?? "missing"}`);
+}
+
+if (!exists("node_modules/.bin/eve")) {
+  errors.push("Installed Eve binary missing: node_modules/.bin/eve");
 }
 
 const gitignore = exists(".gitignore") ? readText(".gitignore") : "";
@@ -195,11 +238,7 @@ const planCounts = mergeCounts([statusCountsFromText(commandCenterText)]);
 const activeStatusMarkers = ["in_progress", "pending", "blocked", "parked", "in_review", "queued", "todo", "open", "LEO-GATED"]
   .reduce((sum, key) => sum + (planCounts[key] ?? 0), 0);
 
-const dependencyVersions = {
-  ai: packageJson.devDependencies?.ai,
-  eve: packageJson.devDependencies?.eve,
-  zodPackageLock: lockedZod,
-};
+dependencyVersions.zodPackageLock = lockedZod;
 
 const report = {
   ok: errors.length === 0,
@@ -208,6 +247,8 @@ const report = {
   packageName: packageJson.name,
   gitStatus: status.split("\n"),
   dependencyVersions,
+  lockDependencyVersions,
+  installedDependencyVersions,
   scripts: requiredScripts,
   commandCenterPlan: {
     path: canonicalCommandCenterPlan,
