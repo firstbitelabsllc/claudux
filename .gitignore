@@ -9,6 +9,8 @@ docs/node_modules/
 
 # Node modules (if VitePress is installed locally)
 node_modules/
+.eve/
+.output/
 
 # VitePress cache
 .vitepress/cache/

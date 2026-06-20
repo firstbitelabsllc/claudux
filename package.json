@@ -10,6 +10,10 @@
     "test": "bash tests/run-tests.sh",
     "test:all": "bash tests/run-all.sh",
     "test:ci": "bash tests/run-tests.sh && bash tests/run-all.sh",
+    "eve:info": "eve info",
+    "eve:build": "eve build",
+    "eve:dev:local": "eve dev --host 127.0.0.1",
+    "eve:capabilities": "node tools/eve-capability-check.mjs",
     "lint": "shellcheck -s bash -S warning bin/claudux lib/*.sh",
     "secret-scan": "bash scripts/secret-scan.sh",
     "release:check": "bash scripts/secret-scan.sh && bash bin/claudux audit --release && npm pack --dry-run >/dev/null"
@@ -61,5 +65,8 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {}
+  "devDependencies": {
+    "ai": "7.0.0-beta.178",
+    "eve": "0.11.5"
+  }
 }
