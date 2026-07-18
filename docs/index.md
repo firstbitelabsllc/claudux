@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: claudux
-  text: Your docs write themselves
-  tagline: AI-assisted documentation generator that analyzes your codebase and updates navigable docs with your code
+  text: Docs that re-run with the code
+  tagline: Local CLI that turns a codebase into maintained VitePress guides. You own structure; Claude or Codex proposes wording.
   actions:
     - theme: brand
       text: Get Started
@@ -15,28 +15,28 @@ hero:
 
 features:
   - icon: 🔄
-    title: Stays Current
-    details: Updates with your code, not months later. Automatic semantic analysis detects when docs need refreshing.
+    title: Re-runnable updates
+    details: Re-run `claudux update` when the product changes. Prefer deterministic manifests when structure is part of the product.
   
   - icon: 🧠
-    title: Actually Understands
-    details: Analyzes structure, patterns, and context using AI to generate meaningful documentation. Supports Claude and Codex backends.
+    title: Backend-aware, not hosted-only
+    details: Uses your authenticated Claude or Codex CLI on the machine. No built-in cloud API key path.
   
   - icon: ⚡
-    title: Ships Fast  
-    details: One command generates complete VitePress sites with navigation, search, and mobile-friendly design.
+    title: VitePress output
+    details: Ships a navigable static docs site you can preview with `claudux serve` and validate with link checks.
   
   - icon: 🔒
-    title: Local Orchestration
-    details: The CLI runs on your machine and uses your authenticated Claude or Codex backend for model work.
+    title: Local orchestration
+    details: The CLI runs on your machine. Skip markers and path denylists protect sensitive blocks and files.
   
   - icon: 🍰
-    title: Zero Config
-    details: Works out of the box with intelligent project detection. Customize when needed.
+    title: Low config default
+    details: Detects common project types out of the box. Add `docs-structure.json` when you need pinned structure.
   
   - icon: 🔗
-    title: Zero Broken Links
-    details: Built-in link validation prevents 404s. Auto-generates missing pages when possible.
+    title: Link validation
+    details: Built-in validation catches broken internal links. Review still matters; the model can be wrong.
 ---
 
 ## Quick Start
