@@ -364,7 +364,8 @@ function printHuman(report) {
   if (report.ready) {
     console.log('✅ Docs match code. No drift detected.');
   } else {
-    console.log(`❌ Drift detected: ${report.drifted.length} doc unit(s) describe code that changed, but the doc did not.`);
+    const n = report.drifted.length;
+    console.log(`❌ Drift detected: ${n} doc ${n === 1 ? 'unit' : 'units'} out of date. The code moved; the doc didn't.`);
     console.log('');
     for (const d of report.drifted) {
       const where = d.section_id ? `${d.doc_file} § ${d.heading || d.section_id}` : d.doc_file;

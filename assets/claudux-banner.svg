@@ -12,6 +12,8 @@
       --arrow: #cbd5e1;
       --green: #10b981;
       --green-dim: #d1fae5;
+      --red: #ef4444;
+      --red-dim: #fee2e2;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -26,6 +28,8 @@
         --arrow: #475569;
         --green: #34d399;
         --green-dim: #064e3b;
+        --red: #f87171;
+        --red-dim: #450a0a;
       }
     }
     .bg { fill: var(--bg); }
@@ -42,6 +46,9 @@
     .green { fill: var(--green); }
     .green-dim { fill: var(--green-dim); }
     .green-stroke { stroke: var(--green); fill: none; }
+    .red { fill: var(--red); }
+    .red-dim { fill: var(--red-dim); }
+    .red-stroke { stroke: var(--red); fill: none; }
 
     @keyframes flow {
       0% { stroke-dashoffset: 24; }
@@ -63,44 +70,40 @@
   <text x="480" y="70" text-anchor="middle" class="text-primary" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="700" letter-spacing="-2">claudux</text>
   <text x="480" y="100" text-anchor="middle" class="text-secondary" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="400">Keep your docs true to your code.</text>
 
-  <g transform="translate(100, 140)">
-    <g transform="translate(0, 0)">
-      <rect x="0" y="0" width="140" height="52" rx="10" class="node-bg"/>
-      <rect x="0" y="0" width="140" height="52" rx="10" class="node-border" stroke-width="1.5"/>
-      <text x="70" y="22" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="1">YOUR</text>
-      <text x="70" y="38" text-anchor="middle" class="text-primary" font-family="ui-monospace, monospace" font-size="13" font-weight="600">codebase</text>
-    </g>
+  <g transform="translate(165, 150)">
+    <!-- inputs: your code + your docs -->
+    <rect x="0" y="0" width="130" height="24" rx="7" class="node-bg"/>
+    <rect x="0" y="0" width="130" height="24" rx="7" class="node-border" stroke-width="1.5"/>
+    <text x="65" y="16" text-anchor="middle" class="text-primary" font-family="ui-monospace, monospace" font-size="12" font-weight="600">your code</text>
 
-    <line x1="148" y1="26" x2="188" y2="26" class="arrow-stroke flow-line" stroke-width="1.5"/>
-    <polygon points="185,21 195,26 185,31" class="arrow-fill"/>
+    <rect x="0" y="32" width="130" height="24" rx="7" class="node-bg"/>
+    <rect x="0" y="32" width="130" height="24" rx="7" class="node-border" stroke-width="1.5"/>
+    <text x="65" y="48" text-anchor="middle" class="text-secondary" font-family="ui-monospace, monospace" font-size="12" font-weight="600">your docs</text>
 
-    <g transform="translate(200, 0)">
-      <rect x="0" y="0" width="140" height="52" rx="10" class="accent-dim"/>
-      <rect x="0" y="0" width="140" height="52" rx="10" class="accent-stroke" stroke-width="1.5"/>
-      <text x="70" y="22" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="1">PHASE 1</text>
-      <text x="70" y="38" text-anchor="middle" class="accent" font-family="ui-monospace, monospace" font-size="13" font-weight="700">plan</text>
-    </g>
+    <!-- converge into the gate -->
+    <line x1="130" y1="12" x2="198" y2="28" class="arrow-stroke flow-line" stroke-width="1.5"/>
+    <line x1="130" y1="44" x2="198" y2="28" class="arrow-stroke flow-line" stroke-width="1.5"/>
+    <polygon points="195,23 205,28 195,33" class="arrow-fill"/>
 
-    <line x1="348" y1="26" x2="388" y2="26" class="accent-stroke flow-line" stroke-width="1.5"/>
-    <polygon points="385,21 395,26 385,31" class="accent"/>
+    <!-- the deterministic gate -->
+    <rect x="207" y="2" width="176" height="52" rx="10" class="accent-dim"/>
+    <rect x="207" y="2" width="176" height="52" rx="10" class="accent-stroke" stroke-width="1.5"/>
+    <text x="295" y="24" text-anchor="middle" class="accent" font-family="ui-monospace, monospace" font-size="14" font-weight="700">claudux drift</text>
+    <text x="295" y="42" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" letter-spacing="0.5">parse · hash · compare · no AI</text>
 
-    <g transform="translate(400, 0)">
-      <rect x="0" y="0" width="140" height="52" rx="10" class="accent-dim"/>
-      <rect x="0" y="0" width="140" height="52" rx="10" class="accent-stroke" stroke-width="1.5"/>
-      <text x="70" y="22" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="1">PHASE 2</text>
-      <text x="70" y="38" text-anchor="middle" class="accent" font-family="ui-monospace, monospace" font-size="13" font-weight="700">write</text>
-    </g>
+    <!-- to the verdict -->
+    <line x1="383" y1="28" x2="428" y2="28" class="accent-stroke flow-line" stroke-width="1.5"/>
+    <polygon points="425,23 435,28 425,33" class="accent"/>
 
-    <line x1="548" y1="26" x2="588" y2="26" class="green-stroke flow-line" stroke-width="1.5"/>
-    <polygon points="585,21 595,26 585,31" class="green"/>
+    <!-- verdict: pass / fail -->
+    <rect x="440" y="0" width="190" height="24" rx="7" class="green-dim"/>
+    <rect x="440" y="0" width="190" height="24" rx="7" class="green-stroke" stroke-width="1.5"/>
+    <text x="535" y="16" text-anchor="middle" class="green" font-family="ui-monospace, monospace" font-size="12" font-weight="600">✓ docs match code</text>
 
-    <g transform="translate(600, 0)">
-      <rect x="0" y="0" width="160" height="52" rx="10" class="green-dim"/>
-      <rect x="0" y="0" width="160" height="52" rx="10" class="green-stroke" stroke-width="1.5"/>
-      <text x="80" y="22" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="1">OUTPUT</text>
-      <text x="80" y="38" text-anchor="middle" class="green" font-family="ui-monospace, monospace" font-size="13" font-weight="700">VitePress site</text>
-    </g>
+    <rect x="440" y="32" width="190" height="24" rx="7" class="red-dim"/>
+    <rect x="440" y="32" width="190" height="24" rx="7" class="red-stroke" stroke-width="1.5"/>
+    <text x="535" y="48" text-anchor="middle" class="red" font-family="ui-monospace, monospace" font-size="12" font-weight="600">✗ drift → build fails</text>
   </g>
 
-  <text x="480" y="265" text-anchor="middle" class="text-muted" font-family="system-ui, -apple-system, sans-serif" font-size="11">One command. No templates. Always in sync with your code.</text>
+  <text x="480" y="258" text-anchor="middle" class="text-muted" font-family="system-ui, -apple-system, sans-serif" font-size="11">Generate the docs. Then fail CI when they drift from the code.</text>
 </svg>
