@@ -11,21 +11,9 @@ echo ""
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LIB_DIR="$REPO_ROOT/lib"
 
-# --- Test 1: Default backend is "claude" ---
-(
-    unset CLAUDUX_BACKEND 2>/dev/null || true
-    result="${CLAUDUX_BACKEND:-claude}"
-    echo "$result"
-) > /tmp/claudux-test-backend-default 2>&1
-assert_eq "default backend is claude" "claude" "$(cat /tmp/claudux-test-backend-default)"
-
-# --- Test 2: CLAUDUX_BACKEND=codex is respected ---
-(
-    export CLAUDUX_BACKEND=codex
-    result="${CLAUDUX_BACKEND:-claude}"
-    echo "$result"
-) > /tmp/claudux-test-backend-codex 2>&1
-assert_eq "CLAUDUX_BACKEND=codex is respected" "codex" "$(cat /tmp/claudux-test-backend-codex)"
+# Backend defaulting is covered behaviorally by the `claudux check` tests below,
+# which read the value the CLI actually reports rather than re-asserting bash
+# parameter expansion.
 
 # --- Test 3: bin/claudux sources codex-utils.sh when backend=codex ---
 codex_source_block=$(sed -n '/Source Codex backend/,/^fi$/p' "$REPO_ROOT/bin/claudux")

@@ -110,8 +110,7 @@ DETERMINISTIC MANIFEST RULE:
     warn "🤖 Claude analyzing documentation for obsolete content..."
     echo ""
     
-    claude api "$cleanup_prompt" \
-        --print \
+    claude -p "$cleanup_prompt" \
         --permission-mode acceptEdits \
         --allowedTools "Read,Write,Bash" \
         --verbose \

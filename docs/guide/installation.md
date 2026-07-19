@@ -21,7 +21,7 @@ claudux supports Claude (default) and Codex as backends. Install at least one:
 
 ```bash
 # Claude (default backend)
-npm install -g @anthropic-ai/claude-cli
+npm install -g @anthropic-ai/claude-code
 claude config  # authenticate
 
 # Codex (alternative backend)
@@ -97,7 +97,7 @@ Example output:
 **Backend CLI not found**
 ```bash
 # For Claude (default)
-npm install -g @anthropic-ai/claude-cli
+npm install -g @anthropic-ai/claude-code
 claude config
 
 # For Codex

@@ -102,7 +102,7 @@ CLAUDUX_BACKEND=codex claudux update
 ## Requirements
 
 - Node.js >= 18
-- An authenticated AI CLI: [Claude CLI](https://docs.anthropic.com/claude/docs/claude-cli) (default) or [Codex CLI](https://github.com/openai/codex)
+- An authenticated AI CLI: [Claude Code](https://www.npmjs.com/package/@anthropic-ai/claude-code) (default) or [Codex CLI](https://github.com/openai/codex)
 
 ---
 

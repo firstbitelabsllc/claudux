@@ -64,18 +64,30 @@ export WORKING_DIR
 # Always work from the directory where the user called the script
 cd "$WORKING_DIR" || exit 1
 
-# Check if we're in a git repository and auto-cd to project root
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo "⚠️  No git repository found. Are you in the right directory?"
-    echo "   Run claudux from your project root (where .git lives)"
-    exit 1
-fi
+# Informational commands answer from anywhere; everything else needs a repo.
+case "${1:-}" in
+    "--version"|"version"|-V|"--help"|"-h"|"help")
+        CLAUDUX_SKIP_GIT_GATE=true
+        ;;
+    *)
+        CLAUDUX_SKIP_GIT_GATE=false
+        ;;
+esac
 
-# Auto-cd to git root if we're in a subdirectory
-PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-if [[ "$PWD" != "$PROJECT_ROOT" ]]; then
-    echo "📍 Changing to project root: $PROJECT_ROOT" >&2
-    cd "$PROJECT_ROOT" || exit 1
+# Check if we're in a git repository and auto-cd to project root
+if [[ "$CLAUDUX_SKIP_GIT_GATE" != "true" ]]; then
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo "⚠️  No git repository found. Are you in the right directory?"
+        echo "   Run claudux from your project root (where .git lives)"
+        exit 1
+    fi
+
+    # Auto-cd to git root if we're in a subdirectory
+    PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ "$PWD" != "$PROJECT_ROOT" ]]; then
+        echo "📍 Changing to project root: $PROJECT_ROOT" >&2
+        cd "$PROJECT_ROOT" || exit 1
+    fi
 fi
 
 # Determine lib directory location
@@ -191,7 +203,7 @@ validate_dependencies() {
     else
         if ! command -v claude >/dev/null 2>&1; then
             echo "ERROR: Claude CLI is required but not installed" >&2
-            echo "  Install with: npm install -g @anthropic-ai/claude-cli" >&2
+            echo "  Install with: npm install -g @anthropic-ai/claude-code" >&2
             has_errors=true
         fi
     fi
@@ -261,7 +273,7 @@ main() {
     # Only validate dependencies for commands that need the LLM backend.
     # Unknown commands skip validation and fall through to the error handler.
     case "${1:-}" in
-        "update"|"template"|""|"serve"|"server"|"dev")
+        "update"|"template"|"")
             validate_dependencies
             # Acquire lock for commands that modify files
             acquire_lock
