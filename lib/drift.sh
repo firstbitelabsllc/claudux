@@ -593,6 +593,24 @@ save_drift_lock() {
     _drift_run_node write
 }
 
+# Keep an ALREADY-ADOPTED drift lock in lockstep with regenerated docs. Called
+# from the 'claudux update' flow so the committed baseline never goes stale
+# behind a doc regeneration: without this, an 'update' that changes both a
+# covered source and its doc leaves the lock on the OLD doc hash, and every later
+# source-only edit to that unit slips past the gate (its doc hash stays != the
+# stale lock). This makes the README promise that 'claudux update' refreshes the
+# lock actually true. Adoption itself stays explicit via 'claudux drift --accept';
+# this only refreshes a lock that already exists, and is always best-effort so a
+# lock-write hiccup never fails generation.
+refresh_drift_lock_if_adopted() {
+    local lock_file="${CLAUDUX_DRIFT_LOCK_FILE:-$DRIFT_LOCK_FILE}"
+    [[ -f "$lock_file" ]] || return 0
+    if ! save_drift_lock >/dev/null 2>&1; then
+        warn "Could not refresh ${lock_file}; run 'claudux drift --accept' to re-baseline."
+    fi
+    return 0
+}
+
 # The gate. Prints a report ($1 = json|human) and returns:
 #   0 = no drift / no baseline / degraded (Node absent)
 #   1 = drift detected

@@ -197,6 +197,40 @@ out=$(run_check "$DIR" json)
 assert_contains "corrupt lock exits 2" "$out" "rc:2"
 rm -rf "$DIR"
 
+# --- Test 10b: 'update' refresh keeps the lock fresh (no stale-lock blind spot) ---
+# Regression for the reviewer's scenario: editing a covered source AND its doc
+# without re-baselining leaves the lock on the old doc hash, silently blinding
+# every later source-only edit. The update flow calls refresh_drift_lock_if_adopted,
+# so the committed baseline moves with the docs and future edits are still caught.
+DIR=$(setup_repo significant)
+baseline "$DIR"
+# Regeneration edits both the source and its owning doc together.
+printf '#!/bin/bash\n# ui helpers\nshow_menu() {\n  local mode="--turbo"\n  echo "$mode"\n}\n' > "$DIR/lib/ui.sh"
+printf '# Commands\n\nThe menu uses --turbo mode.\n' > "$DIR/docs/guide/commands.md"
+(
+    cd "$DIR" || exit 99
+    unset CLAUDUX_DRIFT_SENSITIVITY
+    source "$LIB_DIR/docs-manifest.sh"; source "$LIB_DIR/drift.sh"
+    refresh_drift_lock_if_adopted
+)
+# A later source-only edit MUST drift — the lock is fresh, not stale.
+printf '#!/bin/bash\n# ui helpers\nshow_menu() {\n  local mode="--rocket"\n  echo "$mode"\n}\n' > "$DIR/lib/ui.sh"
+out=$(run_check "$DIR" json)
+assert_contains "refreshed lock still catches later source-only edit (exit 1)" "$out" "rc:1"
+rm -rf "$DIR"
+
+# --- Test 10c: refresh_drift_lock_if_adopted is a no-op without an adopted lock ---
+DIR=$(setup_repo significant)
+adopted=$(
+    cd "$DIR" || exit 99
+    unset CLAUDUX_DRIFT_SENSITIVITY
+    source "$LIB_DIR/docs-manifest.sh"; source "$LIB_DIR/drift.sh"
+    refresh_drift_lock_if_adopted
+    [[ -f docs-drift-lock.json ]] && echo "lock:created" || echo "lock:absent"
+)
+assert_eq "no lock is created for un-adopted repos" "lock:absent" "$adopted"
+rm -rf "$DIR"
+
 # --- Test 10: surface mode — body-only change no drift, new symbol drifts ---
 DIR=$(setup_repo surface)
 baseline "$DIR"

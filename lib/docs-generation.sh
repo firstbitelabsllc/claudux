@@ -337,6 +337,13 @@ refresh_deterministic_generation_caches() {
     if declare -F capture_docs_structure_guard_snapshot >/dev/null 2>&1; then
         capture_docs_structure_guard_snapshot || return 1
     fi
+
+    # Re-baseline an adopted drift lock alongside the other deterministic
+    # baselines so the gate never goes stale behind this regeneration. Best-effort
+    # (only touches an existing lock; never fails the run).
+    if declare -F refresh_drift_lock_if_adopted >/dev/null 2>&1; then
+        refresh_drift_lock_if_adopted || true
+    fi
 }
 
 retain_generation_debug_log() {
