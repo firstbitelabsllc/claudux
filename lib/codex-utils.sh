@@ -64,6 +64,26 @@ get_codex_model_settings() {
 }
 
 # Run Codex non-interactively with a prompt
+# Resolve the Codex stderr log path.
+#
+# Defaults into the per-user temp dir rather than shared /tmp, and refuses to
+# append through a symlink or a file owned by someone else. Codex stderr can
+# carry auth failures, so on a multi-user host a predictable world-writable
+# path is both a redirect target and an info leak.
+codex_stderr_log_path() {
+    local tmpdir="${TMPDIR:-/tmp}"
+    tmpdir="${tmpdir%/}"
+    local path="${CODEX_STDERR_LOG:-$tmpdir/claudux-codex-stderr.log}"
+
+    if [[ -L "$path" || ( -e "$path" && ! -O "$path" ) ]]; then
+        path=$(mktemp "$tmpdir/claudux-codex-stderr-XXXXXX" 2>/dev/null || mktemp)
+    elif [[ ! -e "$path" ]]; then
+        (umask 077; : > "$path") 2>/dev/null || path=$(mktemp)
+    fi
+
+    echo "$path"
+}
+
 # Usage: run_codex_exec "prompt text" [output_file]
 # Stdout: JSONL events only.  Stderr: sent to CODEX_STDERR_LOG (default /tmp/claudux-codex-stderr.log).
 # Respects CLAUDUX_TIMEOUT (seconds). Default: 600 (10 min). Set 0 to disable.
@@ -72,9 +92,13 @@ run_codex_exec() {
     local output_file="${2:-}"
     local model="${CODEX_MODEL:-gpt-5.4}"
     local effort="${CODEX_REASONING_EFFORT:-xhigh}"
-    local stderr_log="${CODEX_STDERR_LOG:-/tmp/claudux-codex-stderr.log}"
+    local stderr_log
+    stderr_log="$(codex_stderr_log_path)"
     local timeout_secs="${CLAUDUX_TIMEOUT:-600}"
-    local sandbox_mode="${CODEX_SANDBOX_MODE:-danger-full-access}"
+    # Docs generation only ever writes inside the project, so the default stays
+    # workspace-scoped. Prompts are built from whatever repo the user points
+    # claudux at; full-filesystem write is far more authority than the job needs.
+    local sandbox_mode="${CODEX_SANDBOX_MODE:-workspace-write}"
 
     if [[ "${CLAUDUX_SECTION_PATCH_MODE:-}" == "1" ]]; then
         sandbox_mode="${CODEX_SANDBOX_MODE:-read-only}"
