@@ -146,6 +146,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
 
       - name: Install docs dependencies
         working-directory: docs
@@ -166,6 +168,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Root lockfile matches package metadata
         run: |
