@@ -61,7 +61,7 @@
   </g>
 
   <text x="480" y="70" text-anchor="middle" class="text-primary" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="700" letter-spacing="-2">claudux</text>
-  <text x="480" y="100" text-anchor="middle" class="text-secondary" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="400">Production-ready docs from your code.</text>
+  <text x="480" y="100" text-anchor="middle" class="text-secondary" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="400">Keep your docs true to your code.</text>
 
   <g transform="translate(100, 140)">
     <g transform="translate(0, 0)">

@@ -86,7 +86,7 @@ assert_contains "check shows codex model" "$check_block" 'CODEX_MODEL'
 ) > /tmp/claudux-test-header-claude 2>&1
 assert_contains "default header mentions Claude AI" \
     "$(cat /tmp/claudux-test-header-claude)" \
-    "Powered by Claude AI"
+    "powered by Claude AI"
 
 # --- Test 12: show_header switches to Codex when CLAUDUX_BACKEND=codex ---
 (
@@ -97,13 +97,13 @@ assert_contains "default header mentions Claude AI" \
 ) > /tmp/claudux-test-header-codex 2>&1
 assert_contains "codex header mentions Codex" \
     "$(cat /tmp/claudux-test-header-codex)" \
-    "Powered by Codex (gpt-5.5, xhigh reasoning)"
+    "powered by Codex (gpt-5.5, xhigh reasoning)"
 assert_not_contains "codex header does NOT hardcode GPT-5.4" \
     "$(cat /tmp/claudux-test-header-codex)" \
     "GPT-5.4"
 assert_not_contains "codex header does NOT say Claude AI" \
     "$(cat /tmp/claudux-test-header-codex)" \
-    "Powered by Claude AI"
+    "powered by Claude AI"
 
 # --- Test 13: Claude-specific model lookup lives inside run_claude_once ---
 # Regression guard for the dog-food finding that CLAUDUX_BACKEND=codex printed

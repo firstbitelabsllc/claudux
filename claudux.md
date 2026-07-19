@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Claudux is a Bash-based CLI tool that leverages Claude AI to automatically generate comprehensive documentation for software projects. It follows a modular shell scripting architecture with clear separation of concerns across functionality-specific library modules.
+Claudux is a Bash-based CLI tool that keeps documentation true to the code it describes. It generates VitePress docs (via Claude or Codex), then checks in CI — deterministically, with no AI on the pass/fail path — that each doc section still matches the source it documents. It follows a modular shell scripting architecture with clear separation of concerns across functionality-specific library modules.
 
 ### What this file is (and isn't)
 
