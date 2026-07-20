@@ -66,7 +66,7 @@ cd "$WORKING_DIR" || exit 1
 
 # Informational commands answer from anywhere; everything else needs a repo.
 case "${1:-}" in
-    "--version"|"version"|-V|"--help"|"-h"|"help")
+    "--version"|"version"|-V|"--help"|"-h"|"help"|"check"|"--check")
         CLAUDUX_SKIP_GIT_GATE=true
         ;;
     *)
