@@ -79,6 +79,15 @@ is_protected_path() {
     if [[ "$path" =~ \.(env|key|pem|p12|keystore)$ ]]; then
         return 0
     fi
-    
+
+    return 1
+}
+
+# Return 0 when a path is a protected secret file (delegates to is_protected_path).
+is_protected_secret() {
+    local path="$1"
+    if [[ "$path" =~ \.(env|key|pem|p12|keystore)$ ]]; then
+        return 0
+    fi
     return 1
 }
