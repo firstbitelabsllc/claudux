@@ -16,7 +16,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    # GitHub-hosted runner: the public docs site is the launch-facing surface,
+    # so its deploy must not depend on third-party runner availability.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,7 +55,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

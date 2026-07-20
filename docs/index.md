@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: claudux
-  text: Docs that re-run with the code
-  tagline: Local CLI that turns a codebase into maintained VitePress guides. You own structure; Claude or Codex proposes wording.
+  text: Docs that fail CI when they stop matching the code
+  tagline: A deterministic doc/code drift gate. Parse, hash, compare, exit. No API key, no network, no model on the pass/fail path. It also generates VitePress docs.
   actions:
     - theme: brand
       text: Get Started
@@ -14,44 +14,50 @@ hero:
       link: https://github.com/firstbitelabsllc/claudux
 
 features:
+  - icon: 🚨
+    title: The drift gate
+    details: "`claudux drift` fails the build when a documented source file changed but its doc section didn't. It names the doc, the source, and the fix."
+  
+  - icon: 🔑
+    title: Keyless and offline
+    details: The gate reads a committed lockfile and the working tree. No API key, no network call, no model. It runs the same on your laptop and on a bare CI runner.
+  
+  - icon: 🎚️
+    title: A sensitivity knob
+    details: "`significant` is the default. It ignores whitespace, blank lines, and comment churn, so the gate fires on real changes instead of reformatting."
+  
   - icon: 🔄
-    title: Re-runnable updates
-    details: Re-run `claudux update` when the product changes. Prefer deterministic manifests when structure is part of the product.
+    title: Re-baseline on purpose
+    details: "Read the diff, decide the docs are fine, run `claudux drift --accept`. It updates the lockfile the way `npm install` updates `package-lock.json`."
   
   - icon: 🧠
-    title: Backend-aware, not hosted-only
-    details: Uses your authenticated Claude or Codex CLI on the machine. No built-in cloud API key path.
+    title: Generation stays local
+    details: Uses your authenticated Claude or Codex CLI on the machine. No built-in cloud API key path. AI only ever suggests a fix after a deterministic flag.
   
   - icon: ⚡
     title: VitePress output
     details: Ships a navigable static docs site you can preview with `claudux serve` and validate with link checks.
-  
-  - icon: 🔒
-    title: Local orchestration
-    details: The CLI runs on your machine. Skip markers and path denylists protect sensitive blocks and files.
-  
-  - icon: 🍰
-    title: Low config default
-    details: Detects common project types out of the box. Add `docs-structure.json` when you need pinned structure.
-  
-  - icon: 🔗
-    title: Link validation
-    details: Built-in validation catches broken internal links. Review still matters; the model can be wrong.
 ---
 
 ## Quick Start
 
+The drift gate ships in source (1.2.0). npm still serves 1.1.1, which has no `claudux drift`, so install from source until the 1.2.0 publish lands:
+
 ```bash
-# Install globally
-npm install -g claudux
-
-# Generate docs for your project
-cd your-project
-claudux update
-
-# Preview locally  
-claudux serve  # http://localhost:5173
+npm i -g firstbitelabsllc/claudux
 ```
+
+```bash
+cd your-project
+
+claudux drift --accept   # commit the baseline once
+claudux drift            # exits 1 when a doc falls behind its code
+
+claudux update           # generate or update the VitePress docs
+claudux serve            # preview at http://localhost:5173
+```
+
+Then run `claudux drift` in CI on every push. It needs no secrets.
 
 ## See It In Action
 
@@ -59,21 +65,30 @@ claudux serve  # http://localhost:5173
   <img src="/assets/terminal-demo.svg" alt="claudux update terminal session" style="width: 100%; max-width: 800px;" />
 </p>
 
-## The Problem Every Developer Knows
+## Why this exists
 
-**Documentation debt is killing your productivity.** You ship features, but docs lag behind. New team members struggle to onboard. You spend weekends writing docs instead of building.
+Anyone can generate docs now. The problem is proving they still match the code a week later.
 
-## How It Works
+Stale docs are the ones nobody notices until something acts on a lie. That is getting more expensive, not less, because the primary reader of your docs is shifting from a human to an agent. A human skims a wrong doc and shrugs. An agent reads it, believes it, and calls your API the wrong way.
 
-Claudux uses a **two-phase flow** to produce reliable docs:
+So claudux checkpoints which source files each doc section describes, and fails the build when the source moved and the doc didn't.
 
-1. **🧠 Plan**: Analyze source code and produce a navigable outline + VitePress config
-2. **✍️ Write**: Generate pages with correct links, breadcrumbs, and cross-references
+## How the gate works
+
+Parse, hash, compare, exit. No model is involved in the pass/fail decision.
+
+1. **Baseline**: `claudux drift --accept` writes `docs-drift-lock.json`, a committed, timestamp-free record of each source file's hash and each doc section's hash.
+2. **Compare**: `claudux drift` re-hashes both sides and looks for one condition — a source file a section claims to document changed, and that section's body did not.
+3. **Exit**: `0` when clean, `1` on drift with the doc, the source, and the fix printed, `2` on an environment error. It never exits 0 to hide a problem.
 
 ## Commands Overview
 
 | Command | Purpose |
 |---------|---------|
+| `claudux drift` | Fail the build when a documented source changed but its doc didn't |
+| `claudux drift --accept` | Re-baseline `docs-drift-lock.json` after reviewing the diff |
+| `claudux drift --json` | Machine-readable drift report for CI |
+| `claudux drift --warn-only` | Report drift and always exit 0 (local pre-commit) |
 | `claudux` | Interactive menu (adapts to project state) |
 | `claudux update` | Generate/update docs (includes cleanup and validation) |
 | `claudux update -m "..."` | Update with a focused directive |
@@ -107,7 +122,7 @@ CLAUDUX_BACKEND=codex claudux update
 ---
 
 <div style="text-align: center; margin-top: 40px;">
-  <strong>Keep your docs as fresh as your code.</strong><br>
-  <a href="https://www.npmjs.com/package/claudux">📦 Install from npm</a> • 
+  <strong>Keep your docs true to your code.</strong><br>
+  <a href="https://github.com/firstbitelabsllc/claudux#install">📦 Install</a> • 
   <a href="https://github.com/firstbitelabsllc/claudux">⭐ Star on GitHub</a>
 </div>

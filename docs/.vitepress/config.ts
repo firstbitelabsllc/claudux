@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'claudux',
-  description: 'AI-powered documentation generator for your codebase using Claude Code and VitePress',
+  description: 'Deterministic doc/code drift checks for VitePress docs. Keyless, offline, CI-enforced. Plus AI generation.',
   base: process.env.DOCS_BASE || '/',
   
   // Ignore localhost links during static builds
@@ -14,7 +14,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#5f67ee' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'en' }],
-    ['meta', { property: 'og:title', content: 'claudux Documentation' }],
+    ['meta', { property: 'og:title', content: 'claudux — docs that fail CI when they stop matching the code' }],
     ['meta', { property: 'og:site_name', content: 'claudux Docs' }],
     ['meta', { property: 'og:url', content: '/' }],
   ],
@@ -44,6 +44,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Commands', link: '/guide/commands' },
             { text: 'Configuration', link: '/guide/configuration' }
           ]
@@ -53,6 +54,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
             { text: 'Audit Snapshots', link: '/features/audit-snapshots' },
             { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
@@ -86,6 +88,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Commands', link: '/guide/commands' },
             { text: 'Configuration', link: '/guide/configuration' }
           ]
@@ -97,6 +100,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
             { text: 'Audit Snapshots', link: '/features/audit-snapshots' },
             { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
