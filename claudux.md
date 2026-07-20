@@ -71,7 +71,7 @@ source "$LIB_DIR/ui.sh"
 The main script uses a **case-based command dispatcher** for routing CLI commands:
 
 ```bash
-# bin/claudux:220-336
+# bin/claudux — main dispatcher
 main() {
     case "${1:-}" in
         "update")
@@ -237,7 +237,10 @@ claudux/
 │   ├── cleanup.sh           # Obsolete file cleanup
 │   ├── server.sh            # VitePress dev server
 │   ├── ui.sh                # Interactive menu system
-│   └── validate-links.sh    # Link validation utilities
+│   ├── validate-links.sh    # Link validation utilities
+│   ├── audit.sh             # No-AI readiness report (claudux audit)
+│   ├── codex-utils.sh       # Codex backend adapter
+│   └── docs-manifest.sh     # docs-structure.json manifest contract
 └── lib/templates/           # Project-type specific templates
 ```
 
@@ -292,13 +295,12 @@ The project uses a **structured two-phase approach** for AI generation:
 The project wraps Claude API calls with **structured parameters**:
 
 ```bash
-# lib/cleanup.sh:41-46
-claude api "$cleanup_prompt" \
-    --print \
+# lib/cleanup.sh
+claude -p "$cleanup_prompt" \
     --permission-mode acceptEdits \
     --allowedTools "Read,Write,Bash" \
     --verbose \
-    --model "${FORCE_MODEL:-opus}"
+    --model "${FORCE_MODEL:-sonnet}"
 ```
 
 **Why this pattern?**
@@ -383,9 +385,8 @@ is_protected_path() {
 The project provides detailed output for debugging:
 
 ```bash
-# All Claude API calls include:
+# Backend invocations include:
 --verbose  # Detailed operation logging
---print    # Show AI responses
 ```
 
 ### 2. Exit Code Handling

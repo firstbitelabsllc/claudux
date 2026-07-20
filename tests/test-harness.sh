@@ -40,7 +40,7 @@ assert_contains() {
     local haystack="$2"
     local needle="$3"
     ((TESTS_RUN++))
-    if echo "$haystack" | grep -qF "$needle"; then
+    if echo "$haystack" | grep -qF -- "$needle"; then
         ((TESTS_PASSED++))
         printf "${_GREEN}  PASS${_NC} %s\n" "$label"
     else
@@ -57,7 +57,7 @@ assert_not_contains() {
     local haystack="$2"
     local needle="$3"
     ((TESTS_RUN++))
-    if ! echo "$haystack" | grep -qF "$needle"; then
+    if ! echo "$haystack" | grep -qF -- "$needle"; then
         ((TESTS_PASSED++))
         printf "${_GREEN}  PASS${_NC} %s\n" "$label"
     else

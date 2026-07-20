@@ -249,6 +249,10 @@ cat > docs/package.json << EOF
     "typescript": "^5.0.0",
     "vue": "^3.4.0",
     "@types/node": "^18.0.0"
+  },
+  "overrides": {
+    "vite": "^5.4.21",
+    "esbuild": "^0.25.0"
   }
 }
 EOF
