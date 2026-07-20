@@ -41,10 +41,8 @@ features:
 
 ## Quick Start
 
-The drift gate ships in source (1.2.0). npm still serves 1.1.1, which has no `claudux drift`, so install from source until the 1.2.0 publish lands:
-
 ```bash
-npm i -g firstbitelabsllc/claudux
+npm install -g claudux
 ```
 
 ```bash
