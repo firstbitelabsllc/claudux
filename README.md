@@ -55,6 +55,14 @@ npm install -g claudux
 
 Or run it without installing: `npx claudux drift`.
 
+No npm? Install straight from GitHub (clones the repo, symlinks onto your PATH):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
+```
+
+This tracks `main`, so you get the latest without waiting on a registry release. Pin a version with `CLAUDUX_REF=v1.2.0`. Re-run it any time to update.
+
 Requirements: Node 18+. Generation needs an authenticated Claude CLI (default) or Codex CLI on the machine; there is no hosted API key path. The drift gate needs neither. It is keyless and runs offline.
 
 ## Quick start

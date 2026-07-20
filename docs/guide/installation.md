@@ -59,6 +59,18 @@ npm install --save-dev claudux
 npx claudux update
 ```
 
+### Without npm (curl)
+
+claudux is a bash CLI, so you can install it without the npm registry at all. The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claudux` onto your PATH:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
+```
+
+- Tracks `main` by default — pin a branch, tag, or commit with `CLAUDUX_REF`, e.g. `CLAUDUX_REF=v1.2.0`.
+- Re-run any time to update in place (idempotent).
+- Falls back to a tarball download if `git` is not present; still needs Node 18+.
+
 ### From Source
 
 ```bash
