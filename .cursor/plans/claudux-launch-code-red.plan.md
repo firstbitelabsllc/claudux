@@ -66,6 +66,27 @@ When a cycle finds only LEO-GATED work reachable, it parks with a resume predica
   - **Green:** `claudux drift --accept` re-baselined the lock → same gate **PASSED**, [run 29710745539](https://github.com/firstbitelabsllc/claudux/actions/runs/29710745539/job/88254128111). Red→green closed on one PR. #92 closed without merge (demo, not a feature); worktree + branch torn down.
   - **Mission terminal-condition status:** own-CI dogfood (R1) ✅ **AND** second real repo (R3, resplit-web) ✅ **AND** full green gate (R4, 318/318) ✅ — the credibility spine is closed. The launch question ("real deterministic lint or AI wrapper?") is answered on the real surface: keyless, offline, ~15s, LLM never on the pass/fail path, and claudux's own red X is on the record. Remaining rows are P2 polish (R5 pre-commit/README "Add to CI", R6 headless-render proof) + LEO-gated publish 1.2.0.
 
+- 2026-07-20 — **Cycle 3 (cont.): R5 ✅ + R6 ✅ — all agent-completable rows now closed.**
+  - **R5** (PR #95, merged): added the `--warn-only` pre-commit hook example the drift-gate section referenced by flag but never showed. Both snippets **copy-run verified, not assumed**: (a) CI snippet — `npm pack firstbitelabsllc/claudux` resolves the GitHub shorthand → `claudux-1.2.0.tgz` (54 files, `bin: claudux → ./bin/claudux`); installed that tarball to an isolated prefix and ran the bin as CI would → `claudux drift --json` in a fresh git repo returns exit 0 with `{"ready":true,"skipped":[{"reason":"no-baseline"}]}`. (b) pre-commit snippet — installed the hook in a clone of `origin/main` with REAL drift present; the commit printed the full report naming `lib/content-protection.sh` + the fix and **still landed** (`c843428`), which is exactly what `--warn-only` promises.
+  - **R6** (headless Playwright CLI, light + dark, 1280×1400 @2x): live GitHub README renders correctly in **both** schemes. `terminal-demo.svg` **is served and painted** (`/raw/main/assets/terminal-demo.svg`, naturalWidth 300×120, scaled by `width="100%"`) — **no GitHub `<img>` sanitizer problem**, which was R6's named risk. Comparison table renders (8 rows, staleness row present, 417px). Drift-verdict headline, "The drift gate" section, and the new `--warn-only` content all present. Zero broken images in either scheme. Screenshots read back visually, not just asserted from the DOM. One false alarm checked and cleared: the `--warn-only` code span *looked* like an em dash at downscaled resolution; DOM confirms `<code>--warn-only</code>` with two genuine `U+002D` hyphens, so GitHub is not applying smart punctuation.
+  - **Side effect I caused and reverted:** while installing the test hook, `git rev-parse --git-path hooks/pre-commit` run **from a worktree** resolved to the MAIN checkout (in a worktree `.git` is a file, not a directory), so a hook was briefly written into `/Users/leokwan/Development/claudux/.git/hooks/`. Verified nothing was clobbered (dir held only `.sample` files; no `core.hooksPath`, no husky) and removed it — main checkout left exactly as found. The real hook test was then run in an isolated clone. Lesson: never write to `.git/` paths from a worktree without checking where they resolve.
+  - **Row status: R1–R6 all ✅.** The only remaining mission element is the LEO-GATED publish, parked below as a handoff — NOT a stop, NOT blocked.
+
+### LEO handoff — publish 1.2.0 (ready, one command)
+
+Everything agent-side is done. Receipts as of `origin/main`:
+
+- npm registry currently serves **1.1.1**; this repo is **1.2.0** (so `claudux drift` does not exist for npm users yet — the README's "install from source" caveat is still accurate and should be removed *after* this publish).
+- `npm pack --dry-run` clean: `claudux-1.2.0.tgz`, 96.7 kB packed / 347.8 kB unpacked, 54 files.
+- `npm whoami` fails → login genuinely required; this is a real gate, not ceremony.
+
+```bash
+cd ~/Development/claudux && git fetch origin && git checkout origin/main
+npm login && npm publish
+```
+
+**Warning before publishing via CI instead:** `publish.yml` still targets the Blacksmith runner, which has not executed a job since 2026-07-19T17:17Z. A CI-triggered publish would sit `queued` silently rather than fail loudly. Publish locally with the command above, or move `publish.yml` to `ubuntu-latest` first.
+
 ## Fleet coordination
 
 Single owner per cycle. Fresh-read this PLAN + live claims + `origin/main` before write ownership; claim one unowned row; park conflicts as `waiting_on_owner` and rerank. Checkpoint only on material claim-state change. This is the ONLY executor for this mission; the `cost-100x` provider-control goal is a SEPARATE mission with its own PLAN — do not merge or collide.
