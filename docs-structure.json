@@ -1,14 +1,34 @@
 {
   "version": 1,
-  "drift_sensitivity": "surface",
+  "drift_sensitivity": "significant",
   "purpose": "Deterministic documentation structure for the claudux VitePress site.",
   "deletion_policy": "manifest_pages_require_manifest_change",
   "generated_sections_default": "bounded_patch",
   "navigation": [
-    { "id": "guide", "title": "Guide", "link": "/guide/", "order": 1 },
-    { "id": "features", "title": "Features", "link": "/features/", "order": 2 },
-    { "id": "technical", "title": "Technical", "link": "/technical/", "order": 3 },
-    { "id": "api", "title": "API", "link": "/api/", "order": 4 }
+    {
+      "id": "guide",
+      "title": "Guide",
+      "link": "/guide/",
+      "order": 1
+    },
+    {
+      "id": "features",
+      "title": "Features",
+      "link": "/features/",
+      "order": 2
+    },
+    {
+      "id": "technical",
+      "title": "Technical",
+      "link": "/technical/",
+      "order": 3
+    },
+    {
+      "id": "api",
+      "title": "API",
+      "link": "/api/",
+      "order": 4
+    }
   ],
   "pages": [
     {
@@ -18,7 +38,11 @@
       "nav_group": "home",
       "order": 1,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["README.md", "package.json", "bin/claudux"]
+      "source_patterns": [
+        "README.md",
+        "package.json",
+        "bin/claudux"
+      ]
     },
     {
       "id": "guide.index",
@@ -27,7 +51,10 @@
       "nav_group": "guide",
       "order": 10,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["README.md", "docs/guide/**"]
+      "source_patterns": [
+        "README.md",
+        "docs/guide/**"
+      ]
     },
     {
       "id": "guide.installation",
@@ -36,7 +63,10 @@
       "nav_group": "guide",
       "order": 20,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["package.json", "README.md"]
+      "source_patterns": [
+        "package.json",
+        "README.md"
+      ]
     },
     {
       "id": "guide.commands",
@@ -45,7 +75,12 @@
       "nav_group": "guide",
       "order": 30,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["bin/claudux", "lib/ui.sh", "lib/docs-generation.sh", "lib/audit.sh"]
+      "source_patterns": [
+        "bin/claudux",
+        "lib/ui.sh",
+        "lib/docs-generation.sh",
+        "lib/audit.sh"
+      ]
     },
     {
       "id": "guide.configuration",
@@ -54,7 +89,12 @@
       "nav_group": "guide",
       "order": 40,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["claudux.json", "claudux.md", "lib/project.sh", "lib/ui.sh"]
+      "source_patterns": [
+        "claudux.json",
+        "claudux.md",
+        "lib/project.sh",
+        "lib/ui.sh"
+      ]
     },
     {
       "id": "features.index",
@@ -63,7 +103,11 @@
       "nav_group": "features",
       "order": 50,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["lib/**", "README.md", "docs/features/**"]
+      "source_patterns": [
+        "lib/**",
+        "README.md",
+        "docs/features/**"
+      ]
     },
     {
       "id": "features.two-phase-generation",
@@ -72,7 +116,11 @@
       "nav_group": "features",
       "order": 60,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["lib/docs-generation.sh", "lib/claude-utils.sh", "lib/codex-utils.sh"]
+      "source_patterns": [
+        "lib/docs-generation.sh",
+        "lib/claude-utils.sh",
+        "lib/codex-utils.sh"
+      ]
     },
     {
       "id": "features.audit-snapshots",
@@ -81,7 +129,13 @@
       "nav_group": "features",
       "order": 65,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["bin/claudux", "lib/audit.sh", "lib/docs-generation.sh", "lib/docs-manifest.sh", "tests/run-tests.sh"]
+      "source_patterns": [
+        "bin/claudux",
+        "lib/audit.sh",
+        "lib/docs-generation.sh",
+        "lib/docs-manifest.sh",
+        "tests/run-tests.sh"
+      ]
     },
     {
       "id": "features.smart-cleanup",
@@ -90,7 +144,10 @@
       "nav_group": "features",
       "order": 70,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["lib/cleanup.sh", "lib/content-protection.sh"]
+      "source_patterns": [
+        "lib/cleanup.sh",
+        "lib/content-protection.sh"
+      ]
     },
     {
       "id": "features.content-protection",
@@ -99,7 +156,10 @@
       "nav_group": "features",
       "order": 80,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["lib/content-protection.sh", "lib/templates/protection-examples.md"]
+      "source_patterns": [
+        "lib/content-protection.sh",
+        "lib/templates/protection-examples.md"
+      ]
     },
     {
       "id": "technical.index",
@@ -108,7 +168,12 @@
       "nav_group": "technical",
       "order": 90,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["bin/claudux", "lib/**", "ARCHITECTURE.md", "docs-structure.json"]
+      "source_patterns": [
+        "bin/claudux",
+        "lib/**",
+        "ARCHITECTURE.md",
+        "docs-structure.json"
+      ]
     },
     {
       "id": "technical.templates",
@@ -117,7 +182,10 @@
       "nav_group": "technical",
       "order": 100,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["lib/templates/**", "lib/vitepress/**"]
+      "source_patterns": [
+        "lib/templates/**",
+        "lib/vitepress/**"
+      ]
     },
     {
       "id": "technical.deterministic-generation",
@@ -141,14 +209,19 @@
           "heading": "Why Large Repos Need a Manifest",
           "level": 2,
           "pinned": true,
-          "source_patterns": ["docs-structure.json"]
+          "source_patterns": [
+            "docs-structure.json"
+          ]
         },
         {
           "id": "pipeline",
           "heading": "Pipeline",
           "level": 2,
           "pinned": true,
-          "source_patterns": ["lib/docs-generation.sh", "lib/docs-manifest.sh"]
+          "source_patterns": [
+            "lib/docs-generation.sh",
+            "lib/docs-manifest.sh"
+          ]
         },
         {
           "id": "section-patch-application",
@@ -175,7 +248,9 @@
           "id": "docs-structure-json-manifest",
           "heading": "docs-structure.json Manifest",
           "level": 2,
-          "source_patterns": ["docs-structure.json"]
+          "source_patterns": [
+            "docs-structure.json"
+          ]
         },
         {
           "id": "pinned-pages-and-sections",
@@ -242,7 +317,10 @@
       "nav_group": "reference",
       "order": 120,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["README.md", "docs/examples/**"]
+      "source_patterns": [
+        "README.md",
+        "docs/examples/**"
+      ]
     },
     {
       "id": "examples.vidux-team-agents",
@@ -265,7 +343,11 @@
       "nav_group": "api",
       "order": 130,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["bin/claudux", "lib/*.sh", "tests/run-tests.sh"]
+      "source_patterns": [
+        "bin/claudux",
+        "lib/*.sh",
+        "tests/run-tests.sh"
+      ]
     },
     {
       "id": "troubleshooting",
@@ -274,7 +356,11 @@
       "nav_group": "reference",
       "order": 140,
       "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": ["bin/claudux", "lib/*.sh", "README.md"]
+      "source_patterns": [
+        "bin/claudux",
+        "lib/*.sh",
+        "README.md"
+      ]
     }
   ]
 }

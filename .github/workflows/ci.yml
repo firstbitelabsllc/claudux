@@ -210,3 +210,21 @@ jobs:
           }
           console.log(`Package dry run OK: ${pack.entryCount} files`);
           NODE
+
+  drift:
+    name: Doc/code drift gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # claudux ships a doc/code drift gate, so claudux runs it on itself.
+      # Deterministic: no API key, no network, no model on the pass/fail path.
+      # Fails this job (exit 1) when a documented source changed and its doc did not.
+      - name: claudux drift
+        run: bash bin/claudux drift
