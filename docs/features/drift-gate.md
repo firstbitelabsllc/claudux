@@ -58,9 +58,17 @@ Set `drift_sensitivity` at the root of `docs-structure.json`:
 |------|----------|
 | `significant` *(default)* | Normalize CRLF, drop blank lines, drop full-line comments, collapse inline whitespace, then hash. Fires on renamed flags, changed defaults, changed literal paths, and added or removed logic. Ignores reformatting. |
 | `raw` | Raw file hash. The strict escape hatch. |
-| `surface` | Hash only exported symbol signatures and CLI commands. Shell repos only — it is empty for TypeScript, Swift, and Python, so it would silently pass everything. claudux dogfoods itself in this mode. |
+| `surface` | Hash only exported symbol signatures and CLI commands. Shell repos only — it is empty for TypeScript, Swift, and Python, so it would silently pass everything. |
 
-### Residual false positives
+### What `surface` mode cannot see
+
+`surface` hashes extractable symbols, so any file without a symbol surface hashes to the same constant and can never drift. In this repo that was measured, not estimated: under `surface`, 35 of 54 declared sources shared one hash — `README.md`, `package.json`, `docs-structure.json`, every template, the whole VitePress theme. Appending a fabricated section to `README.md` left the gate reporting `Docs match code`, exit 0.
+
+That is correct behavior for what `surface` claims to hash, and it is a real false-negative surface you should know about before choosing it. claudux itself now dogfoods in `significant`, where all 54 sources hash uniquely and that same edit exits 1.
+
+Pick `surface` only when your documented sources are code with real symbols. If your docs describe prose or config files, use `significant`.
+
+## Residual false positives
 
 Being honest about the ones `significant` does not kill: trailing and inline comment edits, block-comment reflow, and coverage granularity. A broad pattern like `lib/**` flags its whole page when any matched file changes. The fix is authorial — narrower `source_patterns` give sharper signal.
 
