@@ -1,7 +1,7 @@
 {
   "name": "claudux",
   "version": "1.2.0",
-  "description": "AI-powered documentation generator with deterministic docs, multi-backend support, and no-AI readiness audits",
+  "description": "Local CLI that keeps VitePress docs true to your code — deterministic, no-AI CI checks for doc/code drift, plus generation via Claude or Codex.",
   "main": "claudux",
   "bin": {
     "claudux": "./bin/claudux"
@@ -17,6 +17,12 @@
   "keywords": [
     "documentation",
     "docs",
+    "documentation-drift",
+    "doc-drift",
+    "docs-verification",
+    "staleness",
+    "deterministic",
+    "ci",
     "doc-generator",
     "ai",
     "anthropic",
