@@ -49,18 +49,11 @@ The staleness-check row is the whole argument. Everything else is table stakes.
 
 ## Install
 
-**Run the drift gate.** It ships in source (1.2.0). npm still serves 1.1.1, which has no `claudux drift`, so install from source until the 1.2.0 publish lands:
-
-```bash
-npm i -g firstbitelabsllc/claudux
-# or: git clone https://github.com/firstbitelabsllc/claudux.git && cd claudux && npm link
-```
-
-**Generate docs.** The generator is on npm today:
-
 ```bash
 npm install -g claudux
 ```
+
+Or run it without installing: `npx claudux drift`.
 
 Requirements: Node 18+. Generation needs an authenticated Claude CLI (default) or Codex CLI on the machine; there is no hosted API key path. The drift gate needs neither. It is keyless and runs offline.
 
@@ -74,7 +67,7 @@ claudux serve    # preview the site locally
 claudux drift    # fail if a documented function changed but its doc didn't
 ```
 
-Commit the baseline once with `claudux drift --accept`, then let CI run the drift gate on every push. (`drift` needs the source install above until 1.2.0 is on npm.)
+Commit the baseline once with `claudux drift --accept`, then let CI run the drift gate on every push.
 
 ## The drift gate
 
@@ -103,8 +96,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 18 }
-      - run: npm i -g firstbitelabsllc/claudux   # source install until 1.2.0 is on npm; then: npx claudux drift
-      - run: claudux drift
+      - run: npx claudux drift
 ```
 
 No secrets. The check is pure lint.
