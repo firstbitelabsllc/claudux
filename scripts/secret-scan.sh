@@ -22,7 +22,9 @@ patterns=(
     'glpat-[A-Za-z0-9_-]{20,}'
 )
 
-# Paths that leak the maintainer's machine layout into a public tarball.
+# Paths that leak the maintainer's machine layout into a shipped package.
+# Non-shipping local artifacts (e.g. .cursor/ planner notes outside files[])
+# are excluded below since they never reach the published tarball.
 path_patterns=(
     '/Users/[a-z][a-z0-9._-]+/'
     '/home/[a-z][a-z0-9._-]+/'
@@ -34,7 +36,8 @@ for pattern in "${patterns[@]}"; do
         ':!package-lock.json' \
         ':!docs/package-lock.json' \
         ':!*.svg' \
-        ':!assets/*.svg' 2>/dev/null); then
+        ':!assets/*.svg' \
+        ':!.cursor/*' 2>/dev/null); then
         if [[ -n "$matches" ]]; then
             echo "Potential secret pattern matched: $pattern" >&2
             printf '%s\n' "$matches" >&2
@@ -50,6 +53,7 @@ for pattern in "${path_patterns[@]}"; do
         ':!*.svg' \
         ':!assets/*.svg' \
         ':!tests/*' \
+        ':!.cursor/*' \
         ':!scripts/secret-scan.sh' 2>/dev/null); then
         if [[ -n "$matches" ]]; then
             echo "Maintainer home path leaked into tracked files: $pattern" >&2
