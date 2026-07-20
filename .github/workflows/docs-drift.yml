@@ -32,7 +32,10 @@ on:
 jobs:
   drift:
     name: doc/code drift gate
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    # GitHub-hosted runner: the gate must run on the exact vanilla CI users get
+    # from the copy-paste example above (no self-hosted/Blacksmith dependency),
+    # which is also the whole credibility claim — zero special infra, keyless.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
