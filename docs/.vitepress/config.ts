@@ -44,6 +44,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Commands', link: '/guide/commands' },
             { text: 'Configuration', link: '/guide/configuration' }
           ]
@@ -53,6 +54,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
             { text: 'Audit Snapshots', link: '/features/audit-snapshots' },
             { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
@@ -86,6 +88,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Commands', link: '/guide/commands' },
             { text: 'Configuration', link: '/guide/configuration' }
           ]
@@ -97,6 +100,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
+            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
             { text: 'Audit Snapshots', link: '/features/audit-snapshots' },
             { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
