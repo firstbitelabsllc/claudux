@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "47fa4c8427482a597a239f0aa0db368978ee4d1b",
+  "head_sha": "851459fc3d837300a5fc83c1abdb57ad4553923a",
   "manifest_hash": "a9cf803946a80fd69eda477e8d2cc87ca3e0caf0f348e633c18fb1d23b2a2d79",
   "drift_sensitivity": "surface",
   "source_fingerprints": [
@@ -50,7 +50,7 @@
     },
     {
       "path": "lib/content-protection.sh",
-      "sha256": "05dc4ba12b04bee188772038f28f6773f06d9bad36548f8feb61dbe84f5cd144"
+      "sha256": "68a8d2baabe38f31cdb71fe559207ea49bf261b5955a7e33f08be3edf29e01de"
     },
     {
       "path": "lib/docs-generation.sh",
