@@ -2,10 +2,12 @@
 
 All notable changes to claudux are documented in this file.
 
-## [1.2.0] - 2026-04-12
+## [1.2.0] - 2026-07-18
 
 ### Added
 
+- **Deterministic docs mode.** A checked-in `docs-structure.json` makes the docs tree source-owned state: claudux builds a static-analysis index before calling the model, applies output through bounded section patches instead of broad rewrites, and blocks cleanup and `recreate` from deleting manifest-owned pages.
+- **`claudux audit`.** No-AI readiness report covering project detection, manifest validity, link status, checkpoint freshness, and uncommitted docs/config drift. `--json` for machines, `--strict` and `--release` for CI gates, `--handoff-strict` for agent handoffs.
 - **Multi-backend support.** Switch AI backends via `CLAUDUX_BACKEND=codex` env var. Codex adapter uses GPT-5.4 with xhigh reasoning effort in non-interactive exec mode. Claude remains the default.
 - **Change tracking.** `claudux diff` shows files changed since the last documentation run. `claudux status` shows checkpoint state (last run time, SHA, backend, stale file count). Checkpoint stored in `.claudux-state.json` (gitignored).
 - **Incremental updates.** `claudux update` scopes the LLM prompt to only changed files when a checkpoint exists, reducing token usage on large repos.
@@ -35,14 +37,12 @@ All notable changes to claudux are documented in this file.
 - Codex JSONL formatter matched hypothetical event types instead of actual Codex CLI v0.119 events.
 - `check_generation_backend()` called Claude validation even when Codex backend was active.
 
-## [1.1.1] - 2026-04-11
+## [1.1.1] - 2025-08-29
 
-- Initial public release on npm
+First release documented in this changelog. Versions 1.0.0 through 1.1.0 shipped to npm on 2025-08-26 through 2025-08-29 and predate it.
+
 - Claude-only backend with two-phase documentation generation
 - VitePress site scaffolding and serving
 - Link validation with auto-fix
 - Content protection for manual edits
-- Project type auto-detection (React, Next.js, Python, Go, iOS, Android, Rust, Rails, Flutter, etc.)
-
-[1.2.0]: https://github.com/firstbitelabsllc/claudux/compare/v1.1.1...v1.2.0
-[1.1.1]: https://github.com/firstbitelabsllc/claudux/releases/tag/v1.1.1
+- Project type auto-detection

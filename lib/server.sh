@@ -14,6 +14,13 @@ serve() {
         echo ""
         read -p "Would you like to generate docs now? (y/N): " -r
         if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # serve skips the router's preflight, so run the same checks the
+            # `update` command gets: validate deps, take the lock, and verify the
+            # backend. A missing/unauthenticated CLI then fails immediately with
+            # the documented dependency error instead of a stalled generation.
+            declare -F validate_dependencies >/dev/null 2>&1 && validate_dependencies
+            declare -F acquire_lock >/dev/null 2>&1 && acquire_lock
+            declare -F check_generation_backend >/dev/null 2>&1 && check_generation_backend
             update
             return
         else

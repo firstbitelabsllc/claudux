@@ -197,6 +197,7 @@ The menu adapts based on whether documentation already exists:
 - Diff (files changed since last gen)
 - Status (documentation freshness)
 - Validate links (check for broken links)
+- Audit (no-AI readiness report)
 - Serve (VitePress dev server)
 - Create claudux.md (docs preferences)
 - Recreate (start fresh)

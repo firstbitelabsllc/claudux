@@ -2,7 +2,6 @@
   "name": "claudux",
   "version": "1.2.0",
   "description": "Local CLI that keeps VitePress docs true to your code — deterministic, no-AI CI checks for doc/code drift, plus generation via Claude or Codex.",
-  "main": "claudux",
   "bin": {
     "claudux": "./bin/claudux"
   },

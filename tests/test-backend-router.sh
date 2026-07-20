@@ -11,21 +11,9 @@ echo ""
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LIB_DIR="$REPO_ROOT/lib"
 
-# --- Test 1: Default backend is "claude" ---
-(
-    unset CLAUDUX_BACKEND 2>/dev/null || true
-    result="${CLAUDUX_BACKEND:-claude}"
-    echo "$result"
-) > /tmp/claudux-test-backend-default 2>&1
-assert_eq "default backend is claude" "claude" "$(cat /tmp/claudux-test-backend-default)"
-
-# --- Test 2: CLAUDUX_BACKEND=codex is respected ---
-(
-    export CLAUDUX_BACKEND=codex
-    result="${CLAUDUX_BACKEND:-claude}"
-    echo "$result"
-) > /tmp/claudux-test-backend-codex 2>&1
-assert_eq "CLAUDUX_BACKEND=codex is respected" "codex" "$(cat /tmp/claudux-test-backend-codex)"
+# Backend defaulting is covered behaviorally by the `claudux check` tests below,
+# which read the value the CLI actually reports rather than re-asserting bash
+# parameter expansion.
 
 # --- Test 3: bin/claudux sources codex-utils.sh when backend=codex ---
 codex_source_block=$(sed -n '/Source Codex backend/,/^fi$/p' "$REPO_ROOT/bin/claudux")
@@ -219,9 +207,35 @@ assert_contains "Codex exec reads section patch mode" \
 assert_contains "Codex patch mode defaults to read-only sandbox" \
     "$codex_exec_body" \
     'read-only'
-assert_contains "Codex normal mode still defaults to danger-full-access" \
+assert_contains "Codex normal mode defaults to a workspace-scoped sandbox" \
     "$codex_exec_body" \
-    'danger-full-access'
+    'CODEX_SANDBOX_MODE:-workspace-write'
+assert_not_contains "Codex never defaults to full-filesystem access" \
+    "$codex_exec_body" \
+    'CODEX_SANDBOX_MODE:-danger-full-access'
+
+# --- Test 19b: Codex stderr log resolves through the safe-path helper ---
+# Regression guard: the log defaulted to a fixed shared-/tmp path that another
+# user could pre-create as a symlink, and Codex stderr can carry auth failures.
+assert_contains "codex-utils.sh defines codex_stderr_log_path" \
+    "$codex_utils_content" \
+    "codex_stderr_log_path()"
+stderr_path_fn=$(sed -n '/^codex_stderr_log_path()/,/^}/p' "$LIB_DIR/codex-utils.sh")
+assert_contains "stderr log prefers the per-user temp dir" \
+    "$stderr_path_fn" \
+    'TMPDIR:-/tmp'
+assert_contains "stderr log refuses a symlinked path" \
+    "$stderr_path_fn" \
+    '-L "$path"'
+assert_contains "stderr log refuses a path owned by another user" \
+    "$stderr_path_fn" \
+    '! -O "$path"'
+assert_contains "run_codex_exec resolves the log through the helper" \
+    "$codex_exec_body" \
+    'codex_stderr_log_path'
+assert_not_contains "run_codex_exec no longer hardcodes the shared /tmp log" \
+    "$codex_exec_body" \
+    'CODEX_STDERR_LOG:-/tmp/'
 
 # --- Test 20: failed backend / patch extraction keeps the raw JSONL log ---
 retain_fn=$(sed -n '/^retain_generation_debug_log()/,/^}/p' "$LIB_DIR/docs-generation.sh")

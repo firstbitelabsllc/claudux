@@ -193,7 +193,7 @@ jobs:
           node-version: '18'
           
       - name: Install Claude CLI
-        run: npm install -g @anthropic-ai/claude-cli
+        run: npm install -g @anthropic-ai/claude-code
         
       - name: Configure Claude
         env:
@@ -267,7 +267,7 @@ $ claudux update
 ERROR: Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code
 
 # Solution:
-npm install -g @anthropic-ai/claude-cli
+npm install -g @anthropic-ai/claude-code
 claude config  # Follow authentication prompts
 claudux update
 ```

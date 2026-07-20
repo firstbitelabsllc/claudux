@@ -200,7 +200,6 @@ claudux update --strict  # Fail on any broken links
 Built-in validation checks:
 - Internal page links
 - Anchor links within pages  
-- External URL accessibility
 - Asset references
 
 ### CI/CD Integration

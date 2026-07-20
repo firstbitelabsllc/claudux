@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "f674858abb25e4f072628273ddda9ded5bf3391f",
+  "head_sha": "60ae6e10967487d2ff8c04868727691af9155107",
   "manifest_hash": "7959ff0119de8ed0f10466b2caca866b029031de635b974ce68cf583dc3e83d5",
   "drift_sensitivity": "significant",
   "source_fingerprints": [
@@ -14,7 +14,7 @@
     },
     {
       "path": "bin/claudux",
-      "sha256": "1162f09a26a555d196b8a5bab2670724a0771e5b1627a547e2163a1bd9f3bce9"
+      "sha256": "86813b89ee84b796ac0b143130658df5b5d16dd29c00aa616cc7ddcd225d658b"
     },
     {
       "path": "claudux.json",
@@ -22,7 +22,7 @@
     },
     {
       "path": "claudux.md",
-      "sha256": "f395ed639bc6519b51268d775e7c43805ab20108e8f23afad24835d14545aaaa"
+      "sha256": "4c6efe9873da29769c074573fa7d156cdd6b6bb261c8dfac84a538bb7f4e7043"
     },
     {
       "path": "docs-structure.json",
@@ -38,11 +38,11 @@
     },
     {
       "path": "lib/cleanup.sh",
-      "sha256": "bd6ef48bac3ee74c66b379bd3364fb8c93f563a670cee2931c8bbbabbed81527"
+      "sha256": "3ae8efd7222b31394e0e692d37a252d30a4f329ade100410c6a0455572494f83"
     },
     {
       "path": "lib/codex-utils.sh",
-      "sha256": "edecca5d7794e3eafa818889c56e088583be341394a7c95b20079565384e11cc"
+      "sha256": "b1701dee213fcfb01a88ad7f5137016b8f5c60fdb651ed29189e8c21e9fed96a"
     },
     {
       "path": "lib/colors.sh",
@@ -54,7 +54,7 @@
     },
     {
       "path": "lib/docs-generation.sh",
-      "sha256": "659c036355247f6b428f9c2acd0012cc642e4ba5e61e3ab1f5131feda4c94b19"
+      "sha256": "9e79e79dd6341a84152a8f2f7a28aa4cb400fb9ac5900a81c8a2bdd5c02a7bf9"
     },
     {
       "path": "lib/docs-manifest.sh",
@@ -74,7 +74,7 @@
     },
     {
       "path": "lib/server.sh",
-      "sha256": "ea3dda844d03040b3b1eac5124563cb7fa2e4247849e9a4eaa579f63a92410db"
+      "sha256": "2426beeb87dd0bac00c06dc778a680aeb432337a39aa1e90b71481096167d351"
     },
     {
       "path": "lib/templates/android-project-config.json",
@@ -170,7 +170,7 @@
     },
     {
       "path": "lib/vitepress/setup.sh",
-      "sha256": "32920609e626a1985a16e1468c7a563f93e12725295a86c180baa634e5cd449a"
+      "sha256": "330a2799fa865fce0a217899b90021fd85e9c61efa56c5838564844cb60d20d6"
     },
     {
       "path": "lib/vitepress/sidebar-example.md",
@@ -198,7 +198,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "3ca99d904aa69f819bed4349afa3e65abc86e224737e2b66899b4179bacf6bba"
+      "sha256": "c61ee114a0b6cd841f1599670ae4c3603e3c746df9166492bbeabf47897b35a2"
     },
     {
       "path": "tests/run-tests.sh",
@@ -206,7 +206,7 @@
     },
     {
       "path": "tests/test-backend-router.sh",
-      "sha256": "fe88662bfc5c885855dc6a2b71aa4de3143686d78592a0aadfefdc295cdf5e75"
+      "sha256": "04cca24bab82c99f9ff4a73117216e64c7ec216a37ec71201c923a884081a855"
     },
     {
       "path": "tests/test-content-protection.sh",
@@ -315,12 +315,12 @@
     {
       "path": "docs/api/index.md",
       "page_id": "api.index",
-      "sha256": "6985ca231946e91e29ecab12247f640e3b8f02e78d95176b536ed9556752ae8c"
+      "sha256": "625d3efa7dba39f5e38a490f3702f47d20a41de892c6934bca4abcb74f03a9eb"
     },
     {
       "path": "docs/examples/index.md",
       "page_id": "examples.index",
-      "sha256": "e59f818d8482866500b321c328ba7e2c2522c167097240e494d8967c89b0c18f"
+      "sha256": "2640f76586c4662f97bc40024d4749679c503a72b7b9fa8e87d2c3a67c0b25f1"
     },
     {
       "path": "docs/examples/vidux-team-agents.md",
@@ -355,12 +355,12 @@
     {
       "path": "docs/guide/commands.md",
       "page_id": "guide.commands",
-      "sha256": "610e6a18f8dbe97d63a2f21a926f2354e5a5cf14b881a1d1e54fd84d96f41370"
+      "sha256": "5989c58968280d21c37517237c82d44b3c431e3374cd1c5c5dcdaa8b9499f4c9"
     },
     {
       "path": "docs/guide/configuration.md",
       "page_id": "guide.configuration",
-      "sha256": "6cdf5f2c4abb674d78a27addb5b2fe304befcafe7f41fb64a7adcb5ad66003e8"
+      "sha256": "796c4eefc3d0e656c006e41406105e37e0fd24d7412551fd861c99b5f6d9d462"
     },
     {
       "path": "docs/guide/index.md",
@@ -370,12 +370,12 @@
     {
       "path": "docs/guide/installation.md",
       "page_id": "guide.installation",
-      "sha256": "ff74ba4e404d02d298df4495c7751f5c7f4a17c07008e2c4fc8ae6af1fdbe9f1"
+      "sha256": "394e6fd256dd17158b2af7dbd546d50944e3378d614a4495da6a5ea49acc0404"
     },
     {
       "path": "docs/index.md",
       "page_id": "home.index",
-      "sha256": "6449510ea14249085d20bba9b63bc3fd4c24aec38cc245141ec3b8ac6f4ad6ab"
+      "sha256": "4b6688d3f73c07155402f480b3ba2e713d9dd7e892b07fa3069b96bde61b638b"
     },
     {
       "path": "docs/technical/deterministic-generation.md",
@@ -395,7 +395,7 @@
     {
       "path": "docs/troubleshooting.md",
       "page_id": "troubleshooting",
-      "sha256": "ef6a8da27a9b64d6b47fcdcce5f758c821ad0235462918cddb73a52a02544385"
+      "sha256": "ba7f6e0d965990a9d6943856b7070754a09d8f57ed317984b413254c856df5f7"
     }
   ],
   "source_to_section_coverage": [
