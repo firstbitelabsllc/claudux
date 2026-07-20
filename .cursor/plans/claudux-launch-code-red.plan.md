@@ -121,20 +121,33 @@ When a cycle finds only LEO-GATED work reachable, it parks with a resume predica
   - **Process:** twice this session a `git` batch silently no-opped from a non-repo cwd, and once a `git push -f` was chained onto a mid-conflict rebase (no damage — remote matched the clean pre-rebase commit — but the chaining was the same mistake class that closed #103). Rebase was also the wrong tool: it replays #84's obsolete vite-7 commit against the vite-6.4.3 fix from #101. Merge resolves final states and was clean both times.
   - **Mission state: WAITING on `npm login` only.** Every agent-reachable pre-publish item is closed. Repo is 1.2.0, registry serves 1.1.1.
 
-### LEO handoff — publish 1.2.0 (ready, one command)
+- 2026-07-20 — **Cycle 9: README sequencing corrected, and the published artifact itself proven.**
+  - **Sequencing error, self-caught.** Cycle 8's handoff said the "install from source until 1.2.0 is on npm" caveat should be removed *after* publishing. That is backwards. **npm freezes the README onto the version page at publish time**, so publishing with that caveat would permanently serve a page telling strangers the thing they are looking at does not exist yet. Stripped from `README.md` (3 sites), `docs/index.md`, `docs/guide/index.md`; the CI copy-paste block is now a single `- run: npx claudux drift`. **#112 -> `903b777`**, all 10 checks green. Verified landed with `git show origin/main:README.md`.
+  - The drift gate **caught this edit on itself** — `claudux drift` exited 1 naming 5 pages that document `README.md`. Reviewed each (`docs/guide/installation.md`'s git-clone block and `docs/troubleshooting.md`'s issues URL are both still correct), then re-baselined with `--accept`. Dogfooding worked as designed.
+  - **R14 — the published artifact is proven, not just the repo.** Prior cycles proved `./bin/claudux` from a checkout. This cycle installed the actual packed tarball (`npm i -g <tgz>` into a clean prefix) and ran the installed binary:
+    - `claudux --version` -> `claudux 1.2.0`
+    - clean tree -> **exit 0**, `--json` `ready:true`, `sensitivity:significant`, `drifted:0`
+    - append a real function to `lib/project.sh`, touch no docs -> **exit 1**, `ready:false`, 6 doc units named with `changed_sources:["lib/project.sh"]` and the `--accept` remedy printed
+    - `git checkout` the source -> **exit 0** again (deterministic, no residue)
+    - No API key, no network. This is the artifact strangers will install.
+  - **Pre-publish audit workflow discarded.** The 5-dimension adversarial tarball audit (`wf_c2acb5f6-121`) died incomplete — all five agents returned `null`, and its transcripts show it was reading the pre-fix README, so its inputs were stale regardless. Not cited as evidence. The direct install smoke test above replaces it and is stronger.
+  - **R15 — `vidux` codename ships publicly. Deliberately deferred, not missed.** `lib/templates/vidux-project-config.json` is in the tarball and "Vidux Team Agents" is a nav entry on the public docs site. This is **not** stray cruft: `lib/project.sh:34-36` detects `vidux` as a first-class project type and `tests/run-tests.sh:363-414` asserts it. Removing it is a behavior change with test surface, and doing that under publish pressure is how launches break. Call: **ships in 1.2.0, cleaned in 1.2.1** (docs nav + template rename are cheap and reversible; the npm README does not mention it).
 
-Everything agent-side is done. Receipts as of `origin/main`:
+### LEO handoff — publish 1.2.0 (one command, needs your 2FA)
 
-- npm registry currently serves **1.1.1**; this repo is **1.2.0** (so `claudux drift` does not exist for npm users yet — the README's "install from source" caveat is still accurate and should be removed *after* this publish).
-- `npm pack --dry-run` clean: `claudux-1.2.0.tgz`, 96.7 kB packed / 347.8 kB unpacked, 54 files.
-- `npm whoami` fails → login genuinely required; this is a real gate, not ceremony.
+Everything agent-side is closed. Receipts as of `origin/main` = **`903b777`**:
+
+- Registry serves **1.1.1**; repo is **1.2.0**. The README on `origin/main` is now publish-correct — the source-install caveat is **gone**, so the frozen 1.2.0 version page will be right.
+- Staged and verified: `/tmp/wt-pub` is a clean checkout of `903b777` with `claudux-1.2.0.tgz` packed (**98.0 kB, 53 files**, down from 432.9 kB).
+- `npm whoami` -> **`leojkwan`**. Login is done. The only remaining gate is the **2FA OTP**, which an agent must never type.
 
 ```bash
-cd ~/Development/claudux && git fetch origin && git checkout origin/main
-npm login && npm publish
+cd /tmp/wt-pub && npm publish --otp=YOUR_6_DIGIT_CODE
 ```
 
-**Warning before publishing via CI instead:** `publish.yml` still targets the Blacksmith runner, which has not executed a job since 2026-07-19T17:17Z. A CI-triggered publish would sit `queued` silently rather than fail loudly. Publish locally with the command above, or move `publish.yml` to `ubuntu-latest` first.
+**Do not publish via CI.** `publish.yml` targets the Blacksmith runner; a CI-triggered publish sits `queued` silently rather than failing loudly. Publish locally with the command above.
+
+**After it lands:** `npx claudux drift` becomes the real quickstart, and the CI copy-paste block already in the README starts working for strangers.
 
 ## Fleet coordination
 
