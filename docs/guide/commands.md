@@ -1,5 +1,28 @@
 # Commands Reference
 
+## The Gate
+
+### `claudux drift`
+
+Fails the build when a source file changed but the doc section documenting it did not. Deterministic: no API key, no network, no model on the pass/fail path.
+
+```bash
+claudux drift --accept   # baseline once, commit docs-drift-lock.json
+claudux drift            # exit 1 when a doc falls behind its code
+```
+
+**Options:**
+
+| Flag | Effect |
+|------|--------|
+| `--accept` | Re-baseline `docs-drift-lock.json` from the current tree (no AI) |
+| `--json` | Machine-readable, deterministically ordered report for CI |
+| `--warn-only` | Report drift and always exit `0` (local pre-commit advisory) |
+
+**Exit codes:** `0` clean or no baseline, `1` drift found, `2` environment error.
+
+A failure names the doc, the source that changed, and the fix. See [The Drift Gate](/features/drift-gate) for sensitivity modes, the CI workflow, and edge cases.
+
 ## Core Commands
 
 ### `claudux update`
@@ -213,6 +236,13 @@ CLAUDUX_MESSAGE="Focus on API docs" claudux update
 
 ### Flags and Options
 
+**Drift gate options:**
+```bash
+claudux drift --accept          # Re-baseline the drift lock, no AI
+claudux drift --json            # Machine-readable drift report
+claudux drift --warn-only       # Report drift but always exit 0
+```
+
 **Update command options:**
 ```bash
 claudux update -m "message"     # Focused directive
@@ -250,12 +280,13 @@ claudux update -m "Document the new authentication flow"
 Claudux follows standard Unix exit code conventions:
 
 - `0`: Success
-- `1`: General error
-- `2`: Incorrect usage  
+- `1`: General error. For `claudux drift`, specifically: drift was found
+- `2`: Incorrect usage, or an environment error the command could not evaluate
 - `124`: Timeout
 - `130`: Interrupted (Ctrl+C)
 
 Use in CI/CD:
 ```bash
+claudux drift             # exits 1 on drift; this is the gate
 claudux update || exit 1  # Fail build if docs generation fails
 ```
