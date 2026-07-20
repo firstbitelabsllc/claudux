@@ -95,7 +95,9 @@ function patternToRegExp(pattern) {
 }
 function matches(pattern, file) {
   if (pattern.endsWith('/**')) {
-    return file.startsWith(pattern.slice(0, -3));
+    // slice(0, -2) keeps the trailing '/' so 'docs/**' matches 'docs/x' but
+    // NOT sibling paths like 'docs-drift-lock.json' (slicing -3 dropped the /).
+    return file.startsWith(pattern.slice(0, -2));
   }
   return patternToRegExp(pattern).test(file);
 }

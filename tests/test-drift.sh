@@ -244,4 +244,39 @@ newsym=$(run_check "$DIR" json)
 assert_contains "surface flags new symbol (exit 1)" "$newsym" "rc:1"
 rm -rf "$DIR"
 
+# --- Test 11: 'dir/**' pattern must not match a sibling path sharing the prefix ---
+# Regression: matches('lib/**', 'lib-notes.txt') was TRUE because the matcher
+# stripped '/**' (3 chars), leaving 'lib' and startsWith-matching any path
+# beginning 'lib'. A page documenting lib/** then falsely drifted whenever a
+# root-level 'lib*' sibling changed, so --accept never converged. Surfaced on a
+# real repo (resplit-web, where docs/** falsely matched docs-drift-lock.json),
+# invisible to surface-mode self-dogfooding. Guard: children match, siblings don't.
+DIR=$(mktemp -d /tmp/claudux-drift-test-XXXXXX)
+(
+    cd "$DIR" || exit 1
+    git init -q; git config user.email t@t.com; git config user.name T
+    mkdir -p lib/deep docs/guide
+    printf '#!/bin/bash\nfn() { echo "--fast"; }\n' > lib/deep/mod.sh
+    printf '# API\n\nDocuments everything under lib.\n' > docs/guide/api.md
+    printf 'root sibling, NOT under lib/\n' > lib-notes.txt
+    printf '%s\n' '{' '  "version": 1,' '  "drift_sensitivity": "significant",' \
+        '  "pages": [{ "id": "g", "path": "docs/guide/api.md",' \
+        '    "source_patterns": ["lib/**"] }]' '}' > docs-structure.json
+    git add -A; git commit -q -m fixture
+)
+baseline "$DIR"
+# edit ONLY the sibling root file that shares the 'lib' prefix -> must NOT drift
+printf 'root sibling, edited — must NOT drift the lib/** page\n' > "$DIR/lib-notes.txt"
+( cd "$DIR" && git add -A && git commit -q -m "edit sibling" )
+out=$(run_check "$DIR" json)
+assert_contains "lib/** ignores sibling 'lib-*' path edit (exit 0)" "$out" "rc:0"
+assert_contains "lib/** sibling edit stays ready" "$out" '"ready": true'
+# no false negative: a real token edit to a child UNDER lib/ still drifts
+printf '#!/bin/bash\nfn() { echo "--turbo"; }\n' > "$DIR/lib/deep/mod.sh"
+( cd "$DIR" && git add -A && git commit -q -m "edit real child under lib/, doc unchanged" )
+child=$(run_check "$DIR" json)
+assert_contains "lib/** still catches a real child change (exit 1)" "$child" "rc:1"
+assert_contains "lib/** child drift names the source" "$child" "lib/deep/mod.sh"
+rm -rf "$DIR"
+
 test_summary
