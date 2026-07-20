@@ -944,8 +944,8 @@ $base_prompt"
     
     # Kill the progress indicator
     if [[ -n "$progress_pid" ]]; then
-        kill $progress_pid 2>/dev/null || true
-        wait $progress_pid 2>/dev/null || true
+        kill "$progress_pid" 2>/dev/null || true
+        wait "$progress_pid" 2>/dev/null || true
     fi
     
     echo ""
@@ -1048,7 +1048,12 @@ $base_prompt"
         echo ""
         warn "🔧 Troubleshooting steps:"
         if [[ "$backend" == "codex" ]]; then
-            local codex_stderr_log="${CODEX_STDERR_LOG:-/tmp/claudux-codex-stderr.log}"
+            local codex_stderr_log
+            if declare -F codex_stderr_log_path >/dev/null 2>&1; then
+                codex_stderr_log="$(codex_stderr_log_path)"
+            else
+                codex_stderr_log="${CODEX_STDERR_LOG:-${TMPDIR:-/tmp}/claudux-codex-stderr.log}"
+            fi
             echo "   1. Check Codex CLI is authenticated:"
             echo "      codex login status"
             echo ""

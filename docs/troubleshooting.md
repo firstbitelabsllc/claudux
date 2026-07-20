@@ -13,7 +13,7 @@ ERROR: Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-c
 
 **Solution:**
 ```bash
-npm install -g @anthropic-ai/claude-cli
+npm install -g @anthropic-ai/claude-code
 claude config  # Follow authentication prompts
 claudux check  # Verify installation
 ```

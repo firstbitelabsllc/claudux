@@ -114,7 +114,8 @@ claudux template
 🔎 Environment check
 
 • Node: v18.17.0
-• Claude: claude-cli/1.2.3  
+• Backend: claude
+• Claude CLI: 2.1.214 (Claude Code)
 • docs/: present
 ```
 
@@ -282,10 +283,6 @@ Claudux follows standard Unix conventions:
   "project": {
     "name": "string",              // Project display name
     "type": "string"               // Project type override
-  },
-  "ai": {
-    "default_model": "sonnet|opus", // Model preference
-    "timeout_seconds": 90           // Generation timeout
   }
 }
 ```
