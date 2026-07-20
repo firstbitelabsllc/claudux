@@ -109,6 +109,15 @@ jobs:
 
 No secrets. The check is pure lint.
 
+Locally, run it as a warning instead of a gate. Save this as `.git/hooks/pre-commit` and make it executable:
+
+```bash
+#!/bin/sh
+claudux drift --warn-only
+```
+
+`--warn-only` always exits 0. You see the report on the commit that caused the drift, and the commit still goes through. CI stays the hard gate.
+
 A sensitivity knob (`drift_sensitivity`) sets how much churn counts as drift. `significant` (default) ignores comment, blank, and whitespace churn and fires on renamed flags, changed defaults, and changed logic. `raw` hashes the whole file. `surface` (shell repos) tracks only exported function and command names.
 
 ## What else it does
