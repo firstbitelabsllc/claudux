@@ -74,7 +74,7 @@ fi
 # Auto-cd to git root if we're in a subdirectory
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 if [[ "$PWD" != "$PROJECT_ROOT" ]]; then
-    echo "📍 Changing to project root: $PROJECT_ROOT"
+    echo "📍 Changing to project root: $PROJECT_ROOT" >&2
     cd "$PROJECT_ROOT" || exit 1
 fi
 
