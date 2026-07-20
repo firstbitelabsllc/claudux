@@ -168,10 +168,24 @@ claudux_audit() {
     uncommitted_docs=$(claudux_docs_worktree_changes 2>/dev/null || true)
     uncommitted_docs_count=$(claudux_count_lines "$uncommitted_docs")
 
-    local strict_failed=false release_failed=false handoff_failed=false lockfile_status package_status metadata_status
+    local strict_failed=false release_failed=false handoff_failed=false lockfile_status package_status metadata_status drift_status
     lockfile_status="skipped"
     package_status="skipped"
     metadata_status="skipped"
+    drift_status="skipped"
+
+    # Deterministic doc/code drift gate (no AI). Only runs when a committed
+    # baseline exists; degrades to "skipped" otherwise so repos that have not
+    # adopted drift are never failed by it.
+    if [[ -f "${DRIFT_LOCK_FILE:-docs-drift-lock.json}" ]] && declare -F verify_doc_code_drift >/dev/null 2>&1; then
+        local drift_rc=0
+        verify_doc_code_drift json >/dev/null 2>&1 || drift_rc=$?
+        case "$drift_rc" in
+            0) drift_status="clean" ;;
+            1) drift_status="drift" ;;
+            *) drift_status="error" ;;
+        esac
+    fi
 
     if [[ "$manifest_status" == "invalid" ]] || [[ "$link_status" == "invalid" ]]; then
         strict_failed=true
@@ -231,6 +245,8 @@ NODE
         [[ "$docs_file_count" -eq 0 ]] ||
         [[ "$uncommitted_docs_count" -gt 0 ]] ||
         [[ "$lockfile_status" == "drift" ]] ||
+        [[ "$drift_status" == "drift" ]] ||
+        [[ "$drift_status" == "error" ]] ||
         [[ "$package_status" == "failed" ]] ||
         [[ "$metadata_status" == "invalid" ]]; then
         release_failed=true
@@ -240,6 +256,8 @@ NODE
         [[ "$link_status" != "valid" ]] ||
         [[ "$checkpoint_status" != "fresh" ]] ||
         [[ "$changed_count" -gt 0 ]] ||
+        [[ "$drift_status" == "drift" ]] ||
+        [[ "$drift_status" == "error" ]] ||
         [[ "$uncommitted_docs_count" -gt 0 ]]; then
         handoff_failed=true
     fi
@@ -262,7 +280,8 @@ NODE
             "$manifest_pages" "$manifest_source_owned_pages" "$manifest_pinned_sections" \
             "$link_status" "$checkpoint_status" "$changed_count" "$uncommitted_docs_count" \
             "$strict_failed" "$release_failed" "$handoff_failed" "$release" "$handoff_strict" \
-            "$lockfile_status" "$package_status" "$metadata_status" "$changed_json" "$uncommitted_json" <<'NODE'
+            "$lockfile_status" "$package_status" "$metadata_status" "$changed_json" "$uncommitted_json" \
+            "$drift_status" <<'NODE'
 const [
   projectName, projectType, repoRoot, branch, headSha, backend,
   docsPresent, docsFileCount, manifestPath, manifestPresent, manifestStatus,
@@ -270,6 +289,7 @@ const [
   linkStatus, checkpointStatus, changedCount, uncommittedDocsCount,
   strictFailed, releaseFailed, handoffFailed, releaseMode, handoffStrictMode,
   lockfileStatus, packageStatus, metadataStatus, changedJson, uncommittedJson,
+  driftStatus,
 ] = process.argv.slice(2);
 
 const report = {
@@ -310,6 +330,7 @@ const report = {
     lockfile: lockfileStatus,
     package: packageStatus,
     metadata: metadataStatus,
+    drift: driftStatus,
   },
   handoff: {
     ready: handoffFailed !== 'true',
@@ -334,6 +355,7 @@ NODE
         echo "Changed:    $changed_count since checkpoint"
         echo "Worktree:   $uncommitted_docs_count uncommitted docs/config changes"
         echo "Release:    lockfile=$lockfile_status package=$package_status metadata=$metadata_status"
+        echo "Drift:      $drift_status"
 
         if [[ "$manifest_status" == "invalid" && -n "$manifest_output" ]]; then
             echo ""

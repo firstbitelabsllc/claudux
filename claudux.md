@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Claudux is a Bash-based CLI tool that leverages Claude AI to automatically generate comprehensive documentation for software projects. It follows a modular shell scripting architecture with clear separation of concerns across functionality-specific library modules.
+Claudux is a Bash-based CLI tool that keeps documentation true to the code it describes. It generates VitePress docs (via Claude or Codex), then checks in CI — deterministically, with no AI on the pass/fail path — that each doc section still matches the source it documents. It follows a modular shell scripting architecture with clear separation of concerns across functionality-specific library modules.
 
 ### What this file is (and isn't)
 
@@ -16,6 +16,14 @@ The generic prompt in `lib/docs-generation.sh` is project-agnostic and must stay
 
 - Verbosity is enabled by default — do NOT document `-v`/`--verbose` flags or any `CLAUDUX_VERBOSE` environment configuration.
 - Default AI model is Sonnet (speed). If you mention model selection, note that users can force Opus via `FORCE_MODEL=opus claudux update` when a heavier model is warranted.
+
+#### Positioning and voice (applies to the Home hero, feature cards, and every section intro)
+
+- The headline promise is **"docs that stay true to your code,"** not "AI generates your docs." Generation is table stakes; the deterministic drift gate (`claudux drift`) is the differentiator and the reason to care. Lead with it.
+- The Home hero must sell the outcome a developer gets: their build fails when a documented function changes but its doc doesn't. Name `claudux drift`, and say it is keyless and runs offline in CI — no API key, no network, no model on the pass/fail path.
+- Feature cards must cover the drift gate, the no-AI `audit` readiness snapshot, and the deterministic manifest mode — not only generation features.
+- Voice: short declarative sentences, plain words, benefit before mechanism. No corporate speak ("seamless", "powerful", "beautiful documentation", "transform your codebase", "in minutes"). No rule-of-three filler. Keep "how it works" short and below the value proposition.
+- Retired framing — never emit: "AI-Powered Documentation Generator", "Transform your codebase into beautiful documentation", "Docs that re-run with the code", "Documentation debt is killing your productivity".
 
 ### How `CLAUDE.md` is actually used
 

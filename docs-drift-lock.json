@@ -1,0 +1,885 @@
+{
+  "version": 1,
+  "head_sha": "269cafb9529d4a4141c2b42fbcbbd76c46cbd413",
+  "manifest_hash": "a9cf803946a80fd69eda477e8d2cc87ca3e0caf0f348e633c18fb1d23b2a2d79",
+  "drift_sensitivity": "surface",
+  "source_fingerprints": [
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "README.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "bin/claudux",
+      "sha256": "e46bc1a76fa2addd44e2e95eadaadb5d5956b4ad75f6de8f8e75d002dced43bd"
+    },
+    {
+      "path": "claudux.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "claudux.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "docs-structure.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/audit.sh",
+      "sha256": "70223104f2ebce48c5df9937f027bd807b226ded9128789966aa102257ce44f0"
+    },
+    {
+      "path": "lib/claude-utils.sh",
+      "sha256": "826bb8982857b57d4f1a71acfe582a76164b2081abd156884ee15c2e700f4d79"
+    },
+    {
+      "path": "lib/cleanup.sh",
+      "sha256": "7ebbf43eeb0c26c2d1ff6877752a374f981c212c4243e16b15cc2c544c091f66"
+    },
+    {
+      "path": "lib/codex-utils.sh",
+      "sha256": "40eeb0c3ddd0efa165554dbd1907af512bed721a97d6cbffb1ad322c5b0123a4"
+    },
+    {
+      "path": "lib/colors.sh",
+      "sha256": "5896f43fb1ea0304115c887b22bd15c9831969bc7156df101426885e57e2df5b"
+    },
+    {
+      "path": "lib/content-protection.sh",
+      "sha256": "05dc4ba12b04bee188772038f28f6773f06d9bad36548f8feb61dbe84f5cd144"
+    },
+    {
+      "path": "lib/docs-generation.sh",
+      "sha256": "8242a82bc184bd2b119d027227635e8d49a0d56bd138dd97149716c3be5bdf7f"
+    },
+    {
+      "path": "lib/docs-manifest.sh",
+      "sha256": "f050b9f5eb9e2d50d0f023af5db342b9fd55aaeed33b41009ab0e50e2d71635b"
+    },
+    {
+      "path": "lib/git-utils.sh",
+      "sha256": "79274ef26194c6d979711c639e93b64764081da2b9f7fbe19e828660256b1b11"
+    },
+    {
+      "path": "lib/project.sh",
+      "sha256": "80ca5aaf48a47fd2a609d3dffae12679a43383dad2292fc2153b5f63ade4e588"
+    },
+    {
+      "path": "lib/server.sh",
+      "sha256": "ce722b9af6d380c4c642ffd0871d49ba020e26141bbb0911eb063494f9d74b8b"
+    },
+    {
+      "path": "lib/templates/android-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/flutter-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/generic-claude.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/generic-claudux.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/generic/config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/go-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/ios-claude.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/ios-claudux.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/ios-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/nextjs-claude.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/nextjs-claudux.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/nextjs-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/protection-examples.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/python-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/rails-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/react-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/react/config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/rust-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/templates/vidux-project-config.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/ui.sh",
+      "sha256": "f7afce419be3590894ce58254366808efb5833462f3698b8601dd62794a4e194"
+    },
+    {
+      "path": "lib/validate-links.sh",
+      "sha256": "28745a7d571c5509de5561509d5a668790fca39adf9ac35219df141e6c0b848c"
+    },
+    {
+      "path": "lib/vitepress/config.template.ts",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/postcss.config.js",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/setup.sh",
+      "sha256": "890f496d200cd385e3804840f6cb32281c5996b9db62374a9a067bfed2601486"
+    },
+    {
+      "path": "lib/vitepress/sidebar-example.md",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/theme/components/Breadcrumbs.vue",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/theme/components/Monogram.vue",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/theme/custom.css",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/theme/index.ts",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "lib/vitepress/vite.config.js",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "package.json",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "tests/run-tests.sh",
+      "sha256": "c702ac2635fe45734ba7ed9348e7325f6d80d428a10961e41bac0221ac5318b1"
+    },
+    {
+      "path": "tests/test-backend-router.sh",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "tests/test-content-protection.sh",
+      "sha256": "b544907db650268bce86da1a887b1c5e77fc3f45c8ae45ed6f939782faad61a4"
+    },
+    {
+      "path": "tests/test-docs-manifest.sh",
+      "sha256": "e451966e94e2d9b4ab0729559c18fdad725cbf1dd02eedae925064e9178db9e7"
+    },
+    {
+      "path": "tests/test-state-file.sh",
+      "sha256": "0c92c5266b3e1f76b59f7512064e40de3cca94e37d0a8907e0fa14c7250f4d04"
+    }
+  ],
+  "doc_section_hashes": [
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "checkpoint-contract",
+      "heading": "Checkpoint Contract",
+      "level": 2,
+      "sha256": "800988e6143b46e4c3b1bb2b5ae648c7372810fccd05c611ba8977df23fc5a85"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "content-protection-markers",
+      "heading": "Content Protection Markers",
+      "level": 2,
+      "sha256": "aaa5105f7c377179dbc77fd720f3994e64dd5d75d4c546b2d8ebdd1b98618af4"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "dependency-aware-scope",
+      "heading": "Dependency-Aware Scope",
+      "level": 2,
+      "sha256": "84882b671d467e6cbff736ab5157cfa191a55b9d1765458d9a547811b1a8fdb1"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "docs-structure-json-manifest",
+      "heading": "docs-structure.json Manifest",
+      "level": 2,
+      "sha256": "fb96e2c2eb68a11ff08d5541f1ff1d064c5e81d3942732cd4c8d7a6c943c0a2e"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pinned-harness-example",
+      "heading": "Pinned Harness Example",
+      "level": 2,
+      "sha256": "3dcd9bf113cfa1b7f1e748d5edbb5c301617f036d45bed992bf9f39189aefb51"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pinned-pages-and-sections",
+      "heading": "Pinned Pages and Sections",
+      "level": 2,
+      "sha256": "df01c85d8976bb811396659d2fa395333c4f2d07147742265c86680e1cc722eb"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pipeline",
+      "heading": "Pipeline",
+      "level": 2,
+      "sha256": "6ee761c3e21b4ba39b438459d4ceecfcde686b06bdfedc57eb46ea12e6c3d444"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "section-patch-application",
+      "heading": "Section Patch Application",
+      "level": 2,
+      "sha256": "61125d5f0accf23243f7acec55303e817732fa0d5685c921410497e03e4661a3"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "static-analysis-index",
+      "heading": "Static Analysis Index",
+      "level": 2,
+      "sha256": "141fb88d0d04b708644a5d31411e50af2d9de509310a59cda0814d80a9a1ee9f"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "validators",
+      "heading": "Validators",
+      "level": 2,
+      "sha256": "08df45337e3e53d3f0425c181317dcd8e7d5e922dfc8419849ab4844f71a2fef"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "why-large-repos-need-a-manifest",
+      "heading": "Why Large Repos Need a Manifest",
+      "level": 2,
+      "sha256": "255d639c90f70b5f1e41da95132c60af2e0d13943b374703b10a2d044b80f51a"
+    }
+  ],
+  "doc_page_hashes": [
+    {
+      "path": "docs/api/index.md",
+      "page_id": "api.index",
+      "sha256": "6985ca231946e91e29ecab12247f640e3b8f02e78d95176b536ed9556752ae8c"
+    },
+    {
+      "path": "docs/examples/index.md",
+      "page_id": "examples.index",
+      "sha256": "e59f818d8482866500b321c328ba7e2c2522c167097240e494d8967c89b0c18f"
+    },
+    {
+      "path": "docs/examples/vidux-team-agents.md",
+      "page_id": "examples.vidux-team-agents",
+      "sha256": "419fe712dfcc314f0b12495da8a18db8c21c0d8848f23fd62e52e29dd7d7b8b7"
+    },
+    {
+      "path": "docs/features/audit-snapshots.md",
+      "page_id": "features.audit-snapshots",
+      "sha256": "b20036332ca665fa04c0c8df15098a9e06a5280996d91c7f46d6e2d0c021e63c"
+    },
+    {
+      "path": "docs/features/content-protection.md",
+      "page_id": "features.content-protection",
+      "sha256": "d40faf13384a89381ebcd8e7539ca5393f08f7e1b262a77bd0decc8b736f98d2"
+    },
+    {
+      "path": "docs/features/index.md",
+      "page_id": "features.index",
+      "sha256": "9067b9f1d16a5315c2547e57aaf92f3cbd7a8eb5e6a065fae6ad831c73880f04"
+    },
+    {
+      "path": "docs/features/smart-cleanup.md",
+      "page_id": "features.smart-cleanup",
+      "sha256": "d68d8625717587394a9fb7dc61b139e212a8fe9bb7b8f0556182dc91fbe75e56"
+    },
+    {
+      "path": "docs/features/two-phase-generation.md",
+      "page_id": "features.two-phase-generation",
+      "sha256": "592548d67bca20dceed2b8de0ebdeca37280dc7f8cd1eaade55ec34ba9e95ada"
+    },
+    {
+      "path": "docs/guide/commands.md",
+      "page_id": "guide.commands",
+      "sha256": "63948324e12b3efaf194274bf7dbb5ab8e05d585245ce1aefe043a6135ec0b4f"
+    },
+    {
+      "path": "docs/guide/configuration.md",
+      "page_id": "guide.configuration",
+      "sha256": "6cdf5f2c4abb674d78a27addb5b2fe304befcafe7f41fb64a7adcb5ad66003e8"
+    },
+    {
+      "path": "docs/guide/index.md",
+      "page_id": "guide.index",
+      "sha256": "de6a8eb60d6868e2d160673ad38d8ae6c7b4264acbeb26a749714114d21ba012"
+    },
+    {
+      "path": "docs/guide/installation.md",
+      "page_id": "guide.installation",
+      "sha256": "ff74ba4e404d02d298df4495c7751f5c7f4a17c07008e2c4fc8ae6af1fdbe9f1"
+    },
+    {
+      "path": "docs/index.md",
+      "page_id": "home.index",
+      "sha256": "0bc1757cf0cebe33fa3af617abe03f0f809dfdfd106d29bac4cc3cfb4cc5acef"
+    },
+    {
+      "path": "docs/technical/deterministic-generation.md",
+      "page_id": "technical.deterministic-generation",
+      "sha256": "c49d4376b27417048a26bbb4001a73730ee57915b0fcaee7527591eef61b303b"
+    },
+    {
+      "path": "docs/technical/index.md",
+      "page_id": "technical.index",
+      "sha256": "80505a0364f4fb156057d6619fbabce216d4195f63613ca89806bde2e3756035"
+    },
+    {
+      "path": "docs/technical/templates.md",
+      "page_id": "technical.templates",
+      "sha256": "485217c08f930ef05adb0af2c99c2fd24e2ee91120e21f6a7b5c290931d1cf54"
+    },
+    {
+      "path": "docs/troubleshooting.md",
+      "page_id": "troubleshooting",
+      "sha256": "ef6a8da27a9b64d6b47fcdcce5f758c821ad0235462918cddb73a52a02544385"
+    }
+  ],
+  "source_to_section_coverage": [
+    {
+      "source_pattern": "ARCHITECTURE.md",
+      "page_id": "technical.index",
+      "section_id": null,
+      "path": "docs/technical/index.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "examples.index",
+      "section_id": null,
+      "path": "docs/examples/index.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "examples.vidux-team-agents",
+      "section_id": null,
+      "path": "docs/examples/vidux-team-agents.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "features.index",
+      "section_id": null,
+      "path": "docs/features/index.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "guide.index",
+      "section_id": null,
+      "path": "docs/guide/index.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "guide.installation",
+      "section_id": null,
+      "path": "docs/guide/installation.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "home.index",
+      "section_id": null,
+      "path": "docs/index.md"
+    },
+    {
+      "source_pattern": "README.md",
+      "page_id": "troubleshooting",
+      "section_id": null,
+      "path": "docs/troubleshooting.md"
+    },
+    {
+      "source_pattern": "bin/claudux",
+      "page_id": "api.index",
+      "section_id": null,
+      "path": "docs/api/index.md"
+    },
+    {
+      "source_pattern": "bin/claudux",
+      "page_id": "features.audit-snapshots",
+      "section_id": null,
+      "path": "docs/features/audit-snapshots.md"
+    },
+    {
+      "source_pattern": "bin/claudux",
+      "page_id": "guide.commands",
+      "section_id": null,
+      "path": "docs/guide/commands.md"
+    },
+    {
+      "source_pattern": "bin/claudux",
+      "page_id": "home.index",
+      "section_id": null,
+      "path": "docs/index.md"
+    },
+    {
+      "source_pattern": "bin/claudux",
+      "page_id": "technical.index",
+      "section_id": null,
+      "path": "docs/technical/index.md"
+    },
+    {
+      "source_pattern": "bin/claudux",
+      "page_id": "troubleshooting",
+      "section_id": null,
+      "path": "docs/troubleshooting.md"
+    },
+    {
+      "source_pattern": "claudux.json",
+      "page_id": "guide.configuration",
+      "section_id": null,
+      "path": "docs/guide/configuration.md"
+    },
+    {
+      "source_pattern": "claudux.md",
+      "page_id": "guide.configuration",
+      "section_id": null,
+      "path": "docs/guide/configuration.md"
+    },
+    {
+      "source_pattern": "docs-structure.json",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "docs-structure.json",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "docs-structure-json-manifest",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "docs-structure.json",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pinned-pages-and-sections",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "docs-structure.json",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "why-large-repos-need-a-manifest",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "docs-structure.json",
+      "page_id": "technical.index",
+      "section_id": null,
+      "path": "docs/technical/index.md"
+    },
+    {
+      "source_pattern": "docs/examples/**",
+      "page_id": "examples.index",
+      "section_id": null,
+      "path": "docs/examples/index.md"
+    },
+    {
+      "source_pattern": "docs/examples/vidux-team-agents.md",
+      "page_id": "examples.vidux-team-agents",
+      "section_id": null,
+      "path": "docs/examples/vidux-team-agents.md"
+    },
+    {
+      "source_pattern": "docs/features/**",
+      "page_id": "features.index",
+      "section_id": null,
+      "path": "docs/features/index.md"
+    },
+    {
+      "source_pattern": "docs/guide/**",
+      "page_id": "guide.index",
+      "section_id": null,
+      "path": "docs/guide/index.md"
+    },
+    {
+      "source_pattern": "lib/**",
+      "page_id": "features.index",
+      "section_id": null,
+      "path": "docs/features/index.md"
+    },
+    {
+      "source_pattern": "lib/**",
+      "page_id": "technical.index",
+      "section_id": null,
+      "path": "docs/technical/index.md"
+    },
+    {
+      "source_pattern": "lib/*.sh",
+      "page_id": "api.index",
+      "section_id": null,
+      "path": "docs/api/index.md"
+    },
+    {
+      "source_pattern": "lib/*.sh",
+      "page_id": "troubleshooting",
+      "section_id": null,
+      "path": "docs/troubleshooting.md"
+    },
+    {
+      "source_pattern": "lib/audit.sh",
+      "page_id": "features.audit-snapshots",
+      "section_id": null,
+      "path": "docs/features/audit-snapshots.md"
+    },
+    {
+      "source_pattern": "lib/audit.sh",
+      "page_id": "guide.commands",
+      "section_id": null,
+      "path": "docs/guide/commands.md"
+    },
+    {
+      "source_pattern": "lib/claude-utils.sh",
+      "page_id": "features.two-phase-generation",
+      "section_id": null,
+      "path": "docs/features/two-phase-generation.md"
+    },
+    {
+      "source_pattern": "lib/cleanup.sh",
+      "page_id": "features.smart-cleanup",
+      "section_id": null,
+      "path": "docs/features/smart-cleanup.md"
+    },
+    {
+      "source_pattern": "lib/cleanup.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/cleanup.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "validators",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/codex-utils.sh",
+      "page_id": "features.two-phase-generation",
+      "section_id": null,
+      "path": "docs/features/two-phase-generation.md"
+    },
+    {
+      "source_pattern": "lib/codex-utils.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "section-patch-application",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/content-protection.sh",
+      "page_id": "features.content-protection",
+      "section_id": null,
+      "path": "docs/features/content-protection.md"
+    },
+    {
+      "source_pattern": "lib/content-protection.sh",
+      "page_id": "features.smart-cleanup",
+      "section_id": null,
+      "path": "docs/features/smart-cleanup.md"
+    },
+    {
+      "source_pattern": "lib/content-protection.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/content-protection.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "content-protection-markers",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/content-protection.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pinned-pages-and-sections",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/content-protection.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "validators",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "features.audit-snapshots",
+      "section_id": null,
+      "path": "docs/features/audit-snapshots.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "features.two-phase-generation",
+      "section_id": null,
+      "path": "docs/features/two-phase-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "guide.commands",
+      "section_id": null,
+      "path": "docs/guide/commands.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "checkpoint-contract",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "dependency-aware-scope",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pipeline",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-generation.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "section-patch-application",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "features.audit-snapshots",
+      "section_id": null,
+      "path": "docs/features/audit-snapshots.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "dependency-aware-scope",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pinned-pages-and-sections",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "pipeline",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "section-patch-application",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "static-analysis-index",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "validators",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "lib/project.sh",
+      "page_id": "examples.vidux-team-agents",
+      "section_id": null,
+      "path": "docs/examples/vidux-team-agents.md"
+    },
+    {
+      "source_pattern": "lib/project.sh",
+      "page_id": "guide.configuration",
+      "section_id": null,
+      "path": "docs/guide/configuration.md"
+    },
+    {
+      "source_pattern": "lib/templates/**",
+      "page_id": "technical.templates",
+      "section_id": null,
+      "path": "docs/technical/templates.md"
+    },
+    {
+      "source_pattern": "lib/templates/protection-examples.md",
+      "page_id": "features.content-protection",
+      "section_id": null,
+      "path": "docs/features/content-protection.md"
+    },
+    {
+      "source_pattern": "lib/templates/vidux-project-config.json",
+      "page_id": "examples.vidux-team-agents",
+      "section_id": null,
+      "path": "docs/examples/vidux-team-agents.md"
+    },
+    {
+      "source_pattern": "lib/ui.sh",
+      "page_id": "guide.commands",
+      "section_id": null,
+      "path": "docs/guide/commands.md"
+    },
+    {
+      "source_pattern": "lib/ui.sh",
+      "page_id": "guide.configuration",
+      "section_id": null,
+      "path": "docs/guide/configuration.md"
+    },
+    {
+      "source_pattern": "lib/vitepress/**",
+      "page_id": "technical.templates",
+      "section_id": null,
+      "path": "docs/technical/templates.md"
+    },
+    {
+      "source_pattern": "package.json",
+      "page_id": "guide.installation",
+      "section_id": null,
+      "path": "docs/guide/installation.md"
+    },
+    {
+      "source_pattern": "package.json",
+      "page_id": "home.index",
+      "section_id": null,
+      "path": "docs/index.md"
+    },
+    {
+      "source_pattern": "tests/run-tests.sh",
+      "page_id": "api.index",
+      "section_id": null,
+      "path": "docs/api/index.md"
+    },
+    {
+      "source_pattern": "tests/run-tests.sh",
+      "page_id": "features.audit-snapshots",
+      "section_id": null,
+      "path": "docs/features/audit-snapshots.md"
+    },
+    {
+      "source_pattern": "tests/test-backend-router.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "section-patch-application",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-content-protection.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-content-protection.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "content-protection-markers",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": null,
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "content-protection-markers",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "dependency-aware-scope",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "section-patch-application",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "static-analysis-index",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-docs-manifest.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "validators",
+      "path": "docs/technical/deterministic-generation.md"
+    },
+    {
+      "source_pattern": "tests/test-state-file.sh",
+      "page_id": "technical.deterministic-generation",
+      "section_id": "checkpoint-contract",
+      "path": "docs/technical/deterministic-generation.md"
+    }
+  ]
+}

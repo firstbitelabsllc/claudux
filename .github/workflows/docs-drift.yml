@@ -1,0 +1,46 @@
+# Deterministic doc/code drift gate.
+#
+# Fails the PR when a source file a doc section documents changed, but the
+# doc did not. No API key, no network, no LLM on the pass/fail path — it
+# reads the committed docs-drift-lock.json and the working tree, then exits
+# non-zero on drift.
+#
+# COPY-PASTE for your own repo (drop this in .github/workflows/docs-drift.yml,
+# then run `npx claudux drift --accept` locally once to commit the lockfile):
+#
+#   name: Docs drift
+#   on: [push, pull_request]
+#   jobs:
+#     drift:
+#       runs-on: ubuntu-latest
+#       steps:
+#         - uses: actions/checkout@v4
+#         - uses: actions/setup-node@v4
+#           with: { node-version: 18 }
+#         - run: npx claudux drift
+#
+# The job below gates claudux's own repo, so it runs the in-tree binary
+# instead of the published package.
+name: Docs drift
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: doc/code drift gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Check doc/code drift
+        run: bash bin/claudux drift

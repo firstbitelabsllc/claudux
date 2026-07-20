@@ -12,7 +12,7 @@ show_header() {
         powered_by="Codex (${codex_model}, ${codex_effort} reasoning)"
     fi
     echo "📚 claudux - ${PROJECT_NAME} Documentation"
-    echo "Powered by $powered_by - Local CLI orchestration"
+    echo "Docs that stay true to your code · powered by $powered_by"
     echo ""
 }
 
@@ -187,6 +187,9 @@ validate_links() {
 # Show help and usage information
 show_help() {
     echo ""
+    echo "claudux - Docs that stay true to your code"
+    echo "Generate VitePress docs, then gate CI on doc/code drift with 'claudux drift' (deterministic, no AI). 'claudux audit' checks release readiness."
+    echo ""
     echo "💡 Quick Tips:"
     echo "• Use '<!-- skip -->' to protect sensitive content"
     echo "• The 'notes/' folder is automatically protected" 
@@ -202,6 +205,7 @@ show_help() {
     echo "  claudux diff             - Show files changed since last doc gen"
     echo "  claudux status           - Show documentation freshness"
     echo "  claudux audit            - Print a no-AI docs readiness report"
+    echo "  claudux drift            - Fail CI when documented code changed but its doc did not"
     echo "  claudux validate         - Validate all internal doc links"
     echo "  claudux template         - Generate claudux.md (docs preferences)"
     echo "  claudux check            - Verify environment (Node, Claude CLI, docs)"
@@ -214,6 +218,8 @@ show_help() {
     echo "  --json                   - Emit machine-readable output (audit command)"
     echo "  --release                - Fail docs/package release-readiness drift (audit command)"
     echo "  --handoff-strict         - Fail stale checkpoint or dirty docs state (audit command)"
+    echo "  --accept                 - Re-baseline the drift lock, no AI (drift command)"
+    echo "  --warn-only              - Report drift but always exit 0 (drift command)"
     echo ""
     echo "Environment:"
     echo "  FORCE_MODEL=opus|sonnet  - Select Claude model (default: sonnet)"

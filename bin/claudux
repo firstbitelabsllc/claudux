@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# claudux - AI-Powered Documentation Generator
-# Powered by Claude AI and VitePress
+# claudux - Docs that stay true to your code
+# Deterministic doc/code drift checks, plus generation via Claude or Codex
 #
 
 # Script setup - check for undefined variables; avoid -e to allow graceful handling
@@ -87,7 +87,7 @@ if [[ ! -d "$LIB_DIR" ]]; then
 fi
 
 # Source all library modules with error handling
-REQUIRED_LIBS=("colors.sh" "project.sh" "content-protection.sh" "claude-utils.sh" "git-utils.sh" "docs-manifest.sh" "docs-generation.sh" "audit.sh" "cleanup.sh" "server.sh" "ui.sh")
+REQUIRED_LIBS=("colors.sh" "project.sh" "content-protection.sh" "claude-utils.sh" "git-utils.sh" "docs-manifest.sh" "docs-generation.sh" "audit.sh" "drift.sh" "cleanup.sh" "server.sh" "ui.sh")
 
 for lib in "${REQUIRED_LIBS[@]}"; do
     lib_path="$LIB_DIR/$lib"
@@ -371,6 +371,15 @@ main() {
                 show_header
             fi
             claudux_audit "$@"
+            ;;
+        "drift")
+            check_function "show_header"
+            check_function "claudux_drift"
+            shift
+            if [[ " $* " != *" --json "* ]]; then
+                show_header
+            fi
+            claudux_drift "$@"
             ;;
         "serve"|"server"|"dev")
             check_function "show_header"

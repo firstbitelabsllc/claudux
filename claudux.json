@@ -2,6 +2,6 @@
   "project": {
     "name": "claudux",
     "type": "javascript",
-    "description": "AI-powered documentation generator using Claude Code and VitePress"
+    "description": "Local CLI that keeps VitePress docs true to your code with deterministic, no-AI CI drift checks, plus generation via Claude or Codex"
   }
 }
