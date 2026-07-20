@@ -80,6 +80,14 @@ When a cycle finds only LEO-GATED work reachable, it parks with a resume predica
   - **Diagnosis honesty:** the `cancelled` docs runs were `cancel-in-progress: true` concurrency cancellations, NOT outage evidence. Only the queued-with-no-runner job supports the Blacksmith-degraded read, and the runner change did not depend on that diagnosis. Left `ci.yml`, `ci-testbox.yml`, and `publish.yml` on Blacksmith — not launch-visible, and Leo's publish path is local.
   - **Row status: R1–R6 ✅, R7 ✅.** Only the LEO-GATED publish remains. Mission state WAITING, not blocked, not complete.
 
+- 2026-07-20 — **Cycle 5: R8 (unplanned P0) ✅ — the re-center was skin-deep behind the landing page.** After R7 fixed the docs home, an audit of every docs page found `drift` mentioned **0 times across all 16 interior pages**. The hero promised a CI gate; `Get Started`, the command reference, and the features overview all still described a doc generator. That is the same lie the product exists to catch. **PR #99 merged → `abe0c92`.**
+  - New `docs/features/drift-gate.md`, written against `lib/drift.sh` rather than from memory: declare → baseline → compare → exit, the three sensitivity modes with the residual false positives stated honestly, re-baselining, the copy-paste CI workflow, the `--warn-only` pre-commit hook, the `--json` shape, and the no-lock / delete / rename edges.
+  - `guide/commands.md`: `claudux drift` promoted to its own section ahead of the core commands, with a flags table and drift-specific exit-code meaning (`1` = drift found, `2` = could-not-evaluate).
+  - `guide/index.md` + `features/index.md`: lead with the two things claudux does; gate listed first; same honest npm-serves-1.1.1 install caveat as the README.
+  - `config.ts`: "The Drift Gate" added to both the guide and features sidebars.
+  - **Proof on the real surface:** `npm ci && DOCS_BASE=/claudux/ npx vitepress build` clean in 2.50s — VitePress fails the build on dead links, so this validates every new cross-link; `features/drift-gate.html` present in `dist/`; `bash bin/claudux drift` exit 0; `tests/run-all.sh` all suites passed; PR check `doc/code drift gate` **pass 10s**; live page confirmed at https://firstbitelabsllc.github.io/claudux/features/drift-gate.
+  - **Row status: R1–R6 ✅, R7 ✅, R8 ✅.** Only the LEO-GATED publish remains. Mission state WAITING, not blocked, not complete.
+
 ### LEO handoff — publish 1.2.0 (ready, one command)
 
 Everything agent-side is done. Receipts as of `origin/main`:
