@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "47fa4c8427482a597a239f0aa0db368978ee4d1b",
+  "head_sha": "71c0743ccb502c54a17aa8c917d3175b74d22884",
   "manifest_hash": "a9cf803946a80fd69eda477e8d2cc87ca3e0caf0f348e633c18fb1d23b2a2d79",
   "drift_sensitivity": "surface",
   "source_fingerprints": [
@@ -42,7 +42,7 @@
     },
     {
       "path": "lib/codex-utils.sh",
-      "sha256": "40eeb0c3ddd0efa165554dbd1907af512bed721a97d6cbffb1ad322c5b0123a4"
+      "sha256": "353901bf4b4f91fcbcfee25929bc0d87982064f8f3d0363d5785ae2eb5717c5d"
     },
     {
       "path": "lib/colors.sh",
@@ -315,12 +315,12 @@
     {
       "path": "docs/api/index.md",
       "page_id": "api.index",
-      "sha256": "6985ca231946e91e29ecab12247f640e3b8f02e78d95176b536ed9556752ae8c"
+      "sha256": "625d3efa7dba39f5e38a490f3702f47d20a41de892c6934bca4abcb74f03a9eb"
     },
     {
       "path": "docs/examples/index.md",
       "page_id": "examples.index",
-      "sha256": "e59f818d8482866500b321c328ba7e2c2522c167097240e494d8967c89b0c18f"
+      "sha256": "2640f76586c4662f97bc40024d4749679c503a72b7b9fa8e87d2c3a67c0b25f1"
     },
     {
       "path": "docs/examples/vidux-team-agents.md",
@@ -355,12 +355,12 @@
     {
       "path": "docs/guide/commands.md",
       "page_id": "guide.commands",
-      "sha256": "63948324e12b3efaf194274bf7dbb5ab8e05d585245ce1aefe043a6135ec0b4f"
+      "sha256": "73ff4d166c3cdf1322c7706c4c3ab15245a8489e74d069084b4b05a72a2396e7"
     },
     {
       "path": "docs/guide/configuration.md",
       "page_id": "guide.configuration",
-      "sha256": "6cdf5f2c4abb674d78a27addb5b2fe304befcafe7f41fb64a7adcb5ad66003e8"
+      "sha256": "796c4eefc3d0e656c006e41406105e37e0fd24d7412551fd861c99b5f6d9d462"
     },
     {
       "path": "docs/guide/index.md",
@@ -370,12 +370,12 @@
     {
       "path": "docs/guide/installation.md",
       "page_id": "guide.installation",
-      "sha256": "ff74ba4e404d02d298df4495c7751f5c7f4a17c07008e2c4fc8ae6af1fdbe9f1"
+      "sha256": "394e6fd256dd17158b2af7dbd546d50944e3378d614a4495da6a5ea49acc0404"
     },
     {
       "path": "docs/index.md",
       "page_id": "home.index",
-      "sha256": "0bc1757cf0cebe33fa3af617abe03f0f809dfdfd106d29bac4cc3cfb4cc5acef"
+      "sha256": "ce282a57f550ca69b518d633828e757d4af084473570208cacfae34b2c5f6c9d"
     },
     {
       "path": "docs/technical/deterministic-generation.md",
@@ -395,7 +395,7 @@
     {
       "path": "docs/troubleshooting.md",
       "page_id": "troubleshooting",
-      "sha256": "ef6a8da27a9b64d6b47fcdcce5f758c821ad0235462918cddb73a52a02544385"
+      "sha256": "ba7f6e0d965990a9d6943856b7070754a09d8f57ed317984b413254c856df5f7"
     }
   ],
   "source_to_section_coverage": [
