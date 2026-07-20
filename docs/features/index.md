@@ -1,8 +1,23 @@
 # Features Overview
 
-Claudux combines AI-powered code analysis with modern documentation tooling to solve the documentation maintenance problem.
+Claudux gates your build on doc/code drift, and generates VitePress docs. The gate is deterministic and runs without a key; generation is the AI-assisted half.
 
-## Core Features
+## The Gate
+
+### 🚨 [Drift detection](/features/drift-gate)
+
+**Problem**: Nobody can prove their docs still match the code a week after shipping. That gets more expensive as the primary reader of docs shifts from humans to agents, which read a stale doc and act on it.
+
+**Solution**: `claudux drift` fails the build when a source file changed but the doc section documenting it did not. Parse, hash, compare, exit. No API key, no network, no model on the pass/fail path.
+
+```bash
+claudux drift --accept   # baseline once, commit docs-drift-lock.json
+claudux drift            # exit 1 when a doc falls behind its code
+```
+
+Full detail, including sensitivity modes and the CI workflow: [The Drift Gate](/features/drift-gate).
+
+## Generation Features
 
 ### 🔄 Automatic Updates
 

@@ -1,10 +1,18 @@
 # Getting Started
 
-Claudux is an AI-assisted documentation generator that analyzes your codebase and creates VitePress documentation sites automatically.
+Claudux does two things. It gates your build on doc/code drift, and it generates VitePress docs.
+
+[The drift gate](/features/drift-gate) is the part that runs in CI. It is deterministic — parse, hash, compare, exit — and it needs no API key and no network. Generation is the AI-assisted half, and it runs on your machine against your own authenticated CLI.
 
 ## Installation
 
-Install claudux globally via npm:
+The drift gate ships in source (1.2.0). npm still serves 1.1.1, which has no `claudux drift`, so install from source until the 1.2.0 publish lands:
+
+```bash
+npm i -g firstbitelabsllc/claudux
+```
+
+The generator is on npm today:
 
 ```bash
 npm install -g claudux
@@ -12,7 +20,7 @@ npm install -g claudux
 
 **Requirements:**
 - Node.js ≥ 18.0.0
-- An authenticated Claude CLI (`claude config get`) or Codex CLI when `CLAUDUX_BACKEND=codex`
+- Generation needs an authenticated Claude CLI (`claude config get`) or Codex CLI when `CLAUDUX_BACKEND=codex`. The drift gate needs neither.
 
 ## Quick Start
 
@@ -30,6 +38,14 @@ npm install -g claudux
    ```bash
    claudux serve  # Opens http://localhost:5173
    ```
+
+4. **Baseline the gate, then run it**:
+   ```bash
+   claudux drift --accept   # commit docs-drift-lock.json
+   claudux drift            # exits 1 when a doc falls behind its code
+   ```
+
+   Then run `claudux drift` in CI on every push. It needs no secrets.
 
 ## First Run Experience
 
