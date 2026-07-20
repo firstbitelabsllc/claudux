@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "fb702d95ae1ad6723a244f7bd6631259eeac9228",
+  "head_sha": "1fff9291563aa373e6586f3d3949363542491087",
   "manifest_hash": "7959ff0119de8ed0f10466b2caca866b029031de635b974ce68cf583dc3e83d5",
   "drift_sensitivity": "significant",
   "source_fingerprints": [
@@ -10,7 +10,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "577bee4287ce145c4656628d86457e7683cc46d41d56022f4d7294ddd8e63c33"
+      "sha256": "54ee6d8da733d83183e3662d547e897a2eefc9e8e06d3d833dbf0190070f7a45"
     },
     {
       "path": "bin/claudux",
@@ -370,7 +370,7 @@
     {
       "path": "docs/guide/installation.md",
       "page_id": "guide.installation",
-      "sha256": "394e6fd256dd17158b2af7dbd546d50944e3378d614a4495da6a5ea49acc0404"
+      "sha256": "77c0b59ea72adf64ceaf9806fc2d01338c928d23a4efde37b363521fd3a81267"
     },
     {
       "path": "docs/index.md",
