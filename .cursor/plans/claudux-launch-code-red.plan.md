@@ -53,7 +53,8 @@ When a cycle finds only LEO-GATED work reachable, it parks with a resume predica
 
 ## Progress
 
-- 2026-07-19 — Mission opened. Grounded origin/main (`2d1f872`); proved gate end-to-end (clean→0, drift→1, restore→0, `--json` clean); fixed stale repo description + added drift topics. Collision preflight: 3 legacy claudux automations all stale/complete on old `leojkwan/claudux` remote — no live executor, no collision. PLAN landed via branch/PR.
+- 2026-07-19 — Mission opened. Grounded origin/main (`2d1f872`); proved gate end-to-end (clean→0, drift→1, restore→0, `--json` clean); fixed stale repo description + added drift topics. Collision preflight: 3 legacy claudux automations all stale/complete on old `leojkwan/claudux` remote — no live executor, no collision. PLAN landed via branch/PR (#86).
+- 2026-07-19 — **Cycle 1: R2 ✅ + R4 ✅** (PR #87, merged → `49d4812`). Green gate on origin/main HEAD: shellcheck 0, `tests/run-all.sh` **314/314** (fixed 2 stale header tests — `head -2`→`head -4` after the #85 re-center made the header 3 lines), `npm pack --dry-run` = `claudux-1.2.0.tgz` (54 files). R2: `docs-drift-lock.json` re-baselined to include `lib/drift.sh`; `drift --json` now `ready=true, drifted=0, new_sources=0`. **Bonus fix (gate correctness):** `bin/claudux` routed the `📍 Changing to project root` notice to **stderr** — it was corrupting `--json` stdout, breaking every CI JSON consumer. Worktree landed + torn down; both branches pruned. Next P0: R1 (dogfood in own CI) or R3 (second real repo).
 
 ## Fleet coordination
 
