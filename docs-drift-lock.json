@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "269cafb9529d4a4141c2b42fbcbbd76c46cbd413",
+  "head_sha": "47fa4c8427482a597a239f0aa0db368978ee4d1b",
   "manifest_hash": "a9cf803946a80fd69eda477e8d2cc87ca3e0caf0f348e633c18fb1d23b2a2d79",
   "drift_sensitivity": "surface",
   "source_fingerprints": [
@@ -59,6 +59,10 @@
     {
       "path": "lib/docs-manifest.sh",
       "sha256": "f050b9f5eb9e2d50d0f023af5db342b9fd55aaeed33b41009ab0e50e2d71635b"
+    },
+    {
+      "path": "lib/drift.sh",
+      "sha256": "3de5aa79abccb857f0ff856584d48da23883bff17c346d405bfb71f96ca5ff4c"
     },
     {
       "path": "lib/git-utils.sh",
