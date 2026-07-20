@@ -79,6 +79,12 @@ codex_stderr_log_path() {
         path=$(mktemp "$tmpdir/claudux-codex-stderr-XXXXXX" 2>/dev/null || mktemp)
     elif [[ ! -e "$path" ]]; then
         (umask 077; : > "$path") 2>/dev/null || path=$(mktemp)
+    else
+        # Path exists and is owned by us, but may have been created by an older
+        # claudux (or another tool) with a group/other-readable mode. Codex
+        # stderr can carry auth failures, so tighten it to owner-only before we
+        # append; if we can't, fall back to a fresh owner-only mktemp file.
+        chmod 600 "$path" 2>/dev/null || path=$(mktemp "$tmpdir/claudux-codex-stderr-XXXXXX" 2>/dev/null || mktemp)
     fi
 
     echo "$path"
