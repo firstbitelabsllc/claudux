@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "9f8787003ff324878b3123ce0e170401d279c733",
+  "head_sha": "60ae6e10967487d2ff8c04868727691af9155107",
   "manifest_hash": "7959ff0119de8ed0f10466b2caca866b029031de635b974ce68cf583dc3e83d5",
   "drift_sensitivity": "significant",
   "source_fingerprints": [
@@ -42,7 +42,7 @@
     },
     {
       "path": "lib/codex-utils.sh",
-      "sha256": "51b7e3166a9986f8218ba7505361caa09ee40a6ce2926900f9bb14a865fd09e0"
+      "sha256": "b1701dee213fcfb01a88ad7f5137016b8f5c60fdb651ed29189e8c21e9fed96a"
     },
     {
       "path": "lib/colors.sh",
