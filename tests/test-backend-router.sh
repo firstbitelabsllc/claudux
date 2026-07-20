@@ -82,7 +82,9 @@ assert_contains "check shows codex model" "$check_block" 'CODEX_MODEL'
 # --- Test 11: show_header says "Claude AI" under default backend ---
 (
     unset CLAUDUX_BACKEND 2>/dev/null || true
-    "$REPO_ROOT/bin/claudux" check 2>&1 | head -2
+    # header is 3 lines (title + tagline + blank); the optional "Changing to
+    # project root" notice can prepend one more, so capture 4 to reach the tagline
+    "$REPO_ROOT/bin/claudux" check 2>&1 | head -4
 ) > /tmp/claudux-test-header-claude 2>&1
 assert_contains "default header mentions Claude AI" \
     "$(cat /tmp/claudux-test-header-claude)" \
@@ -93,7 +95,9 @@ assert_contains "default header mentions Claude AI" \
     export CLAUDUX_BACKEND=codex
     export CODEX_MODEL=gpt-5.5
     export CODEX_REASONING_EFFORT=xhigh
-    "$REPO_ROOT/bin/claudux" check 2>&1 | head -2
+    # header is 3 lines (title + tagline + blank); the optional "Changing to
+    # project root" notice can prepend one more, so capture 4 to reach the tagline
+    "$REPO_ROOT/bin/claudux" check 2>&1 | head -4
 ) > /tmp/claudux-test-header-codex 2>&1
 assert_contains "codex header mentions Codex" \
     "$(cat /tmp/claudux-test-header-codex)" \
