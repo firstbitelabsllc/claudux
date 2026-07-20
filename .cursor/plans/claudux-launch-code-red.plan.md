@@ -88,6 +88,12 @@ When a cycle finds only LEO-GATED work reachable, it parks with a resume predica
   - **Proof on the real surface:** `npm ci && DOCS_BASE=/claudux/ npx vitepress build` clean in 2.50s — VitePress fails the build on dead links, so this validates every new cross-link; `features/drift-gate.html` present in `dist/`; `bash bin/claudux drift` exit 0; `tests/run-all.sh` all suites passed; PR check `doc/code drift gate` **pass 10s**; live page confirmed at https://firstbitelabsllc.github.io/claudux/features/drift-gate.
   - **Row status: R1–R6 ✅, R7 ✅, R8 ✅.** Only the LEO-GATED publish remains. Mission state WAITING, not blocked, not complete.
 
+- 2026-07-20 — **Cycle 6: R9 (unplanned P0) ✅ — Dependabot cleared, 4 open alerts → 0.** A repo about to be launched publicly was showing `1 high, 3 moderate` on its security tab. All four were transitive `vite`/`esbuild` under vitepress in `docs/package-lock.json`. **PR #101 merged → `8027b1c`.**
+  - **No easy fix existed, and I checked before assuming one did:** `5.4.21` is the last 5.x, every advisory is patched only in `vite 6.4.3` / `esbuild 0.25.0`, vitepress `1.6.4` (latest 1.x) pins `vite ^5`, and vitepress 2 is alpha-only on `vite ^8` — not an option for a launch repo. An npm `overrides` block was the remaining route, and I tested it against the real build rather than shipping it on hope.
+  - **Proof on the real surface:** `npm ci` from the new lock succeeds (that is the CI path, not just `npm install`); vite resolves to `6.4.3`, esbuild to `0.25.12`; `DOCS_BASE=/claudux/ npx vitepress build` clean in 2.75s with every guide and features page present in `dist/`; `npx vitepress dev` boots and serves 200; `npm audit` → **found 0 vulnerabilities**; PR check `doc/code drift gate` **pass 8s**; post-merge Pages deploy run `29711448236` **success**; `gh api .../dependabot/alerts` open count → **0**.
+  - **Severity honesty:** all three advisories are dev-server issues (`server.fs.deny` bypass, esbuild dev-server CORS, optimized-deps path traversal). They never applied to the static Pages output or to the drift gate, which runs no server at all. The fix was worth doing for the public security tab, not because the gate was exposed.
+  - **Row status: R1–R6 ✅, R7 ✅, R8 ✅, R9 ✅.** Only the LEO-GATED publish remains. Mission state WAITING, not blocked, not complete.
+
 ### LEO handoff — publish 1.2.0 (ready, one command)
 
 Everything agent-side is done. Receipts as of `origin/main`:
