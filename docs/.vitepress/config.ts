@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'claudux',
-  description: 'AI-powered documentation generator for your codebase using Claude Code and VitePress',
+  description: 'Deterministic doc/code drift checks for VitePress docs. Keyless, offline, CI-enforced. Plus AI generation.',
   base: process.env.DOCS_BASE || '/',
   
   // Ignore localhost links during static builds
@@ -14,7 +14,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#5f67ee' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'en' }],
-    ['meta', { property: 'og:title', content: 'claudux Documentation' }],
+    ['meta', { property: 'og:title', content: 'claudux — docs that fail CI when they stop matching the code' }],
     ['meta', { property: 'og:site_name', content: 'claudux Docs' }],
     ['meta', { property: 'og:url', content: '/' }],
   ],
