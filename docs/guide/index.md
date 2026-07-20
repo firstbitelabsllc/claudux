@@ -6,17 +6,11 @@ Claudux does two things. It gates your build on doc/code drift, and it generates
 
 ## Installation
 
-The drift gate ships in source (1.2.0). npm still serves 1.1.1, which has no `claudux drift`, so install from source until the 1.2.0 publish lands:
-
-```bash
-npm i -g firstbitelabsllc/claudux
-```
-
-The generator is on npm today:
-
 ```bash
 npm install -g claudux
 ```
+
+Or run it without installing: `npx claudux drift`.
 
 **Requirements:**
 - Node.js ≥ 18.0.0
