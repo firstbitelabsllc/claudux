@@ -203,7 +203,7 @@ Built-in validation checks:
 ```yaml
 - name: Generate Documentation
   run: |
-    npm install -g claudux
+    npm i -g github:firstbitelabsllc/claudux
     export DOCS_BASE='/my-project/'
     claudux update --strict
     

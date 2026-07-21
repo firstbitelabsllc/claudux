@@ -41,18 +41,30 @@ assets/              Static assets (banner SVG, terminal demo, hero image)
 
 ### Release process
 
-1. Bump `version` in `package.json` and `package-lock.json`
+claudux is distributed straight from GitHub — there is no npm registry package and no publish step. A release is just a tag: the install script (`CLAUDUX_REF`) and `npx github:firstbitelabsllc/claudux` fetch whatever ref you point them at. Because those paths resolve a git ref the moment it exists, **a tag is installable as soon as it's pushed** — CI runs *after* the ref is already public and cannot gate it. So verify the version locally before you push, and delete any tag that turns out to be wrong.
+
+1. Bump `version` in `package.json`
 2. Update `CHANGELOG.md` with the new version's changes
 3. Commit: `git commit -m "release: vX.Y.Z"`
-4. Tag: `git tag vX.Y.Z`
-5. Push: `git push origin main --tags`
+4. Verify locally that the tag matches `package.json` before pushing:
+   ```bash
+   test "vX.Y.Z" = "v$(node -p "require('./package.json').version")" && echo OK
+   ```
+5. Tag: `git tag vX.Y.Z`
+6. Push: `git push origin main --tags`
+
+If you push a mismatched or otherwise bad tag, it is already installable — **delete it immediately** and cut a corrected one:
+
+```bash
+git push origin :refs/tags/vX.Y.Z   # remove the remote tag
+git tag -d vX.Y.Z                    # remove it locally
+```
 
 What happens automatically:
-- `ci.yml` runs lint, structure, syntax, version, and test jobs on every push/PR
-- `publish.yml` triggers on `v*` tags, runs the full CI suite, verifies the tag matches `package.json`, and publishes to npm with provenance
+- `ci.yml` runs lint, structure, syntax, version, and test jobs on every push/PR, and also on `v*` tag pushes — where it additionally flags a tag that doesn't match the `package.json` version. This runs *after* the ref already exists, so treat it as a post-push alarm (delete the bad tag), not a gate that prevents a bad ref from resolving.
 - `docs.yml` deploys the VitePress site to GitHub Pages on push to main
 
-**Prerequisite:** The `NPM_TOKEN` repository secret must be configured in GitHub repo settings before the first tag publish. Generate a token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/~/tokens) (use "Automation" type).
+Users on the tag get it via `curl … | CLAUDUX_REF=vX.Y.Z sh` or `npx github:firstbitelabsllc/claudux#vX.Y.Z`. No registry, no tokens, no secrets. (The assignment goes on the `sh` side of the pipe so the installer actually receives it; on the `curl` side it would apply only to `curl` and the installer would fall back to `main`.)
 
 ### Learn more
 
@@ -60,28 +72,3 @@ What happens automatically:
 - [README](./README.md)
 
 By contributing, you agree to the MIT license.
-
-## Publishing to npm (maintainers only)
-
-Publishing is automated via GitHub Actions. To release:
-
-```bash
-# 1. Ensure version is bumped in package.json + package-lock.json
-# 2. Ensure CHANGELOG.md is updated
-# 3. Tag and push
-git tag v1.2.0
-git push origin main --tags
-```
-
-The `publish.yml` workflow will:
-1. Run the full CI suite (lint, structure, syntax, version, and bash test suites)
-2. Verify the git tag matches `package.json` version
-3. Publish to npm with `--provenance --access public`
-
-For manual publish (fallback):
-```bash
-npm login
-npm publish --access public
-```
-
-Package name: `claudux`. Requires Node 18+. Requires `NPM_TOKEN` secret in repo settings.

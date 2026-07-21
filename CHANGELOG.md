@@ -10,6 +10,7 @@ Minimal, open-source-ready surface. claudux is now focused on one job: generate 
 
 - **Standalone reporting and lifecycle commands.** `audit`, `drift`, `diff`, `status`, `validate`, `recreate`, and `template` are gone from the CLI. Their machinery that actually matters survives internally: link validation and the manifest deletion guard run inside `update`, and the `.claudux-state.json` checkpoint still scopes each incremental run.
 - The `--release` audit gate and the terminal-demo assets tied to the removed surface.
+- **npm as a distribution channel.** The `publish.yml` workflow and the root `package-lock.json` are gone; claudux is a zero-dependency bash CLI that installs straight from GitHub via the install script or `npx github:firstbitelabsllc/claudux`. No registry package to publish, no `NPM_TOKEN`. A release is just a git tag. (Node 18+ is still required at runtime, and the VitePress docs site still uses npm.)
 
 ### Changed
 
