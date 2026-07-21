@@ -70,40 +70,35 @@
   <text x="480" y="70" text-anchor="middle" class="text-primary" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="700" letter-spacing="-2">claudux</text>
   <text x="480" y="100" text-anchor="middle" class="text-secondary" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="400">Keep your docs true to your code.</text>
 
-  <g transform="translate(165, 150)">
-    <!-- inputs: your code + your docs -->
-    <rect x="0" y="0" width="130" height="24" rx="7" class="node-bg"/>
-    <rect x="0" y="0" width="130" height="24" rx="7" class="node-border" stroke-width="1.5"/>
-    <text x="65" y="16" text-anchor="middle" class="text-primary" font-family="ui-monospace, monospace" font-size="12" font-weight="600">your code</text>
+  <g transform="translate(175, 150)">
+    <!-- input: your code -->
+    <rect x="0" y="16" width="130" height="24" rx="7" class="node-bg"/>
+    <rect x="0" y="16" width="130" height="24" rx="7" class="node-border" stroke-width="1.5"/>
+    <text x="65" y="32" text-anchor="middle" class="text-primary" font-family="ui-monospace, monospace" font-size="12" font-weight="600">your code</text>
 
-    <rect x="0" y="32" width="130" height="24" rx="7" class="node-bg"/>
-    <rect x="0" y="32" width="130" height="24" rx="7" class="node-border" stroke-width="1.5"/>
-    <text x="65" y="48" text-anchor="middle" class="text-secondary" font-family="ui-monospace, monospace" font-size="12" font-weight="600">your docs</text>
-
-    <!-- converge into the gate -->
-    <line x1="130" y1="12" x2="198" y2="28" class="arrow-stroke flow-line" stroke-width="1.5"/>
-    <line x1="130" y1="44" x2="198" y2="28" class="arrow-stroke flow-line" stroke-width="1.5"/>
+    <!-- into the generator -->
+    <line x1="130" y1="28" x2="198" y2="28" class="arrow-stroke flow-line" stroke-width="1.5"/>
     <polygon points="195,23 205,28 195,33" class="arrow-fill"/>
 
-    <!-- the deterministic gate -->
+    <!-- generation, kept on rails -->
     <rect x="207" y="2" width="176" height="52" rx="10" class="accent-dim"/>
     <rect x="207" y="2" width="176" height="52" rx="10" class="accent-stroke" stroke-width="1.5"/>
-    <text x="295" y="24" text-anchor="middle" class="accent" font-family="ui-monospace, monospace" font-size="14" font-weight="700">claudux drift</text>
-    <text x="295" y="42" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" letter-spacing="0.5">parse · hash · compare · no AI</text>
+    <text x="295" y="24" text-anchor="middle" class="accent" font-family="ui-monospace, monospace" font-size="14" font-weight="700">claudux update</text>
+    <text x="295" y="42" text-anchor="middle" class="text-muted" font-family="system-ui, sans-serif" font-size="10" letter-spacing="0.5">scan · draft · bounded patches</text>
 
-    <!-- to the verdict -->
+    <!-- to the result -->
     <line x1="383" y1="28" x2="428" y2="28" class="accent-stroke flow-line" stroke-width="1.5"/>
     <polygon points="425,23 435,28 425,33" class="accent"/>
 
-    <!-- verdict: pass / fail -->
-    <rect x="440" y="0" width="190" height="24" rx="7" class="green-dim"/>
-    <rect x="440" y="0" width="190" height="24" rx="7" class="green-stroke" stroke-width="1.5"/>
-    <text x="535" y="16" text-anchor="middle" class="green" font-family="ui-monospace, monospace" font-size="12" font-weight="600">✓ docs match code</text>
+    <!-- result: a docs site, structure and links guarded -->
+    <rect x="440" y="0" width="200" height="24" rx="7" class="green-dim"/>
+    <rect x="440" y="0" width="200" height="24" rx="7" class="green-stroke" stroke-width="1.5"/>
+    <text x="540" y="16" text-anchor="middle" class="green" font-family="ui-monospace, monospace" font-size="12" font-weight="600">✓ VitePress docs site</text>
 
-    <rect x="440" y="32" width="190" height="24" rx="7" class="red-dim"/>
-    <rect x="440" y="32" width="190" height="24" rx="7" class="red-stroke" stroke-width="1.5"/>
-    <text x="535" y="48" text-anchor="middle" class="red" font-family="ui-monospace, monospace" font-size="12" font-weight="600">✗ drift → build fails</text>
+    <rect x="440" y="32" width="200" height="24" rx="7" class="accent-dim"/>
+    <rect x="440" y="32" width="200" height="24" rx="7" class="accent-stroke" stroke-width="1.5"/>
+    <text x="540" y="48" text-anchor="middle" class="accent" font-family="ui-monospace, monospace" font-size="10" font-weight="600">structure pinned · links checked</text>
   </g>
 
-  <text x="480" y="258" text-anchor="middle" class="text-muted" font-family="system-ui, -apple-system, sans-serif" font-size="11">Generate the docs. Then fail CI when they drift from the code.</text>
+  <text x="480" y="258" text-anchor="middle" class="text-muted" font-family="system-ui, -apple-system, sans-serif" font-size="11">Scan your code. Draft a VitePress site. Keep it on rails.</text>
 </svg>
