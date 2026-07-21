@@ -1,12 +1,12 @@
 # Content Protection
 
-Claudux provides robust mechanisms to protect sensitive, manually curated, or work-in-progress content from AI modification.
+Claudux protects sensitive, manually curated, or work-in-progress content from AI modification.
 
 ## Protection Philosophy
 
 **Principle**: AI should enhance documentation, not overwrite human expertise.
 
-**Approach**: Multiple layers of protection ensure critical content remains untouched while allowing beneficial updates elsewhere.
+**Approach**: Several layers keep critical content untouched while updates continue elsewhere.
 
 ## Skip Markers
 
@@ -162,7 +162,7 @@ Configure protection in `claudux.json`:
 
 ### Git Integration
 
-Leverage git patterns for protection:
+Use git patterns for protection:
 
 ```bash
 # .gitignore patterns extend to documentation protection
@@ -238,7 +238,7 @@ Next review: 2025-09-15
 
 ### 3. Version Control Integration
 
-Commit protection markers to ensure team-wide consistency:
+Commit protection markers for team-wide consistency:
 
 ```bash
 git add docs/internal.md  # Commit skip markers

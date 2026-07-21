@@ -38,7 +38,7 @@ claudux update --strict
 
 **Process flow:**
 1. Load project configuration and detect type
-2. Build comprehensive AI prompt
+2. Build the AI prompt
 3. Execute two-phase generation (analysis → creation)  
 4. Validate all internal links
 5. Display change summary

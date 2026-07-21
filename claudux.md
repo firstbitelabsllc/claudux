@@ -30,8 +30,9 @@ Applies to the Home hero, feature cards, and every section intro.
   bounded section patches (the model rewrites wording, not layout), content
   protection, and two-phase generation — not just "AI writes docs."
 - Short declarative sentences, plain words, benefit before mechanism. No
-  corporate speak ("seamless", "powerful", "beautiful documentation",
-  "transform your codebase", "in minutes") and no rule-of-three filler.
+  corporate speak ("seamless", "powerful", "robust", "comprehensive",
+  "leverage", "beautiful documentation", "transform your codebase",
+  "in minutes") and no rule-of-three filler.
 - Never emit: "AI-Powered Documentation Generator", "Transform your codebase
   into beautiful documentation", "Documentation debt is killing your
   productivity".

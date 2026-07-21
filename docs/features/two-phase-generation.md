@@ -1,6 +1,6 @@
 # Two-Phase Generation
 
-Claudux uses a structured two-phase approach to ensure accurate, comprehensive documentation generation.
+Claudux generates docs in two phases: plan first, then write.
 
 ## Why Two Phases?
 
@@ -155,7 +155,7 @@ If validation finds missing pages, claudux can automatically create minimal plac
 
 ### 🚀 Performance  
 
-- **Efficient AI usage**: Single comprehensive analysis vs multiple queries
+- **Efficient AI usage**: One analysis pass vs multiple queries
 - **Reduced regeneration**: Only updates what actually changed
 - **Faster iterations**: Plan guides focused updates
 
@@ -205,4 +205,4 @@ Modify project-type templates in `lib/templates/{type}/config.json` to change:
 - Required vs optional sections
 - Code example priorities
 
-This ensures the planning phase uses your preferred patterns for similar projects.
+The planning phase then follows your preferred patterns for similar projects.
