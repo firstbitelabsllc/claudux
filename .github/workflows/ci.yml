@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -120,6 +121,17 @@ jobs:
             echo "MISMATCH: package.json=$pkg_version, CLI=$cli_output"
             exit 1
           fi
+
+      - name: Release tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "tag: $GITHUB_REF_NAME, package.json version: $pkg_version"
+          if [ "$GITHUB_REF_NAME" != "v$pkg_version" ]; then
+            echo "MISMATCH: tag $GITHUB_REF_NAME does not match package.json version v$pkg_version"
+            exit 1
+          fi
+          echo "OK: release tag matches package.json version"
 
   tests:
     name: Test suite

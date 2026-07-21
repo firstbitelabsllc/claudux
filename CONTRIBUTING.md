@@ -50,10 +50,10 @@ claudux is distributed straight from GitHub — there is no npm registry package
 5. Push: `git push origin main --tags`
 
 What happens automatically:
-- `ci.yml` runs lint, structure, syntax, version, and test jobs on every push/PR
+- `ci.yml` runs lint, structure, syntax, version, and test jobs on every push/PR, and also on `v*` tag pushes — where it additionally verifies the tag matches the `package.json` version before the ref becomes installable
 - `docs.yml` deploys the VitePress site to GitHub Pages on push to main
 
-Users on the tag get it via `CLAUDUX_REF=vX.Y.Z curl … | sh` or `npx github:firstbitelabsllc/claudux#vX.Y.Z`. No registry, no tokens, no secrets.
+Users on the tag get it via `curl … | CLAUDUX_REF=vX.Y.Z sh` or `npx github:firstbitelabsllc/claudux#vX.Y.Z`. No registry, no tokens, no secrets. (The assignment goes on the `sh` side of the pipe so the installer actually receives it; on the `curl` side it would apply only to `curl` and the installer would fall back to `main`.)
 
 ### Learn more
 
