@@ -247,79 +247,6 @@ claudux_diff_since_last() {
     } | sed '/^$/d' | sort -u
 }
 
-# Show documentation freshness report.
-# Reads .claudux-state.json and prints a human-readable summary.
-claudux_status() {
-    local state rc
-    state=$(load_claudux_state)
-    rc=$?
-    if [[ $rc -eq 1 ]]; then
-        echo "No documentation checkpoint found."
-        echo ""
-        echo "Run 'claudux update' to generate docs and create a checkpoint."
-        return 1
-    fi
-    if [[ $rc -eq 2 ]]; then
-        warn "Checkpoint file ($STATE_FILE) is corrupt — cannot parse JSON."
-        echo ""
-        echo "Run 'claudux update' to regenerate docs and create a fresh checkpoint."
-        return 1
-    fi
-
-    local last_sha last_run backend file_count
-    if command -v jq >/dev/null 2>&1; then
-        last_sha=$(echo "$state" | jq -r '.last_sha // "unknown"')
-        last_run=$(echo "$state" | jq -r '.last_run // "unknown"')
-        backend=$(echo "$state" | jq -r '.backend // "claude"')
-        file_count=$(echo "$state" | jq -r '.files_documented | length // 0')
-    else
-        last_sha=$(echo "$state" | grep '"last_sha"' | sed 's/.*: *"\([^"]*\)".*/\1/')
-        last_run=$(echo "$state" | grep '"last_run"' | sed 's/.*: *"\([^"]*\)".*/\1/')
-        backend=$(echo "$state" | grep '"backend"' | sed 's/.*: *"\([^"]*\)".*/\1/')
-        file_count="?"
-    fi
-
-    echo "Documentation status"
-    echo "--------------------"
-    echo "  Last generated: $last_run"
-    echo "  Checkpoint SHA: ${last_sha:0:12}"
-    echo "  Backend:        $backend"
-    echo "  Documented files: $file_count"
-
-    local dirty_docs dirty_doc_count
-    dirty_docs=$(claudux_docs_worktree_changes 2>/dev/null || true)
-    dirty_doc_count=0
-    if [[ -n "$dirty_docs" ]]; then
-        dirty_doc_count=$(printf '%s\n' "$dirty_docs" | sed '/^$/d' | wc -l | tr -d ' ')
-    fi
-
-    # Show how many commits behind
-    if [[ "$last_sha" != "unknown" ]] && git cat-file -t "$last_sha" >/dev/null 2>&1; then
-        local head_sha
-        head_sha=$(git rev-parse HEAD 2>/dev/null)
-        if [[ "$head_sha" == "$last_sha" ]]; then
-            echo ""
-            if [[ "$dirty_doc_count" -gt 0 ]]; then
-                warn "Docs have $dirty_doc_count uncommitted documentation/config change(s)."
-                echo "  Run 'claudux diff' to see changed files."
-                echo "  Commit, discard, or rerun 'claudux update' after review."
-            else
-                success "Docs are up to date with HEAD."
-            fi
-        else
-            local commits_behind
-            commits_behind=$(git rev-list "$last_sha"..HEAD 2>/dev/null | wc -l | tr -d ' ')
-            echo ""
-            warn "Docs are $commits_behind commit(s) behind HEAD."
-            if [[ "$dirty_doc_count" -gt 0 ]]; then
-                warn "Docs also have $dirty_doc_count uncommitted documentation/config change(s)."
-            fi
-            echo "  Run 'claudux diff' to see changed files."
-            echo "  Run 'claudux update' to regenerate."
-        fi
-    fi
-}
-
 refresh_deterministic_generation_caches() {
     local changed_files="${1:-}"
     local impact_allowlist_file="${2:-}"
@@ -336,13 +263,6 @@ refresh_deterministic_generation_caches() {
 
     if declare -F capture_docs_structure_guard_snapshot >/dev/null 2>&1; then
         capture_docs_structure_guard_snapshot || return 1
-    fi
-
-    # Re-baseline an adopted drift lock alongside the other deterministic
-    # baselines so the gate never goes stale behind this regeneration. Best-effort
-    # (only touches an existing lock; never fails the run).
-    if declare -F refresh_drift_lock_if_adopted >/dev/null 2>&1; then
-        refresh_drift_lock_if_adopted || true
     fi
 }
 

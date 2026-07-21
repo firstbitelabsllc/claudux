@@ -269,11 +269,10 @@ Templates can include conditional logic:
 
 ### Testing Templates
 
-Test template changes without affecting existing docs:
+Re-run generation to pick up template changes:
 
 ```bash
-# Use specific template for testing
-claudux recreate  # Start fresh with template changes
+claudux update  # Regenerate docs with the updated template
 ```
 
 ### Template Validation

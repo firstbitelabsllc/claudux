@@ -188,10 +188,7 @@ Failed to load VitePress config
 
 **Solution:**
 ```bash
-# Regenerate VitePress setup
-claudux recreate
-
-# Or check if config exists
+# Check if config exists
 ls docs/.vitepress/config.ts
 
 # If missing, regenerate
@@ -389,13 +386,10 @@ claudux check
 # 2. Verify Claude authentication  
 claude config get
 
-# 3. Start fresh if needed
-claudux recreate
-
-# 4. Regenerate with basic approach
+# 3. Regenerate with basic approach
 claudux update
 
-# 5. If still failing, try different model
+# 4. If still failing, try different model
 FORCE_MODEL=sonnet claudux update
 ```
 

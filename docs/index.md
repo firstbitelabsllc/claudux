@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: claudux
-  text: Docs that fail CI when they stop matching the code
-  tagline: A deterministic doc/code drift gate. Parse, hash, compare, exit. No API key, no network, no model on the pass/fail path. It also generates VitePress docs.
+  text: Generate VitePress docs from your codebase
+  tagline: Scan your code, draft a full docs site with Claude or Codex, preview it locally, and ship it. The repo owns the structure, so the model rewrites wording without reorganizing your docs.
   actions:
     - theme: brand
       text: Get Started
@@ -14,29 +14,29 @@ hero:
       link: https://github.com/firstbitelabsllc/claudux
 
 features:
-  - icon: 🚨
-    title: The drift gate
-    details: "`claudux drift` fails the build when a documented source file changed but its doc section didn't. It names the doc, the source, and the fix."
-  
-  - icon: 🔑
-    title: Keyless and offline
-    details: The gate reads a committed lockfile and the working tree. No API key, no network call, no model. It runs the same on your laptop and on a bare CI runner.
-  
-  - icon: 🎚️
-    title: A sensitivity knob
-    details: "`significant` is the default. It ignores whitespace, blank lines, and comment churn, so the gate fires on real changes instead of reformatting."
-  
-  - icon: 🔄
-    title: Re-baseline on purpose
-    details: "Read the diff, decide the docs are fine, run `claudux drift --accept`. It updates the lockfile the way `npm install` updates `package-lock.json`."
-  
   - icon: 🧠
-    title: Generation stays local
-    details: Uses your authenticated Claude or Codex CLI on the machine. No built-in cloud API key path. AI only ever suggests a fix after a deterministic flag.
-  
+    title: Generation from your code
+    details: "`claudux update` drafts a full VitePress docs site straight from your source, so you start from a real draft instead of an empty folder."
+
+  - icon: 🔑
+    title: Local backend, no API key
+    details: Uses your authenticated Claude or Codex CLI on the machine. There is no built-in cloud API key path.
+
+  - icon: 📐
+    title: The repo owns structure
+    details: A committed manifest holds page IDs, navigation order, and which source each section describes, so the model rewrites wording and never reorganizes your docs.
+
+  - icon: ✂️
+    title: Bounded section patches
+    details: A regen applies validated section patches, touching the sections that changed instead of rewriting whole pages.
+
+  - icon: 🔒
+    title: Content protection
+    details: "Pinned sections, read-only sections, and skip-marker blocks are hashed before and after generation, so protected text cannot change silently."
+
   - icon: ⚡
     title: VitePress output
-    details: Ships a navigable static docs site you can preview with `claudux serve` and validate with link checks.
+    details: Ships a navigable static docs site you can preview with `claudux serve`. Internal links are validated on every update.
 ---
 
 ## Quick Start
@@ -48,55 +48,35 @@ npm install -g claudux
 ```bash
 cd your-project
 
-claudux drift --accept   # commit the baseline once
-claudux drift            # exits 1 when a doc falls behind its code
-
 claudux update           # generate or update the VitePress docs
 claudux serve            # preview at http://localhost:5173
 ```
 
-Then run `claudux drift` in CI on every push. It needs no secrets.
-
-## See It In Action
-
-<p align="center">
-  <img src="/assets/terminal-demo.svg" alt="claudux update terminal session" style="width: 100%; max-width: 800px;" />
-</p>
+Run `claudux` with no arguments for an interactive menu.
 
 ## Why this exists
 
-Anyone can generate docs now. The problem is proving they still match the code a week later.
+Anyone can ask a model to write docs now. The hard part is keeping the model on rails: not reorganizing your navigation, not rewriting sections that didn't change, not touching content you marked as yours.
 
-Stale docs are the ones nobody notices until something acts on a lie. That is getting more expensive, not less, because the primary reader of your docs is shifting from a human to an agent. A human skims a wrong doc and shrugs. An agent reads it, believes it, and calls your API the wrong way.
+claudux puts those rails in the repo. A committed manifest owns page structure, skip markers protect blocks, and link validation catches 404s before your readers do. You get a full draft on the first run, and bounded, reviewable updates after that.
 
-So claudux checkpoints which source files each doc section describes, and fails the build when the source moved and the doc didn't.
+## How generation works
 
-## How the gate works
+Parse the code, plan the structure, write within it.
 
-Parse, hash, compare, exit. No model is involved in the pass/fail decision.
-
-1. **Baseline**: `claudux drift --accept` writes `docs-drift-lock.json`, a committed, timestamp-free record of each source file's hash and each doc section's hash.
-2. **Compare**: `claudux drift` re-hashes both sides and looks for one condition — a source file a section claims to document changed, and that section's body did not.
-3. **Exit**: `0` when clean, `1` on drift with the doc, the source, and the fix printed, `2` on an environment error. It never exits 0 to hide a problem.
+1. **Analyze**: claudux scans your source for structure and patterns, and reads any existing docs and the manifest for context.
+2. **Generate**: it applies bounded section patches so a regen touches only the sections that changed, guarded by skip markers and path denylists.
+3. **Validate**: internal links are checked on every update; `--strict` makes broken links a hard failure.
 
 ## Commands Overview
 
 | Command | Purpose |
 |---------|---------|
-| `claudux drift` | Fail the build when a documented source changed but its doc didn't |
-| `claudux drift --accept` | Re-baseline `docs-drift-lock.json` after reviewing the diff |
-| `claudux drift --json` | Machine-readable drift report for CI |
-| `claudux drift --warn-only` | Report drift and always exit 0 (local pre-commit) |
 | `claudux` | Interactive menu (adapts to project state) |
-| `claudux update` | Generate/update docs (includes cleanup and validation) |
+| `claudux update` | Generate/update docs (includes cleanup and link validation) |
 | `claudux update -m "..."` | Update with a focused directive |
 | `claudux serve` | Start dev server at localhost:5173 |
-| `claudux diff` | Files changed since last doc generation |
-| `claudux status` | Documentation freshness and last run details |
-| `claudux validate` | Check all internal links without regenerating |
-| `claudux recreate` | Start fresh (delete all docs) |
 | `claudux check` | Environment diagnostics |
-| `claudux template` | Generate claudux.md (docs preferences) |
 | `claudux --version` | Show installed version |
 | `claudux --help` | Show help and usage |
 
@@ -120,7 +100,7 @@ CLAUDUX_BACKEND=codex claudux update
 ---
 
 <div style="text-align: center; margin-top: 40px;">
-  <strong>Keep your docs true to your code.</strong><br>
+  <strong>Generate docs from your codebase. Preview locally. Ship them.</strong><br>
   <a href="https://github.com/firstbitelabsllc/claudux#install">📦 Install</a> • 
   <a href="https://github.com/firstbitelabsllc/claudux">⭐ Star on GitHub</a>
 </div>

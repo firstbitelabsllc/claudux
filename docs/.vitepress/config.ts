@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'claudux',
-  description: 'Deterministic doc/code drift checks for VitePress docs. Keyless, offline, CI-enforced. Plus AI generation.',
+  description: 'Generate VitePress docs from your codebase via Claude or Codex, preview them locally, ship them.',
   base: process.env.DOCS_BASE || '/',
   
   // Ignore localhost links during static builds
@@ -14,7 +14,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#5f67ee' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'en' }],
-    ['meta', { property: 'og:title', content: 'claudux — docs that fail CI when they stop matching the code' }],
+    ['meta', { property: 'og:title', content: 'claudux — VitePress docs generated from your codebase' }],
     ['meta', { property: 'og:site_name', content: 'claudux Docs' }],
     ['meta', { property: 'og:url', content: '/' }],
   ],
@@ -44,7 +44,6 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
-            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Commands', link: '/guide/commands' },
             { text: 'Configuration', link: '/guide/configuration' }
           ]
@@ -54,9 +53,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
-            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
-            { text: 'Audit Snapshots', link: '/features/audit-snapshots' },
             { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
             { text: 'Content Protection', link: '/features/content-protection' }
           ]
@@ -75,7 +72,6 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Examples', link: '/examples/' },
-            { text: 'Vidux Team Agents', link: '/examples/vidux-team-agents' },
             { text: 'API Reference', link: '/api/' },
             { text: 'Troubleshooting', link: '/troubleshooting' }
           ]
@@ -88,7 +84,6 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
-            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Commands', link: '/guide/commands' },
             { text: 'Configuration', link: '/guide/configuration' }
           ]
@@ -100,9 +95,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
-            { text: 'The Drift Gate', link: '/features/drift-gate' },
             { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
-            { text: 'Audit Snapshots', link: '/features/audit-snapshots' },
             { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
             { text: 'Content Protection', link: '/features/content-protection' }
           ]

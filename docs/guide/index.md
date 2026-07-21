@@ -1,8 +1,6 @@
 # Getting Started
 
-Claudux does two things. It gates your build on doc/code drift, and it generates VitePress docs.
-
-[The drift gate](/features/drift-gate) is the part that runs in CI. It is deterministic — parse, hash, compare, exit — and it needs no API key and no network. Generation is the AI-assisted half, and it runs on your machine against your own authenticated CLI.
+Claudux scans your code and drafts a full VitePress docs site with Claude or Codex, then lets you preview it locally and update it in place. The repo owns the structure, so the model rewrites wording without reorganizing your docs. Generation runs on your machine against your own authenticated CLI.
 
 ## Installation
 
@@ -10,11 +8,11 @@ Claudux does two things. It gates your build on doc/code drift, and it generates
 npm install -g claudux
 ```
 
-Or run it without installing: `npx claudux drift`.
+Or run it without installing: `npx claudux update`.
 
 **Requirements:**
 - Node.js ≥ 18.0.0
-- Generation needs an authenticated Claude CLI (`claude config get`) or Codex CLI when `CLAUDUX_BACKEND=codex`. The drift gate needs neither.
+- An authenticated Claude CLI (`claude config get`) or Codex CLI when `CLAUDUX_BACKEND=codex`.
 
 ## Quick Start
 
@@ -33,14 +31,6 @@ Or run it without installing: `npx claudux drift`.
    claudux serve  # Opens http://localhost:5173
    ```
 
-4. **Baseline the gate, then run it**:
-   ```bash
-   claudux drift --accept   # commit docs-drift-lock.json
-   claudux drift            # exits 1 when a doc falls behind its code
-   ```
-
-   Then run `claudux drift` in CI on every push. It needs no secrets.
-
 ## First Run Experience
 
 When you run `claudux update` for the first time:
@@ -58,14 +48,13 @@ Run `claudux` without arguments to access the interactive menu:
 $ claudux
 
 📚 claudux - Your Project Documentation  
-Powered by Claude AI - Local CLI orchestration
+Generate docs from your codebase · powered by Claude AI
 
 Select:
 
 1) Generate docs              (scan code → markdown)
 2) Serve                      (vitepress dev server)
-3) Create claudux.md           (docs preferences)  
-4) Exit
+3) Exit
 ```
 
 ## Basic Workflow

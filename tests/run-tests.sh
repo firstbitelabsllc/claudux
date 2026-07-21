@@ -51,7 +51,6 @@ required_files=(
     "lib/git-utils.sh"
     "lib/docs-manifest.sh"
     "lib/docs-generation.sh"
-    "lib/audit.sh"
     "lib/cleanup.sh"
     "lib/server.sh"
     "lib/ui.sh"
@@ -145,7 +144,7 @@ else
 fi
 
 # Help should mention key commands
-for keyword in "update" "serve" "recreate" "template" "audit" "help"; do
+for keyword in "update" "serve" "check" "help"; do
     if grep -qi "$keyword" <<< "$help_output"; then
         pass "help mentions '$keyword'"
     else
@@ -255,72 +254,6 @@ if grep -qi "node" <<< "$check_output"; then
     pass "check reports Node status"
 else
     fail "check should report Node status"
-fi
-
-# ── 8. Validate command ───────────────────────────────────────────────
-section "CLI: validate"
-
-validate_output=$("$REPO_ROOT/bin/claudux" validate 2>&1)
-validate_exit=$?
-
-if [[ $validate_exit -eq 0 ]]; then
-    pass "validate exits 0"
-else
-    fail "validate exits $validate_exit" "$validate_output"
-fi
-
-if grep -q "✅ ✅ All links are valid!" <<< "$validate_output"; then
-    fail "validate should not double-prefix success output" "$validate_output"
-else
-    pass "validate success output has a single prefix"
-fi
-
-# ── 9. Audit command ─────────────────────────────────────────────────
-section "CLI: audit"
-
-audit_output=$("$REPO_ROOT/bin/claudux" audit 2>&1)
-audit_exit=$?
-
-if [[ $audit_exit -eq 0 ]]; then
-    pass "audit exits 0"
-else
-    fail "audit exits $audit_exit" "$audit_output"
-fi
-
-if grep -q "Documentation audit" <<< "$audit_output"; then
-    pass "audit prints report heading"
-else
-    fail "audit missing report heading" "$audit_output"
-fi
-
-if grep -q "Links:" <<< "$audit_output"; then
-    pass "audit reports link status"
-else
-    fail "audit should report link status" "$audit_output"
-fi
-
-audit_json=$("$REPO_ROOT/bin/claudux" audit --json 2>/dev/null)
-audit_json_exit=$?
-
-if [[ $audit_json_exit -eq 0 ]]; then
-    pass "audit --json exits 0"
-else
-    fail "audit --json exits $audit_json_exit"
-fi
-
-if printf '%s' "$audit_json" | node -e "let data=''; process.stdin.on('data', c => data += c); process.stdin.on('end', () => { const parsed = JSON.parse(data); if (parsed.command !== 'claudux audit') process.exit(1); });" 2>/dev/null; then
-    pass "audit --json emits parseable report"
-else
-    fail "audit --json output is not parseable"
-fi
-
-audit_bad_output=$("$REPO_ROOT/bin/claudux" audit --wat 2>&1)
-audit_bad_exit=$?
-
-if [[ $audit_bad_exit -eq 2 ]]; then
-    pass "audit unknown option exits 2"
-else
-    fail "audit unknown option expected exit 2, got $audit_bad_exit" "$audit_bad_output"
 fi
 
 # ── 10. Project type detection ────────────────────────────────────────
@@ -498,7 +431,7 @@ else
 fi
 
 # README Commands section should list all CLI subcommands from help
-for cmd in update serve diff status audit validate check template recreate; do
+for cmd in update serve check; do
     if grep -q "claudux $cmd" "$readme"; then
         pass "README documents '$cmd' command"
     else
