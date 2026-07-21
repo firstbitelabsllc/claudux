@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "head_sha": "60ae6e10967487d2ff8c04868727691af9155107",
+  "head_sha": "27939a7d0c70cd4ce352917607b0073d3b5af6d2",
   "manifest_hash": "7959ff0119de8ed0f10466b2caca866b029031de635b974ce68cf583dc3e83d5",
   "drift_sensitivity": "significant",
   "source_fingerprints": [
@@ -10,7 +10,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "28ee728ace8b0a147a6076e797b98aec4e694a28ae5bff910da11cbd964a6561"
+      "sha256": "54ee6d8da733d83183e3662d547e897a2eefc9e8e06d3d833dbf0190070f7a45"
     },
     {
       "path": "bin/claudux",
@@ -365,17 +365,17 @@
     {
       "path": "docs/guide/index.md",
       "page_id": "guide.index",
-      "sha256": "49eada52df28c4fae9e717840e75e00ac504cd77ec1771728d66da7819094b1a"
+      "sha256": "5aa21b41a9d572040ae0371821f4d4cfcd7adcb753190d5adcc2ee4d21d3bb43"
     },
     {
       "path": "docs/guide/installation.md",
       "page_id": "guide.installation",
-      "sha256": "394e6fd256dd17158b2af7dbd546d50944e3378d614a4495da6a5ea49acc0404"
+      "sha256": "77c0b59ea72adf64ceaf9806fc2d01338c928d23a4efde37b363521fd3a81267"
     },
     {
       "path": "docs/index.md",
       "page_id": "home.index",
-      "sha256": "4b6688d3f73c07155402f480b3ba2e713d9dd7e892b07fa3069b96bde61b638b"
+      "sha256": "f26ddf368aba19bfd6d11fb94f4efbc455c754a19ad82b2069df6bc90ebc1fcf"
     },
     {
       "path": "docs/technical/deterministic-generation.md",
