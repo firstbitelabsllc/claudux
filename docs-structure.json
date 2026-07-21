@@ -295,18 +295,6 @@
       ]
     },
     {
-      "id": "examples.index",
-      "path": "docs/examples/index.md",
-      "title": "Examples",
-      "nav_group": "reference",
-      "order": 120,
-      "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": [
-        "README.md",
-        "docs/examples/**"
-      ]
-    },
-    {
       "id": "api.index",
       "path": "docs/api/index.md",
       "title": "API Reference",
