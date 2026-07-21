@@ -74,7 +74,8 @@ npm i -g github:firstbitelabsllc/claudux
 ```bash
 git clone https://github.com/firstbitelabsllc/claudux.git
 cd claudux
-ln -sf "$PWD/bin/claudux" ~/.local/bin/claudux   # put it on your PATH
+mkdir -p ~/.local/bin                             # ensure the target dir exists
+ln -sf "$PWD/bin/claudux" ~/.local/bin/claudux    # put it on your PATH
 ```
 
 ## Environment Check
