@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -121,6 +122,17 @@ jobs:
             exit 1
           fi
 
+      - name: Release tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "tag: $GITHUB_REF_NAME, package.json version: $pkg_version"
+          if [ "$GITHUB_REF_NAME" != "v$pkg_version" ]; then
+            echo "MISMATCH: tag $GITHUB_REF_NAME does not match package.json version v$pkg_version"
+            exit 1
+          fi
+          echo "OK: release tag matches package.json version"
+
   tests:
     name: Test suite
     runs-on: blacksmith-2vcpu-ubuntu-2404
@@ -172,13 +184,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Root lockfile matches package metadata
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          git diff --exit-code -- package-lock.json
 
       - name: Secret scan
         run: bash scripts/secret-scan.sh

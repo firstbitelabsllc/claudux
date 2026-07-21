@@ -409,8 +409,8 @@ else
     fail "README should mention 'claudux'"
 fi
 
-# README should have install instructions
-if grep -q "npm install" "$readme"; then
+# README should have install instructions (GitHub-native: install script)
+if grep -q "install.sh" "$readme"; then
     pass "README has install instructions"
 else
     fail "README missing install instructions"

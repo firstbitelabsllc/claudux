@@ -115,8 +115,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/firstbitelabsllc/claudux' },
-      { icon: { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.7 2.3c-1.1-1.1-2.7-1.1-3.8 0L11.3 5.9c-1.1 1.1-1.1 2.7 0 3.8L12.5 11c0.5 0.5 1.3 0.5 1.8 0c0.5-0.5 0.5-1.3 0-1.8l-1.2-1.2c-0.2-0.2-0.2-0.5 0-0.7l3.5-3.5c0.2-0.2 0.5-0.2 0.7 0l4.4 4.4c0.2 0.2 0.2 0.5 0 0.7l-3.5 3.5c-0.2 0.2-0.5 0.2-0.7 0l-1.2-1.2c-0.5-0.5-1.3-0.5-1.8 0c-0.5 0.5-0.5 1.3 0 1.8l1.2 1.2c1.1 1.1 2.7 1.1 3.8 0l3.5-3.5c1.1-1.1 1.1-2.7 0-3.8L18.7 2.3z"/></svg>' }, link: 'https://www.npmjs.com/package/claudux' }
+      { icon: 'github', link: 'https://github.com/firstbitelabsllc/claudux' }
     ],
 
     footer: {
