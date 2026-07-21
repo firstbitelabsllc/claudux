@@ -161,7 +161,6 @@ Before releasing a new version:
 
 ```bash
 # Comprehensive documentation review
-claudux recreate  # Start fresh
 claudux update -m "Complete documentation for v2.0 release"
 
 # Validate everything works
@@ -247,8 +246,6 @@ For repos coordinated by vidux, claudux detects `vidux.config.json` or a root `P
 ```bash
 claudux update -m "Refresh team-agent docs from PLAN.md, projects/*/PLAN.md, command scripts, and verification gates"
 ```
-
-See [Vidux Team Agents](./vidux-team-agents.md) for the full dogfood flow.
 
 ### Migration Documentation
 

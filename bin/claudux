@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # claudux - Docs that stay true to your code
-# Deterministic doc/code drift checks, plus generation via Claude or Codex
+# Generates and serves VitePress docs via Claude or Codex
 #
 
 # Script setup - check for undefined variables; avoid -e to allow graceful handling
@@ -99,7 +99,7 @@ if [[ ! -d "$LIB_DIR" ]]; then
 fi
 
 # Source all library modules with error handling
-REQUIRED_LIBS=("colors.sh" "project.sh" "content-protection.sh" "claude-utils.sh" "git-utils.sh" "docs-manifest.sh" "docs-generation.sh" "audit.sh" "drift.sh" "cleanup.sh" "server.sh" "ui.sh")
+REQUIRED_LIBS=("colors.sh" "project.sh" "content-protection.sh" "claude-utils.sh" "git-utils.sh" "docs-manifest.sh" "docs-generation.sh" "cleanup.sh" "server.sh" "ui.sh")
 
 for lib in "${REQUIRED_LIBS[@]}"; do
     lib_path="$LIB_DIR/$lib"
@@ -273,12 +273,9 @@ main() {
     # Only validate dependencies for commands that need the LLM backend.
     # Unknown commands skip validation and fall through to the error handler.
     case "${1:-}" in
-        "update"|"template"|"")
+        "update"|"")
             validate_dependencies
             # Acquire lock for commands that modify files
-            acquire_lock
-            ;;
-        "recreate")
             acquire_lock
             ;;
     esac
@@ -345,70 +342,11 @@ main() {
             shift
             update "$@"
             ;;
-        "recreate")
-            check_function "show_header"
-            check_function "recreate_docs"
-            show_header
-            shift
-            recreate_docs "$@"
-            ;;
-        "diff")
-            show_header
-            echo ""
-            info "Files changed since last doc generation:"
-            echo ""
-            changed=$(claudux_diff_since_last) || { echo "$changed"; exit 1; }
-            if [[ -z "$changed" ]]; then
-                success "No files changed since last run."
-            else
-                echo "$changed"
-                local count
-                count=$(echo "$changed" | wc -l | tr -d ' ')
-                echo ""
-                info "$count file(s) changed — docs may be stale."
-            fi
-            ;;
-        "status")
-            check_function "show_header"
-            check_function "claudux_status"
-            show_header
-            echo ""
-            claudux_status
-            ;;
-        "audit")
-            check_function "show_header"
-            check_function "claudux_audit"
-            shift
-            if [[ " $* " != *" --json "* ]]; then
-                show_header
-            fi
-            claudux_audit "$@"
-            ;;
-        "drift")
-            check_function "show_header"
-            check_function "claudux_drift"
-            shift
-            if [[ " $* " != *" --json "* ]]; then
-                show_header
-            fi
-            claudux_drift "$@"
-            ;;
         "serve"|"server"|"dev")
             check_function "show_header"
             check_function "serve"
             show_header
             serve
-            ;;
-        "validate")
-            check_function "show_header"
-            check_function "validate_links"
-            show_header
-            shift
-            validate_links "$@"
-            ;;
-        "template")
-            show_header
-            create_claudux_md
             ;;
         "help"|"-h"|"--help")
             show_header

@@ -1,28 +1,5 @@
 # Commands Reference
 
-## The Gate
-
-### `claudux drift`
-
-Fails the build when a source file changed but the doc section documenting it did not. Deterministic: no API key, no network, no model on the pass/fail path.
-
-```bash
-claudux drift --accept   # baseline once, commit docs-drift-lock.json
-claudux drift            # exit 1 when a doc falls behind its code
-```
-
-**Options:**
-
-| Flag | Effect |
-|------|--------|
-| `--accept` | Re-baseline `docs-drift-lock.json` from the current tree (no AI) |
-| `--json` | Machine-readable, deterministically ordered report for CI |
-| `--warn-only` | Report drift and always exit `0` (local pre-commit advisory) |
-
-**Exit codes:** `0` clean or no baseline, `1` drift found, `2` environment error.
-
-A failure names the doc, the source that changed, and the fix. See [The Drift Gate](/features/drift-gate) for sensitivity modes, the CI workflow, and edge cases.
-
 ## Core Commands
 
 ### `claudux update`
@@ -46,7 +23,14 @@ claudux update --with "Focus on the authentication module"
 4. Validates internal links (external URLs are skipped) to prevent 404s
 5. Shows detailed change summary
 
-### `claudux serve` 
+**Options:**
+```bash
+claudux update -m "message"     # Focused directive
+claudux update --with "message" # Same as -m
+claudux update --strict         # Re-prompt (then error) on broken internal links
+```
+
+### `claudux serve`
 
 Start the VitePress development server to preview documentation locally.
 
@@ -58,87 +42,6 @@ claudux serve
 - Hot reload when files change
 - Full-text search enabled
 - Mobile-responsive design
-
-### `claudux recreate`
-
-Delete all existing documentation and start fresh.
-
-```bash
-claudux recreate
-```
-
-**Use when:**
-- Major project restructuring
-- Switching documentation approach
-- Fixing fundamental organization issues
-
-### `claudux template`
-
-Generate a `claudux.md` file with documentation preferences for your project.
-
-```bash
-claudux template
-```
-
-Creates a preferences file that guides future documentation generation based on your project's specific patterns and conventions.
-
-## Change Tracking Commands
-
-### `claudux diff`
-
-Show files that have changed since the last documentation generation.
-
-```bash
-claudux diff
-```
-
-Compares the current HEAD against the checkpoint SHA stored in `.claudux-state.json`, then adds uncommitted documentation/config changes such as `docs/**`, `docs-structure.json`, `docs-map.md`, `.ai-docs-style.md`, and `docs-site-plan.json`. Lists all modified, added, deleted, staged, or untracked files that may need doc updates.
-
-### `claudux status`
-
-Show documentation freshness and last generation details.
-
-```bash
-claudux status
-```
-
-Displays:
-- Last generation timestamp and checkpoint commit SHA
-- Backend used (Claude or Codex)
-- Documented file count
-- Commits behind HEAD (if stale)
-- Uncommitted documentation/config changes (if the checkpoint commit is otherwise fresh)
-
-### `claudux audit`
-
-Print a no-AI readiness report for humans, CI, and team-agent handoffs.
-
-```bash
-claudux audit
-claudux audit --json
-claudux audit --strict
-claudux audit --release
-claudux audit --handoff-strict
-```
-
-Reports:
-- Project name, detected type, branch, HEAD SHA, and backend
-- Documentation directory presence and markdown file count
-- `docs-structure.json` validity, page count, source-owned page count, and pinned section count
-- Internal link validation status
-- Checkpoint freshness, changed files since checkpoint, and uncommitted docs/config changes
-
-Use `--json` when another tool needs to parse the report. Use `--strict` when invalid manifests or broken links should fail the command. Use `--release` before tagging or publishing so package metadata, packability, and docs/config drift become hard failures. Use `--handoff-strict` before passing work to another agent when checkpoint freshness should be mandatory.
-
-### `claudux validate`
-
-Run link validation on the generated documentation.
-
-```bash
-claudux validate
-```
-
-Checks all internal links in VitePress config and markdown files. Reports broken links without re-generating docs.
 
 ## Utility Commands
 
@@ -189,18 +92,13 @@ The menu adapts based on whether documentation already exists:
 **First run (no docs):**
 - Generate docs (scan code -> markdown)
 - Serve (VitePress dev server)
-- Create claudux.md (docs preferences)
+- Exit
 
 **Existing docs:**
 - Update docs (regenerate from code)
 - Update (focused) (enter directive -> update)
-- Diff (files changed since last gen)
-- Status (documentation freshness)
-- Validate links (check for broken links)
-- Audit (no-AI readiness report)
 - Serve (VitePress dev server)
-- Create claudux.md (docs preferences)
-- Recreate (start fresh)
+- Exit
 
 ## Advanced Usage
 
@@ -235,26 +133,6 @@ FORCE_MODEL=sonnet claudux update  # Default
 CLAUDUX_MESSAGE="Focus on API docs" claudux update
 ```
 
-### Flags and Options
-
-**Drift gate options:**
-```bash
-claudux drift --accept          # Re-baseline the drift lock, no AI
-claudux drift --json            # Machine-readable drift report
-claudux drift --warn-only       # Report drift but always exit 0
-```
-
-**Update command options:**
-```bash
-claudux update -m "message"     # Focused directive
-claudux update --with "message" # Same as -m
-claudux update --strict         # Re-prompt (then error) on broken internal links
-claudux audit --json            # Machine-readable readiness report
-claudux audit --strict          # Fail if manifest or links are invalid
-claudux audit --release         # Fail docs/package release-readiness drift
-claudux audit --handoff-strict  # Fail stale checkpoints or dirty docs state
-```
-
 ## Command Workflow
 
 **Typical development cycle:**
@@ -266,7 +144,7 @@ claudux update
 # Make code changes
 # ... edit your source files ...
 
-# Update docs to reflect changes  
+# Update docs to reflect changes
 claudux update
 
 # Preview changes
@@ -281,13 +159,12 @@ claudux update -m "Document the new authentication flow"
 Claudux follows standard Unix exit code conventions:
 
 - `0`: Success
-- `1`: General error. For `claudux drift`, specifically: drift was found
+- `1`: General error
 - `2`: Incorrect usage, or an environment error the command could not evaluate
 - `124`: Timeout
 - `130`: Interrupted (Ctrl+C)
 
 Use in CI/CD:
 ```bash
-claudux drift             # exits 1 on drift; this is the gate
 claudux update || exit 1  # Fail build if docs generation fails
 ```

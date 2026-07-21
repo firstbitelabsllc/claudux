@@ -49,7 +49,6 @@ Modular functionality organized by concern:
 | `claude-utils.sh` | Claude AI integration | `check_claude()`, `get_model_settings()` |
 | `docs-manifest.sh` | Deterministic docs contracts | `validate_docs_structure_manifest()`, `build_static_analysis_index()` |
 | `docs-generation.sh` | Core generation logic | `build_generation_prompt()`, `update()` |
-| `audit.sh` | No-AI readiness reports | `claudux_audit()`, `claudux_manifest_summary()` |
 | `content-protection.sh` | Content protection | `is_protected_path()`, protection markers |
 | `git-utils.sh` | Git operations | `show_git_status()`, `show_detailed_changes()` |
 | `server.sh` | VitePress dev server | `serve()`, dependency management |
@@ -110,20 +109,7 @@ claudux update
     └─ show_detailed_changes()   # Display results
 ```
 
-### 2. Audit Flow
-
-```
-claudux audit
-    │
-    ├─ load_project_config()              # Detect type, read claudux.json
-    ├─ validate_docs_structure_manifest() # Check manifest schema and declared pages
-    ├─ validate-links.sh                  # Check internal docs links
-    ├─ claudux_status()                   # Summarize checkpoint freshness
-    ├─ claudux_diff_since_last()          # List changed files since checkpoint
-    └─ text or JSON report                # No model backend invoked
-```
-
-### 3. AI Prompt Construction
+### 2. AI Prompt Construction
 
 **Prompt building** (`lib/docs-generation.sh:5-227`):
 

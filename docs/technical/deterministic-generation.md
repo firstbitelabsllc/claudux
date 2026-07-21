@@ -160,9 +160,7 @@ During guard validation, claudux tracks every pinned section plus every section 
 
 An intentional pinned rewrite needs two signals in the same run: `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` in the environment and `unlock_pinned: true` on the individual patch. That keeps model-only runs from silently editing doctrine.
 
-Page deletion is guarded separately from section editing. With a manifest present, the internal cleanup helper refuses manifest-owned deletion unless `CLAUDUX_ALLOW_MANIFEST_CLEANUP=1` is set, and `claudux recreate` refuses deletion unless `CLAUDUX_ALLOW_MANIFEST_RECREATE=1` is set. The public CLI exposes `recreate`, not a standalone cleanup subcommand.
-
-`recreate` checks the deletion guard before backend validation. That ordering keeps a missing backend, auth failure, or unsupported model from masking the more important fact that a manifest-owned docs tree would be deleted.
+Page deletion is guarded separately from section editing. With a manifest present, the internal cleanup helper that `update` runs refuses manifest-owned deletion unless `CLAUDUX_ALLOW_MANIFEST_CLEANUP=1` is set. That guard runs during the update flow so a missing backend, auth failure, or unsupported model cannot mask the more important fact that a manifest-owned docs tree would otherwise be deleted.
 
 ## Content Protection Markers
 
@@ -200,7 +198,7 @@ Dirty freshness signals are limited to files that can affect generated documenta
 - `.ai-docs-style.md`
 - `docs-site-plan.json`
 
-For those pathspecs, claudux includes unstaged changes, staged changes, and untracked files. This closes the dogfood gap where a section patch updates tracked docs while `HEAD` still matches the saved checkpoint. `claudux diff` shows that dirty docs/config state, and `claudux status` warns about it even when the checkpoint commit is otherwise current.
+For those pathspecs, claudux includes unstaged changes, staged changes, and untracked files. This closes the dogfood gap where a section patch updates tracked docs while `HEAD` still matches the saved checkpoint, so an incremental `update` still sees that dirty docs/config state as in-scope even when the checkpoint commit is otherwise current.
 
 ### Incremental allowlist
 
@@ -246,7 +244,7 @@ The guard snapshot enforces preservation rules that schema validation cannot pro
 - Files that carried recorded protected blocks must still exist on disk.
 - Recorded skip-marker blocks must keep at least the captured block count, and each captured block must keep the same content hash in order across docs and source files.
 
-The destructive `recreate` path uses the same manifest deletion posture but checks it before backend validation. A manifest-owned docs tree is refused before Codex or Claude availability is consulted.
+The internal cleanup step the update flow runs uses the same manifest deletion posture and checks it before backend validation. A manifest-owned docs tree is refused before Codex or Claude availability is consulted.
 
 ### VitePress proof
 
@@ -256,7 +254,7 @@ The checked-in VitePress config follows the project preferences:
 - The top nav order is Guide, Features, Technical, and API, matching the manifest navigation order.
 - The sidebar defines a root `/` entry so the sidebar appears on the homepage and provides the site-wide fallback.
 - Section-specific sidebar entries exist for Guide, Features, and Technical.
-- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Two-Phase Generation, Audit Snapshots, Smart Cleanup, Content Protection, Technical, Templates, Deterministic Generation, Examples, Vidux Team Agents, API, and Troubleshooting.
+- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Two-Phase Generation, Smart Cleanup, Content Protection, Technical, Templates, Deterministic Generation, Examples, API, and Troubleshooting.
 - Social links are absolute GitHub and npm URLs.
 
 `lib/validate-links.sh` proves config targets by extracting `link:` entries from the VitePress config, resolving `/` to `docs/index.md`, `/path/` to `docs/path/index.md`, and `/path` to `docs/path.md`. Before route checking it also rejects duplicate explicit markdown `{#id}` anchors. Hash fragments are stripped for file existence checks, so the validator proves route targets and explicit anchor uniqueness rather than arbitrary heading text.
@@ -268,7 +266,7 @@ Link validation adds docs-site checks on top of the manifest contract:
 - On the green path, `lib/validate-links.sh` prints a single successful internal-link message, then the shared UI layer adds its own success prefix.
 - The failure path may re-run `lib/validate-links.sh --output <tmp>` to collect a machine-readable missing-file list for one auto-fix pass.
 - `--strict` turns any remaining broken links into a hard error.
-- `tests/run-tests.sh` includes the regression guard that `claudux validate` must not emit a doubled success prefix.
+- `tests/run-tests.sh` includes the regression guard that the internal link-validation pass must not emit a doubled success prefix.
 
 ### Backend-aware verification boundary
 
@@ -277,7 +275,7 @@ Verification intentionally distinguishes between configuration echo, backend pre
 - `show_header` and `claudux check` report the active backend plus selected Codex settings, but they do not prove that the installed Codex CLI supports the selected model.
 - Commands that invoke a model go through `check_generation_backend()`. On the Codex path, `check_codex()` must find the CLI and verify auth before generation starts.
 - Modern Codex CLI builds use `codex login status` for a zero-token auth probe; older builds fall back to an exec probe.
-- `claudux recreate` is the exception to eager backend preflight because it reaches `recreate_docs()` first so the manifest deletion guard can refuse protected docs before backend checks run.
+- The manifest deletion guard runs inside the update flow before backend checks, so a protected manifest-owned docs tree is refused before Codex or Claude availability is consulted.
 - If a backend or patch-mode run fails after launch, `update()` retains the raw JSONL log and prints backend-specific recovery steps instead of checkpointing a misleading success.
 
 ## Pinned Harness Example
@@ -301,7 +299,7 @@ Claudux's own `docs-structure.json` keeps this section pinned as doctrine, but i
 
 ## Checkpoint Contract
 
-`.claudux-state.json` is the local freshness checkpoint that powers `claudux diff` and `claudux status`. It is developer-local, ignored by git, and separate from deterministic cache artifacts under `.claudux/index/`.
+`.claudux-state.json` is the local freshness checkpoint that scopes each incremental `update`. It is developer-local, ignored by git, and separate from deterministic cache artifacts under `.claudux/index/`.
 
 ### Saved fields
 
@@ -328,17 +326,15 @@ The checkpoint records the backend but not the selected model or reasoning effor
 
 Failed runs do not advance the checkpoint. `save_claudux_state()` only runs on the success path after generation, patch application, post-generation validation, link-validation handling, deterministic cache refresh, and change analysis. Backend rejection, section-patch extraction failure, strict link-validation failure, or cache-refresh failure keeps the previous checkpoint intact.
 
-### Diff and status
+### Incremental change detection
 
-`claudux diff` compares `last_sha..HEAD`, then unions in uncommitted documentation/config changes under `docs/`, `docs-structure.json`, `docs-map.md`, `.ai-docs-style.md`, and `docs-site-plan.json`. That dirty-doc scan includes unstaged changes, staged changes, and untracked files for those pathspecs.
-
-`claudux status` uses the same checkpoint to report generation time, backend, documented-file inventory size, and whether the saved commit is behind the current head when the saved commit still exists. It also reports dirty documentation/config files even when the checkpoint otherwise matches the current commit, with a prompt to run `claudux diff` for exact paths.
+`claudux_diff_since_last()` compares `last_sha..HEAD`, then unions in uncommitted documentation/config changes under `docs/`, `docs-structure.json`, `docs-map.md`, `.ai-docs-style.md`, and `docs-site-plan.json`. That dirty-doc scan includes unstaged changes, staged changes, and untracked files for those pathspecs, and its result becomes the changed-file list an incremental `update` resolves through manifest ownership.
 
 This makes the freshness model two-dimensional:
 
 - Source commits after the saved commit mean the docs may be stale relative to code history.
 - Dirty docs/config files mean the worktree may contain generated or structural documentation changes that have not been committed or re-checkpointed.
 
-`tests/test-diff-calculation.sh` covers dirty tracked docs, staged docs, and untracked docs. `tests/test-integration.sh` covers the status warning when the checkpoint is otherwise fresh.
+`tests/test-diff-calculation.sh` covers dirty tracked docs, staged docs, and untracked docs.
 
 The split is intentional: `last_run` is wall-clock state, while deterministic metadata and deterministic cache files should stay stable when repo inputs and manifest ownership have not changed.

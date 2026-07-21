@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Claudux is a Bash-based CLI tool that keeps documentation true to the code it describes. It generates VitePress docs (via Claude or Codex), then checks in CI — deterministically, with no AI on the pass/fail path — that each doc section still matches the source it documents. It follows a modular shell scripting architecture with clear separation of concerns across functionality-specific library modules.
+Claudux is a Bash-based CLI tool that generates a VitePress docs site from a codebase using Claude or Codex, previews it locally, and updates it in place. The docs tree is source-owned state: a checked-in `docs-structure.json` manifest, a static-analysis index built before the model runs, and bounded section patches keep the model rewriting wording without reorganizing your docs. It follows a modular shell scripting architecture with clear separation of concerns across functionality-specific library modules.
 
 ### What this file is (and isn't)
 
@@ -19,16 +19,16 @@ The generic prompt in `lib/docs-generation.sh` is project-agnostic and must stay
 
 #### Positioning and voice (applies to the Home hero, feature cards, and every section intro)
 
-- The headline promise is **"docs that stay true to your code,"** not "AI generates your docs." Generation is table stakes; the deterministic drift gate (`claudux drift`) is the differentiator and the reason to care. Lead with it.
-- The Home hero must sell the outcome a developer gets: their build fails when a documented function changes but its doc doesn't. Name `claudux drift`, and say it is keyless and runs offline in CI — no API key, no network, no model on the pass/fail path.
-- Feature cards must cover the drift gate, the no-AI `audit` readiness snapshot, and the deterministic manifest mode — not only generation features.
+- The headline promise is **"generate a docs site from your codebase, preview it locally, ship it."** Lead with the outcome a developer gets in one command, not with the model.
+- The Home hero must sell that outcome plainly: point claudux at a repo, get a navigable VitePress site scanned from the actual source, then update it in place when the code changes. Say generation runs locally against your own authenticated Claude or Codex CLI.
+- Feature cards must cover the source-owned manifest (the repo owns the structure), bounded section patches (the model rewrites wording, not layout), content protection, and two-phase generation — not only "AI writes docs."
 - Voice: short declarative sentences, plain words, benefit before mechanism. No corporate speak ("seamless", "powerful", "beautiful documentation", "transform your codebase", "in minutes"). No rule-of-three filler. Keep "how it works" short and below the value proposition.
 - Retired framing — never emit: "AI-Powered Documentation Generator", "Transform your codebase into beautiful documentation", "Docs that re-run with the code", "Documentation debt is killing your productivity".
 
 ### How `CLAUDE.md` is actually used
 
 - If a project contains a top-level `CLAUDE.md`, Claudux will read it during generation to tailor docs to that project's conventions (see `lib/docs-generation.sh`, where `CLAUDE.md` is included in the prompt when present).
-- To create one for your project: `claudux template` (alias: `create-template`).
+- To create one for your project, add a `CLAUDE.md` (or `claudux.md`) file to the repo root by hand; `update` picks it up when present.
 - During `claudux update`, the presence of `CLAUDE.md` makes the output more project-specific; if absent, Claudux falls back to templates and code analysis.
 
 ### Quick usage (most users)
@@ -36,7 +36,7 @@ The generic prompt in `lib/docs-generation.sh` is project-agnostic and must stay
 ```bash
 claudux update            # Generate/update docs
 claudux serve             # Preview locally
-claudux template          # Generate a project-specific CLAUDE.md
+claudux check             # Verify environment and backend
 ```
 
 ## Architecture Patterns
@@ -80,18 +80,15 @@ main() {
             shift
             update "$@"
             ;;
-        "recreate")
+        "serve"|"server"|"dev")
             show_header
-            check_generation_backend
-            shift
-            recreate_docs "$@"
+            serve
             ;;
-        "validate")
+        "check"|"--check")
             show_header
-            shift
-            validate_links "$@"
+            # Report Node, backend, CLI, and docs/ status
             ;;
-        # ... more commands
+        # ... more commands (help, --version)
         "")
             # Default action: show interactive menu
             show_header
@@ -238,7 +235,6 @@ claudux/
 │   ├── server.sh            # VitePress dev server
 │   ├── ui.sh                # Interactive menu system
 │   ├── validate-links.sh    # Link validation utilities
-│   ├── audit.sh             # No-AI readiness report (claudux audit)
 │   ├── codex-utils.sh       # Codex backend adapter
 │   └── docs-manifest.sh     # docs-structure.json manifest contract
 └── lib/templates/           # Project-type specific templates

@@ -78,8 +78,7 @@
       "source_patterns": [
         "bin/claudux",
         "lib/ui.sh",
-        "lib/docs-generation.sh",
-        "lib/audit.sh"
+        "lib/docs-generation.sh"
       ]
     },
     {
@@ -120,21 +119,6 @@
         "lib/docs-generation.sh",
         "lib/claude-utils.sh",
         "lib/codex-utils.sh"
-      ]
-    },
-    {
-      "id": "features.audit-snapshots",
-      "path": "docs/features/audit-snapshots.md",
-      "title": "Audit Snapshots",
-      "nav_group": "features",
-      "order": 65,
-      "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": [
-        "bin/claudux",
-        "lib/audit.sh",
-        "lib/docs-generation.sh",
-        "lib/docs-manifest.sh",
-        "tests/run-tests.sh"
       ]
     },
     {
@@ -320,20 +304,6 @@
       "source_patterns": [
         "README.md",
         "docs/examples/**"
-      ]
-    },
-    {
-      "id": "examples.vidux-team-agents",
-      "path": "docs/examples/vidux-team-agents.md",
-      "title": "Vidux Team Agents",
-      "nav_group": "reference",
-      "order": 125,
-      "deletion_policy": "never_delete_without_manifest_change",
-      "source_patterns": [
-        "lib/project.sh",
-        "lib/templates/vidux-project-config.json",
-        "README.md",
-        "docs/examples/vidux-team-agents.md"
       ]
     },
     {

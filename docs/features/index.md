@@ -1,21 +1,6 @@
 # Features Overview
 
-Claudux gates your build on doc/code drift, and generates VitePress docs. The gate is deterministic and runs without a key; generation is the AI-assisted half.
-
-## The Gate
-
-### 🚨 [Drift detection](/features/drift-gate)
-
-**Problem**: Nobody can prove their docs still match the code a week after shipping. That gets more expensive as the primary reader of docs shifts from humans to agents, which read a stale doc and act on it.
-
-**Solution**: `claudux drift` fails the build when a source file changed but the doc section documenting it did not. Parse, hash, compare, exit. No API key, no network, no model on the pass/fail path.
-
-```bash
-claudux drift --accept   # baseline once, commit docs-drift-lock.json
-claudux drift            # exit 1 when a doc falls behind its code
-```
-
-Full detail, including sensitivity modes and the CI workflow: [The Drift Gate](/features/drift-gate).
+Claudux generates VitePress docs from your codebase with Claude or Codex, and keeps the model on rails so it rewrites wording without reorganizing your docs or touching content you protect.
 
 ## Generation Features
 
@@ -132,18 +117,6 @@ claudux update -m "Update API documentation only"
 claudux update --with "Add examples for the new authentication flow"
 ```
 
-### 📋 Audit Snapshots
-
-Team agents need a fast way to understand documentation readiness before they regenerate anything.
-
-```bash
-claudux audit
-claudux audit --json
-claudux audit --strict
-```
-
-The audit report combines project detection, manifest validity, link validation, checkpoint freshness, and uncommitted docs/config changes without calling Claude or Codex.
-
 ### 📱 Project-Specific Optimization
 
 Adapts documentation structure to your project type:
@@ -174,6 +147,5 @@ Adapts documentation structure to your project type:
 Explore specific features in detail:
 
 - [Two-Phase Generation →](/features/two-phase-generation)
-- [Audit Snapshots →](/features/audit-snapshots)
 - [Smart Cleanup →](/features/smart-cleanup)  
 - [Content Protection →](/features/content-protection)
