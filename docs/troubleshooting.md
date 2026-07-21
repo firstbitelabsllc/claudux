@@ -53,7 +53,7 @@ sudo chown -R $(whoami) ~/.npm
 
 # Or use nvm to avoid system-wide installation
 nvm install 18 && nvm use 18
-npm install -g claudux
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 ```
 
 ## Authentication Issues

@@ -42,7 +42,7 @@ features:
 ## Quick Start
 
 ```bash
-npm install -g claudux
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 ```
 
 ```bash

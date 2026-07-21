@@ -3,12 +3,10 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/claudux"><img src="https://img.shields.io/npm/v/claudux.svg?style=flat&color=8b5cf6" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/claudux"><img src="https://img.shields.io/npm/dm/claudux?style=flat" alt="npm downloads" /></a>
   <a href="https://github.com/firstbitelabsllc/claudux/actions/workflows/ci.yml"><img src="https://github.com/firstbitelabsllc/claudux/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/firstbitelabsllc/claudux/stargazers"><img src="https://img.shields.io/github/stars/firstbitelabsllc/claudux?style=flat" alt="GitHub stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
-  <img src="https://img.shields.io/node/v/claudux?style=flat" alt="Node version" />
+  <img src="https://img.shields.io/badge/node-%E2%89%A518-5fa04e?style=flat" alt="Node ≥ 18" />
 </p>
 
 # claudux
@@ -23,19 +21,15 @@ Anyone can ask a model to write docs. The hard part is keeping the model on rail
 
 ## Install
 
-```bash
-npm install -g claudux
-```
-
-Or run it without installing: `npx claudux update`.
-
-No npm? Install straight from GitHub (clones the repo, symlinks onto your PATH):
+claudux installs straight from GitHub — no npm account, no registry. The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claudux` onto your PATH:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 ```
 
-This tracks `main`, so you get the latest without waiting on a registry release. Pin a version with `CLAUDUX_REF=v2.0.0`. Re-run it any time to update.
+Or run it once without installing: `npx github:firstbitelabsllc/claudux update`.
+
+This tracks `main`, so you get the latest straight from the repo. Pin a version with `CLAUDUX_REF=v2.0.0`. Re-run it any time to update.
 
 Requirements: Node 18+ and an authenticated Claude CLI (default) or Codex CLI on the machine; there is no hosted API key path.
 

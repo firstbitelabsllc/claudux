@@ -36,47 +36,45 @@ claudux check  # shows active backend and CLI status
 
 ## Install Claudux
 
-### Global Installation (Recommended)
+claudux is a bash CLI distributed straight from GitHub — there is no npm registry package to install. Pick whichever fits your workflow.
+
+### Install script (Recommended)
+
+The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claudux` onto your PATH:
 
 ```bash
-npm install -g claudux
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 ```
+
+- Tracks `main` by default — pin a branch, tag, or commit with `CLAUDUX_REF`, e.g. `CLAUDUX_REF=v2.0.0`.
+- Re-run any time to update in place (idempotent).
+- Falls back to a tarball download if `git` is not present; still needs Node 18+.
 
 Verify installation:
 ```bash
 claudux --version
 ```
 
-### Local Installation
-
-For project-specific usage:
+### Run once without installing
 
 ```bash
-# As dev dependency
-npm install --save-dev claudux
-
-# Run with npx
-npx claudux update
+npx github:firstbitelabsllc/claudux update
 ```
 
-### Without npm (curl)
+`npx` fetches claudux from GitHub — no npm account, no global install.
 
-claudux is a bash CLI, so you can install it without the npm registry at all. The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claudux` onto your PATH:
+### Global install from GitHub
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
+npm i -g github:firstbitelabsllc/claudux
 ```
-
-- Tracks `main` by default — pin a branch, tag, or commit with `CLAUDUX_REF`, e.g. `CLAUDUX_REF=v1.2.0`.
-- Re-run any time to update in place (idempotent).
-- Falls back to a tarball download if `git` is not present; still needs Node 18+.
 
 ### From Source
 
 ```bash
 git clone https://github.com/firstbitelabsllc/claudux.git
 cd claudux
-npm install -g .
+ln -sf "$PWD/bin/claudux" ~/.local/bin/claudux   # put it on your PATH
 ```
 
 ## Environment Check

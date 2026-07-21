@@ -5,10 +5,10 @@ Claudux scans your code and drafts a full VitePress docs site with Claude or Cod
 ## Installation
 
 ```bash
-npm install -g claudux
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 ```
 
-Or run it without installing: `npx claudux update`.
+Or run it once without installing: `npx github:firstbitelabsllc/claudux update`.
 
 **Requirements:**
 - Node.js ≥ 18.0.0
@@ -61,7 +61,7 @@ Select:
 
 ```bash
 # One-time setup
-npm install -g claudux
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 cd your-project
 
 # Regular usage

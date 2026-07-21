@@ -41,7 +41,9 @@ assets/              Static assets (banner SVG, terminal demo, hero image)
 
 ### Release process
 
-1. Bump `version` in `package.json` and `package-lock.json`
+claudux is distributed straight from GitHub — there is no npm registry package and no publish step. A release is just a tag: the install script (`CLAUDUX_REF`) and `npx github:firstbitelabsllc/claudux` fetch whatever ref you point them at.
+
+1. Bump `version` in `package.json`
 2. Update `CHANGELOG.md` with the new version's changes
 3. Commit: `git commit -m "release: vX.Y.Z"`
 4. Tag: `git tag vX.Y.Z`
@@ -49,10 +51,9 @@ assets/              Static assets (banner SVG, terminal demo, hero image)
 
 What happens automatically:
 - `ci.yml` runs lint, structure, syntax, version, and test jobs on every push/PR
-- `publish.yml` triggers on `v*` tags, runs the full CI suite, verifies the tag matches `package.json`, and publishes to npm with provenance
 - `docs.yml` deploys the VitePress site to GitHub Pages on push to main
 
-**Prerequisite:** The `NPM_TOKEN` repository secret must be configured in GitHub repo settings before the first tag publish. Generate a token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/~/tokens) (use "Automation" type).
+Users on the tag get it via `CLAUDUX_REF=vX.Y.Z curl … | sh` or `npx github:firstbitelabsllc/claudux#vX.Y.Z`. No registry, no tokens, no secrets.
 
 ### Learn more
 
@@ -60,28 +61,3 @@ What happens automatically:
 - [README](./README.md)
 
 By contributing, you agree to the MIT license.
-
-## Publishing to npm (maintainers only)
-
-Publishing is automated via GitHub Actions. To release:
-
-```bash
-# 1. Ensure version is bumped in package.json + package-lock.json
-# 2. Ensure CHANGELOG.md is updated
-# 3. Tag and push
-git tag v1.2.0
-git push origin main --tags
-```
-
-The `publish.yml` workflow will:
-1. Run the full CI suite (lint, structure, syntax, version, and bash test suites)
-2. Verify the git tag matches `package.json` version
-3. Publish to npm with `--provenance --access public`
-
-For manual publish (fallback):
-```bash
-npm login
-npm publish --access public
-```
-
-Package name: `claudux`. Requires Node 18+. Requires `NPM_TOKEN` secret in repo settings.

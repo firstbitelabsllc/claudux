@@ -200,7 +200,7 @@ jobs:
         run: echo "$CLAUDE_API_KEY" | claude auth login
         
       - name: Install claudux
-        run: npm install -g claudux
+        run: npm i -g github:firstbitelabsllc/claudux
         
       - name: Generate documentation
         env:

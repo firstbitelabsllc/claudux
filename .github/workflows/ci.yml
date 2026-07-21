@@ -172,13 +172,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Root lockfile matches package metadata
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          git diff --exit-code -- package-lock.json
 
       - name: Secret scan
         run: bash scripts/secret-scan.sh
