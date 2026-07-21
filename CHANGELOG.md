@@ -2,6 +2,21 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.0] - 2026-07-21
+
+Minimal, open-source-ready surface. claudux is now focused on one job: generate a VitePress docs site from your codebase, preview it locally, and update it in place.
+
+### Removed
+
+- **Standalone reporting and lifecycle commands.** `audit`, `drift`, `diff`, `status`, `validate`, `recreate`, and `template` are gone from the CLI. Their machinery that actually matters survives internally: link validation and the manifest deletion guard run inside `update`, and the `.claudux-state.json` checkpoint still scopes each incremental run.
+- The `--release` audit gate and the terminal-demo assets tied to the removed surface.
+
+### Changed
+
+- The command surface is now `claudux` (menu), `update` (with `-m`/`--with`/`--strict`), `serve`, `check`, `help`, and `--version`.
+- `package.json` description and keywords reworded around generation; `release:check` drops the audit step.
+- Docs, README, and the VitePress site rewritten to describe only the shipped commands.
+
 ## [1.2.0] - 2026-07-18
 
 ### Added

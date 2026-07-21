@@ -751,35 +751,6 @@ assert_contains "cleanup guard blocks AI deletion with manifest" "$(cat /tmp/cla
 assert_contains "cleanup guard preserves manifest page" "$(cat /tmp/claudux-manifest-t17)" "manifest-page-still-exists"
 rm -rf "$TEST_DIR"
 
-# --- Test 18: recreate refuses to rm -rf manifest-owned docs by default ---
-TEST_DIR=$(setup_manifest_repo)
-(
-    cd "$TEST_DIR"
-    if bash -c "source '$LIB_DIR/colors.sh'; source '$LIB_DIR/docs-manifest.sh'; source '$LIB_DIR/cleanup.sh'; recreate_docs" >/tmp/claudux-manifest-t18-output 2>&1; then
-        echo "unexpected-pass"
-    else
-        cat /tmp/claudux-manifest-t18-output
-    fi
-    test -f docs/technical/deterministic-generation.md && echo "manifest-page-still-exists"
-) > /tmp/claudux-manifest-t18 2>&1
-assert_contains "recreate guard blocks manifest docs deletion" "$(cat /tmp/claudux-manifest-t18)" "Recreate would delete manifest-owned documentation"
-assert_contains "recreate guard preserves manifest page" "$(cat /tmp/claudux-manifest-t18)" "manifest-page-still-exists"
-rm -rf "$TEST_DIR"
-
-# --- Test 18b: recreate CLI checks manifest deletion guard before backend validation ---
-TEST_DIR=$(setup_manifest_repo)
-(
-    cd "$TEST_DIR"
-    CLAUDUX_BACKEND=codex CODEX_MODEL=not-a-real-model bash "$REPO_ROOT/bin/claudux" recreate >/tmp/claudux-manifest-t18b-output 2>&1
-    echo "exit:$?"
-    cat /tmp/claudux-manifest-t18b-output
-    test -f docs/technical/deterministic-generation.md && echo "manifest-page-still-exists"
-) > /tmp/claudux-manifest-t18b 2>&1
-assert_contains "recreate CLI exits before destructive backend path" "$(cat /tmp/claudux-manifest-t18b)" "exit:1"
-assert_contains "recreate CLI reports manifest deletion guard first" "$(cat /tmp/claudux-manifest-t18b)" "Recreate would delete manifest-owned documentation"
-assert_contains "recreate CLI guard preserves manifest page" "$(cat /tmp/claudux-manifest-t18b)" "manifest-page-still-exists"
-rm -rf "$TEST_DIR"
-
 # --- Test 19: manifest rejects malformed source pattern entries before impact mapping ---
 TEST_DIR=$(setup_manifest_repo)
 (

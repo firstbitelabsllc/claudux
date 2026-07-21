@@ -5,7 +5,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 #
 # Or pin a branch/tag/commit:
-#   curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | CLAUDUX_REF=v1.2.0 sh
+#   curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | CLAUDUX_REF=v2.0.0 sh
 #
 # What it does: fetches claudux into ~/.local/share/claudux (git clone, or a
 # tarball download if git is absent) and symlinks bin/claudux onto your PATH.
@@ -115,8 +115,8 @@ main() {
   path_hint
   info ""
   info "Next steps:"
-  info "  cd into any repo, then run:  claudux drift"
-  info "  It runs the deterministic doc/code drift gate — no API key, no network."
+  info "  cd into any repo, then run:  claudux update"
+  info "  It scans your code and generates a VitePress docs site with Claude or Codex."
 }
 
 main "$@"

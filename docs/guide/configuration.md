@@ -32,13 +32,7 @@ Claudux auto-detects project types, but you can override detection:
 
 ## Documentation Preferences
 
-Generate a `claudux.md` file to capture documentation preferences:
-
-```bash
-claudux template
-```
-
-This creates a preferences file that guides documentation generation. Example structure:
+Create a `claudux.md` file in your project root to capture documentation preferences. When present, `update` reads it to guide generation. Example structure:
 
 ```markdown
 # Site

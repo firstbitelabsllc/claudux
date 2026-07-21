@@ -183,9 +183,6 @@ jobs:
       - name: Secret scan
         run: bash scripts/secret-scan.sh
 
-      - name: Release audit
-        run: bash bin/claudux audit --release
-
       - name: Package dry run
         run: |
           npm pack --dry-run --json > /tmp/claudux-pack.json
@@ -199,11 +196,9 @@ jobs:
             'ARCHITECTURE.md',
             'SECURITY.md',
             'assets/claudux-banner.svg',
-            'assets/terminal-demo.svg',
             'docs/technical/deterministic-generation.md',
             'bin/claudux',
             'scripts/secret-scan.sh',
-            'lib/audit.sh',
             'lib/docs-generation.sh',
             'package.json',
           ];

@@ -68,41 +68,6 @@ claudux serve
 # Press Ctrl+C to stop the server
 ```
 
-### `claudux recreate`
-
-**Syntax**: `claudux recreate`
-
-**Description**: Delete all existing documentation and start fresh.
-
-**Behavior:**
-- Removes entire `docs/` directory
-- Regenerates from scratch
-- Useful for major structural changes
-
-**Examples:**
-```bash
-claudux recreate
-# ⚠️  This will delete all existing documentation
-# Are you sure? (y/N): y
-```
-
-### `claudux template`
-
-**Syntax**: `claudux template`
-
-**Description**: Generate `claudux.md` file with documentation preferences for the project.
-
-**Behavior:**
-- Analyzes current project structure
-- Creates preferences file based on detected patterns
-- Guides future documentation generation
-
-**Examples:**
-```bash
-claudux template
-# ✅ Generated claudux.md (docs preferences) (42 lines)
-```
-
 ### `claudux check`
 
 **Syntax**: `claudux check`
@@ -124,33 +89,6 @@ claudux template
 - Claude CLI installation and authentication
 - Documentation directory status
 
-### `claudux audit`
-
-**Syntax**: `claudux audit [--json] [--strict] [--release] [--handoff-strict]`
-
-**Description**: Print a no-AI documentation readiness report. This command is designed for CI checks and team-agent handoffs because it summarizes the current docs state without invoking Claude or Codex.
-
-**Options:**
-- `--json`: Emit machine-readable JSON with project, manifest, link, checkpoint, and worktree fields
-- `--strict`: Exit non-zero when the docs manifest or internal link validation fails
-- `--release`: Exit non-zero when docs/package release-readiness checks fail
-- `--handoff-strict`: Exit non-zero when checkpoint freshness or dirty docs state should block handoff
-
-**Examples:**
-```bash
-claudux audit
-claudux audit --json
-claudux audit --strict
-```
-
-**Reports:**
-- Project name, detected type, repo root, branch, HEAD SHA, and active backend
-- Docs directory presence and markdown file count
-- Manifest validity, page count, source-owned page count, and pinned section count
-- Internal link validation status
-- Checkpoint freshness and changed files since the last checkpoint
-- Uncommitted documentation/config changes that agents should review before handoff
-
 ## Global Options
 
 ### `--help`, `-h`, `help`
@@ -165,7 +103,7 @@ claudux audit --strict
 
 **Description**: Display the installed claudux version.
 
-**Output**: `claudux 1.2.0`
+**Output**: `claudux 2.0.0`
 
 ## Environment Variables
 
@@ -236,7 +174,7 @@ Claudux follows standard Unix conventions:
 | `0` | Success | Normal operation completed |
 | `1` | General error | Missing dependencies, configuration issues |
 | `2` | Usage error | Invalid command-line arguments |
-| `124` | Timeout | Claude API timeout, network issues |
+| `124` | Timeout | Backend timeout, network issues |
 | `130` | Interrupted | User pressed Ctrl+C |
 
 ## Interactive Menu API
@@ -247,22 +185,15 @@ Claudux follows standard Unix conventions:
 ```
 1) Generate docs              (scan code → markdown)
 2) Serve                      (vitepress dev server) 
-3) Create claudux.md           (docs preferences)
-4) Exit
+3) Exit
 ```
 
 **Existing documentation:**
 ```
 1) Update docs                (regenerate from code)
 2) Update (focused)           (enter directive → update)
-3) Diff                       (files changed since last gen)
-4) Status                     (documentation freshness)
-5) Validate links             (check for broken links)
-6) Audit                      (no-AI readiness report)
-7) Serve                      (vitepress dev server)
-8) Create claudux.md           (docs preferences)
-9) Recreate                   (start fresh)
-10) Exit
+3) Serve                      (vitepress dev server)
+4) Exit
 ```
 
 ### Menu Behavior
@@ -291,9 +222,7 @@ Claudux follows standard Unix conventions:
 
 **Location**: Project root
 
-**Purpose**: Documentation preferences and site structure guidance
-
-**Generation**: `claudux template`
+**Purpose**: Optional documentation preferences and site-structure guidance, read by `update` when present.
 
 **Format**: Markdown with structured sections for site configuration, page hierarchy, and styling preferences.
 

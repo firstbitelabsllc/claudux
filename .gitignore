@@ -42,11 +42,6 @@ documents/
 *.pem
 secrets/
 
-# claudux change tracking state (local per-dev)
+# claudux incremental update checkpoint (local per-dev)
 .claudux-state.json
 .claudux/index/
-
-# docs-drift-lock.json is the committed drift baseline (the package-lock.json of
-# doc/code drift). It is intentionally tracked so `claudux drift` has a baseline
-# on a fresh CI checkout. Do not ignore it.
-!docs-drift-lock.json

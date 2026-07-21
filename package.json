@@ -1,7 +1,7 @@
 {
   "name": "claudux",
-  "version": "1.2.0",
-  "description": "Local CLI that keeps VitePress docs true to your code — deterministic, no-AI CI checks for doc/code drift, plus generation via Claude or Codex.",
+  "version": "2.0.0",
+  "description": "Local CLI that generates VitePress docs from your codebase via Claude or Codex, previews them locally, and keeps them true to your code.",
   "bin": {
     "claudux": "./bin/claudux"
   },
@@ -11,17 +11,11 @@
     "test:ci": "bash tests/run-tests.sh && bash tests/run-all.sh",
     "lint": "shellcheck -s bash -S warning bin/claudux lib/*.sh",
     "secret-scan": "bash scripts/secret-scan.sh",
-    "release:check": "bash scripts/secret-scan.sh && bash bin/claudux audit --release && npm pack --dry-run >/dev/null"
+    "release:check": "bash scripts/secret-scan.sh && npm pack --dry-run >/dev/null"
   },
   "keywords": [
     "documentation",
     "docs",
-    "documentation-drift",
-    "doc-drift",
-    "docs-verification",
-    "staleness",
-    "deterministic",
-    "ci",
     "doc-generator",
     "ai",
     "anthropic",
@@ -35,10 +29,7 @@
     "static-site",
     "developer-tools",
     "link-check",
-    "change-tracking",
-    "cleanup",
-    "docs-audit",
-    "team-agents"
+    "cleanup"
   ],
   "repository": {
     "type": "git",
