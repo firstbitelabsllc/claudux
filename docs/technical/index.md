@@ -65,7 +65,6 @@ lib/templates/
 ├── react-project-config.json    # React-specific structure
 ├── nextjs-project-config.json   # Next.js patterns  
 ├── ios-project-config.json      # iOS app documentation
-├── vidux-project-config.json    # Plan-first team-agent documentation
 └── python-project-config.json   # Python project patterns
 ```
 

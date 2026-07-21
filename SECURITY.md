@@ -4,14 +4,14 @@
 
 | Version | Supported |
 | ------- | --------- |
-| 1.2.x   | Yes       |
-| < 1.2   | No        |
+| 2.0.x   | Yes       |
+| < 2.0   | No        |
 
-Only the latest published npm release receives security fixes.
+Only the latest `main` (and any tag at or above 2.0) receives security fixes.
 
 ## Reporting a Vulnerability
 
-**Do not open a public issue.** Instead, use GitHub private vulnerability reporting for this repository when available, or contact the maintainer through the npm package owner account, with:
+**Do not open a public issue.** Instead, use GitHub private vulnerability reporting for this repository (Security → Report a vulnerability), with:
 
 - A description of the vulnerability
 - Steps to reproduce

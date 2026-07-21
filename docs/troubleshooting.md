@@ -357,7 +357,6 @@ claude config get  # Shows configuration and status
 
 1. **GitHub Issues**: [Report bugs and request features](https://github.com/firstbitelabsllc/claudux/issues)
 2. **Documentation**: This site provides comprehensive guidance
-3. **Examples**: Check the [examples section](/examples/) for common patterns
 
 ### Diagnostic Information
 
