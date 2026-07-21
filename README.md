@@ -11,7 +11,7 @@
 
 # claudux
 
-## Generate VitePress docs from your codebase. Preview them locally. Ship them.
+Generate a VitePress docs site from your codebase, preview it locally, and update it in place as the code changes.
 
 claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). It is not a free-writing model pass: the repo owns the structure, generation applies bounded section patches, protected content is hashed before and after, and internal links are validated on every update.
 

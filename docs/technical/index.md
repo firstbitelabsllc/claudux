@@ -65,7 +65,6 @@ lib/templates/
 ├── react-project-config.json    # React-specific structure
 ├── nextjs-project-config.json   # Next.js patterns  
 ├── ios-project-config.json      # iOS app documentation
-├── vidux-project-config.json    # Plan-first team-agent documentation
 └── python-project-config.json   # Python project patterns
 ```
 
@@ -123,7 +122,7 @@ claudux update
 6. CLAUDE.md (project patterns and conventions)
 7. User directive (--with flag)
 
-# Output: Comprehensive prompt for two-phase generation
+# Output: the prompt for two-phase generation
 ```
 
 ### 4. Configuration Loading
@@ -262,4 +261,4 @@ detect_project_type() {
 - Vue components for enhanced functionality
 - Breadcrumb navigation component
 
-This modular architecture enables easy maintenance, testing, and extension while maintaining robust error handling and user experience.
+Each concern lives in its own module, so changes and tests stay local.

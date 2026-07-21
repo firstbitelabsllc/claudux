@@ -15,7 +15,6 @@ lib/templates/
 ├── react-project-config.json    # Extends javascript patterns
 ├── nextjs-project-config.json   # Extends react patterns  
 ├── ios-project-config.json      # iOS-specific structure
-├── vidux-project-config.json    # Plan-first team-agent repos
 ├── python-project-config.json
 ├── rust-project-config.json
 └── go-project-config.json
@@ -141,28 +140,6 @@ Templates define expected navigation hierarchy:
   }
 }
 ```
-
-### Vidux Template Example
-
-`vidux-project-config.json` focuses on plan-first team-agent documentation:
-
-```json
-{
-  "project": {
-    "type": "vidux",
-    "description": "Plan-first documentation template for repos coordinated through vidux PLAN.md files and team-agent lanes"
-  },
-  "claude_instructions": {
-    "focus_areas": [
-      "PLAN.md and projects/*/PLAN.md as source-owned operating state",
-      "Team-agent lane handoffs, ownership, and verification gates",
-      "Drift Log and Progress sections as append-only evidence, not marketing copy"
-    ]
-  }
-}
-```
-
-Detection selects this template when a repo has `vidux.config.json`, or when it has a root `PLAN.md` plus at least one `projects/*/PLAN.md`. Use it for repos where the docs need to explain active agent lanes, plan handoffs, local telemetry, and verification gates without letting the backend rewrite the plan itself.
 
 ## Template Customization
 

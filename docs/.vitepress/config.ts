@@ -71,7 +71,6 @@ export default defineConfig({
           text: '📚 Reference',
           collapsed: true,
           items: [
-            { text: 'Examples', link: '/examples/' },
             { text: 'API Reference', link: '/api/' },
             { text: 'Troubleshooting', link: '/troubleshooting' }
           ]
