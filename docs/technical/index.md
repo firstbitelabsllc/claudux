@@ -54,7 +54,7 @@ Modular functionality organized by concern:
 | `server.sh` | VitePress dev server | `serve()`, dependency management |
 | `cleanup.sh` | Obsolete content removal | Smart cleanup with confidence scoring |
 | `ui.sh` | Interactive interface | `show_menu()`, `show_help()`, `create_claudux_md()` |
-| `validate-links.sh` | Link validation | Internal/external link checking |
+| `validate-links.sh` | Link validation | Internal link checking |
 
 ### 3. Template System
 
@@ -125,7 +125,7 @@ claudux update
 # Output: the prompt for two-phase generation
 ```
 
-### 4. Configuration Loading
+### 3. Configuration Loading
 
 **Configuration precedence** (`lib/project.sh:5-30`):
 1. `claudux.json` (primary configuration)

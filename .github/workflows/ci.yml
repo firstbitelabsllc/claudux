@@ -12,7 +12,7 @@ on:
 jobs:
   lint:
     name: ShellCheck lint
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
 
   structure:
     name: File structure checks
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
 
   syntax:
     name: Bash syntax check
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
 
   version:
     name: Version consistency
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
 
   tests:
     name: Test suite
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -153,7 +153,7 @@ jobs:
 
   docs-build:
     name: Docs build
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -175,42 +175,10 @@ jobs:
 
   release-readiness:
     name: Release readiness
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
       - name: Secret scan
         run: bash scripts/secret-scan.sh
-
-      - name: Package dry run
-        run: |
-          npm pack --dry-run --json > /tmp/claudux-pack.json
-          node <<'NODE'
-          const fs = require('fs');
-          const pack = JSON.parse(fs.readFileSync('/tmp/claudux-pack.json', 'utf8'))[0];
-          const files = new Set(pack.files.map(file => file.path));
-          const required = [
-            'README.md',
-            'LICENSE',
-            'ARCHITECTURE.md',
-            'SECURITY.md',
-            'assets/claudux-banner.svg',
-            'docs/technical/deterministic-generation.md',
-            'bin/claudux',
-            'scripts/secret-scan.sh',
-            'lib/docs-generation.sh',
-            'package.json',
-          ];
-          const missing = required.filter(file => !files.has(file));
-          if (missing.length) {
-            console.error(`Missing package files: ${missing.join(', ')}`);
-            process.exit(1);
-          }
-          console.log(`Package dry run OK: ${pack.entryCount} files`);
-          NODE

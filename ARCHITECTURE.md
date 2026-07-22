@@ -107,7 +107,7 @@ Run the full suite:
 
 ```bash
 bash tests/run-all.sh     # all suites
-bash tests/run-tests.sh   # core tests (63)
+bash tests/run-tests.sh   # core tests (76)
 ```
 
 CI runs ShellCheck linting, bash syntax checks, file structure validation, and the full test suite on every PR.

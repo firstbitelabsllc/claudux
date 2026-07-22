@@ -139,11 +139,11 @@ Final validation pass:
 ✅ Internal links: 47/47 valid
 ✅ Anchor links: 23/23 valid  
 ✅ Asset references: 12/12 valid
-⚠️  External links: 2 timeouts (non-critical)
+🔗 External links: 2 (skipped)
 ```
 
 **Auto-fix capability:**
-If validation finds missing pages, claudux can automatically create minimal placeholder content and retry validation.
+If validation finds broken internal references, claudux can automatically create the missing pages and retry validation.
 
 ## Benefits of Two-Phase Approach
 
