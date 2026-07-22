@@ -60,12 +60,9 @@ curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/insta
 
 ### Claude Authentication Failed
 
-**Error:**
-```
-ERROR: Claude authentication failed
-```
+If generation fails because the Claude CLI isn't signed in, re-authenticate the
+CLI — claudux delegates all auth to it:
 
-**Solution:**
 ```bash
 # Re-authenticate with Claude
 claude config
@@ -79,16 +76,18 @@ claude config get model
 
 ### API Key Issues
 
-**Error:**
-```
-Unauthorized: Invalid API key
-```
+claudux has no API key of its own — it drives the `claude` (or `codex`) CLI, and
+that backend CLI owns authentication. An auth failure means the backend needs
+re-authenticating, not that claudux needs a key:
 
-**Solution:**
-1. Visit [Claude Console](https://console.anthropic.com/)
-2. Generate new API key
-3. Re-authenticate: `claude config`
-4. Verify: `claude config get`
+```bash
+# Claude backend — sign in or refresh credentials
+claude config
+claude config get
+
+# Codex backend — sign in, or export the key the CLI reads
+codex login            # or: export OPENAI_API_KEY=…
+```
 
 ## Generation Issues
 
@@ -130,10 +129,15 @@ claudux check  # Verify environment
 
 ### Generation Timeout
 
-**Error:**
+Only the Codex backend enforces a hard timeout. When a Codex run exceeds
+`CLAUDUX_TIMEOUT` (default 600s), claudux surfaces:
+
 ```
-Claude generation timed out after 90 seconds
+{"type":"error","message":"Codex execution timed out after 600s"}
 ```
+
+The Claude backend does not hard-timeout — a slow run just takes longer. Either
+way, when generation drags:
 
 **Solutions:**
 

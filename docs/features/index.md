@@ -85,8 +85,9 @@ claudux update  # Includes automatic link checking
 **Validates:**
 - Internal page references
 - Anchor links within pages
-- Asset and image references  
-- External URL accessibility
+- Asset and image references
+
+External URLs are skipped, not fetched — link checking stays offline and deterministic.
 
 **Auto-fix capability:**
 ```bash

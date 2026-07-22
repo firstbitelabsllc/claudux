@@ -10,8 +10,7 @@
     "test:all": "bash tests/run-all.sh",
     "test:ci": "bash tests/run-tests.sh && bash tests/run-all.sh",
     "lint": "shellcheck -s bash -S warning bin/claudux lib/*.sh",
-    "secret-scan": "bash scripts/secret-scan.sh",
-    "release:check": "bash scripts/secret-scan.sh && npm pack --dry-run >/dev/null"
+    "secret-scan": "bash scripts/secret-scan.sh"
   },
   "keywords": [
     "documentation",
@@ -44,18 +43,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "preferGlobal": true,
-  "files": [
-    "bin",
-    "lib",
-    "scripts",
-    "assets",
-    "ARCHITECTURE.md",
-    "CHANGELOG.md",
-    "SECURITY.md",
-    "docs/technical/deterministic-generation.md",
-    "README.md",
-    "LICENSE"
-  ],
   "dependencies": {}
 }
