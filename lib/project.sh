@@ -20,6 +20,27 @@ load_project_config() {
         fi
     fi
     
+    # A configured type must be one the detector/templates understand; an
+    # unknown value (e.g. "node") would otherwise silently suppress
+    # auto-detection AND degrade to the generic profile. Template-backed types
+    # (flutter, android, rails, ...) are valid too — build_generation_prompt
+    # loads lib/templates/${PROJECT_TYPE}-project-config.json for them.
+    case "$PROJECT_TYPE" in
+        ios|nextjs|react|nodejs|javascript|rust|python|go|java|generic|"") ;;
+        *)
+            if [[ -n "${LIB_DIR:-}" ]] && [[ -f "$LIB_DIR/templates/${PROJECT_TYPE}-project-config.json" ]]; then
+                : # template-backed type — accept as configured
+            else
+                if declare -F warn >/dev/null 2>&1 || command -v warn &> /dev/null; then
+                    warn "Unknown project.type '$PROJECT_TYPE' in config; valid: ios, nextjs, react, nodejs, javascript, rust, python, go, java, generic, or any type with a lib/templates/<type>-project-config.json. Falling back to auto-detection."
+                else
+                    echo "⚠️  Unknown project.type '$PROJECT_TYPE'; falling back to auto-detection." >&2
+                fi
+                PROJECT_TYPE="generic"
+            fi
+            ;;
+    esac
+
     # Auto-detect type if not specified
     if [[ -z "$PROJECT_TYPE" ]] || [[ "$PROJECT_TYPE" == "generic" ]]; then
         PROJECT_TYPE=$(detect_project_type)
