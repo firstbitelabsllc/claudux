@@ -761,6 +761,15 @@ $base_prompt"
             --model "$model"
             --allowedTools "$allowed_tools"
         )
+        # Docs generation never needs a shell: Write/Edit create files and
+        # directories on their own. An explicit deny mechanically blocks
+        # `git commit` and shell escapes even when the operator's own
+        # ~/.claude/settings.json allow-list would otherwise permit Bash
+        # (observed in a stranger test: the backend committed a source file
+        # mid-generation — see issue #121).
+        if claude --help 2>&1 | grep -q "disallowedTools"; then
+            claude_args+=(--disallowedTools "Bash")
+        fi
         if ! $section_patch_mode; then
             claude_args+=(--permission-mode acceptEdits)
         fi
