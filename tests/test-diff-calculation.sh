@@ -276,7 +276,123 @@ TEST_DIR=$(setup_repo)
 assert_contains "untracked docs appear in diff" "$(cat /tmp/claudux-diff-t12)" "docs/new.md"
 rm -rf "$TEST_DIR"
 
+# --- Test 13: docs-only dirty changes pass generation boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    capture_generation_workspace_snapshot
+    echo "docs-only dirty" >> docs/index.md
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t13-validate 2>&1; then
+        echo "boundary-ok"
+    else
+        echo "boundary-failed"
+        cat /tmp/claudux-diff-t13-validate
+    fi
+) > /tmp/claudux-diff-t13 2>&1
+assert_contains "docs-only dirty passes boundary check" "$(cat /tmp/claudux-diff-t13)" "boundary-ok"
+rm -rf "$TEST_DIR"
+
+# --- Test 14: newly dirty source file fails generation boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    echo '{"type":"node"}' > claudux.json
+    git add claudux.json
+    git commit -q -m "add claudux.json"
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    warn() { printf '%s\n' "$*"; }
+    print_color() { shift; printf '%s\n' "$*"; }
+    capture_generation_workspace_snapshot
+    echo '"type":"library"' > claudux.json
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t14-validate 2>&1; then
+        echo "unexpected-pass"
+    else
+        echo "boundary-blocked"
+        cat /tmp/claudux-diff-t14-validate
+    fi
+) > /tmp/claudux-diff-t14 2>&1
+result=$(cat /tmp/claudux-diff-t14)
+assert_contains "new source dirty fails boundary check" "$result" "boundary-blocked"
+assert_contains "boundary lists mutated source file" "$result" "claudux.json"
+assert_contains "boundary warning mentions issue 121" "$result" "issue #121"
+rm -rf "$TEST_DIR"
+
+# --- Test 15: source commit during generation fails boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    echo '{"type":"node"}' > claudux.json
+    git add claudux.json
+    git commit -q -m "add claudux.json"
+    start_head=$(git rev-parse HEAD)
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    warn() { printf '%s\n' "$*"; }
+    print_color() { shift; printf '%s\n' "$*"; }
+    CLAUDUX_GENERATION_START_HEAD="$start_head"
+    echo '"type":"library"' > claudux.json
+    git add claudux.json
+    git commit -q -m "backend mutated source"
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t15-validate 2>&1; then
+        echo "unexpected-pass"
+    else
+        echo "boundary-blocked"
+        cat /tmp/claudux-diff-t15-validate
+    fi
+) > /tmp/claudux-diff-t15 2>&1
+result=$(cat /tmp/claudux-diff-t15)
+assert_contains "source commit fails boundary check" "$result" "boundary-blocked"
+assert_contains "committed source appears in boundary output" "$result" "claudux.json"
+rm -rf "$TEST_DIR"
+
+# --- Test 16: pre-existing dirty source is ignored by boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    echo '{"type":"node"}' > claudux.json
+    git add claudux.json
+    git commit -q -m "add claudux.json"
+    echo "pre-existing dirty" >> claudux.json
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    capture_generation_workspace_snapshot
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t16-validate 2>&1; then
+        echo "boundary-ok"
+    else
+        echo "boundary-failed"
+        cat /tmp/claudux-diff-t16-validate
+    fi
+) > /tmp/claudux-diff-t16 2>&1
+assert_contains "pre-existing source dirty passes boundary check" "$(cat /tmp/claudux-diff-t16)" "boundary-ok"
+rm -rf "$TEST_DIR"
+
+# --- Test 17: manifest config edits pass generation boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    echo '{"pages":[]}' > docs-structure.json
+    git add docs-structure.json
+    git commit -q -m "add manifest"
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    capture_generation_workspace_snapshot
+    echo '{"pages":[{"id":"guide.index"}]}' > docs-structure.json
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t17-validate 2>&1; then
+        echo "boundary-ok"
+    else
+        echo "boundary-failed"
+        cat /tmp/claudux-diff-t17-validate
+    fi
+) > /tmp/claudux-diff-t17 2>&1
+assert_contains "manifest config edits pass boundary check" "$(cat /tmp/claudux-diff-t17)" "boundary-ok"
+rm -rf "$TEST_DIR"
+
 # Cleanup
-rm -f /tmp/claudux-diff-t{1,2,3,4,5,6,7,8,9,10,11,12}
+rm -f /tmp/claudux-diff-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
+rm -f /tmp/claudux-diff-t13-validate /tmp/claudux-diff-t14-validate /tmp/claudux-diff-t15-validate
+rm -f /tmp/claudux-diff-t16-validate /tmp/claudux-diff-t17-validate
 
 test_summary
