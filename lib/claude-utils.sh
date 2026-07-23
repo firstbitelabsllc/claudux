@@ -197,9 +197,12 @@ format_claude_output_stream() {
             continue
         fi
 
-        # Extract a path if present
+        # Extract a path if present ("path" in the legacy format, "file_path" in Claude Code tool_use input)
         local path
         path=$(echo "$line" | sed -n 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        if [[ -z "$path" ]]; then
+            path=$(echo "$line" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        fi
 
         # Detect file operations (read/write/create/update/delete)
         if echo "$line" | grep -qE 'file_(read|write|create|update|delete)|"action"\s*:\s*"(read|write|create|update|delete)"|"op"\s*:\s*"(read|write|create|update|delete)"'; then
@@ -245,6 +248,25 @@ format_claude_output_stream() {
                 esac
                 printf "\r\033[K📝 Change [%d]: %s\n" "$file_count" "$path"
                 continue
+            fi
+        fi
+
+        # Claude Code stream-json: count file operations from tool_use events
+        # (the legacy file_(read|write|...) branch above never matches this format)
+        if echo "$line" | grep -q '"type"[[:space:]]*:[[:space:]]*"tool_use"'; then
+            local cc_tool
+            cc_tool=$(echo "$line" | sed -nE 's/.*"name"[[:space:]]*:[[:space:]]*"(Read|Write|Edit|MultiEdit)".*/\1/p')
+            if [[ -n "$cc_tool" ]]; then
+                if [[ "$cc_tool" != "Read" ]] && [[ $printed_phase2 -eq 0 ]]; then
+                    echo ""
+                    print_color "CYAN" "━━━ Phase 2: Documentation Generation ━━━"
+                    printed_phase2=1
+                fi
+                case "$cc_tool" in
+                    Read)  ((reads++)) ;;
+                    Write) ((writes++)); ((file_count++)) ;;
+                    Edit|MultiEdit) ((updates++)); ((file_count++)) ;;
+                esac
             fi
         fi
 

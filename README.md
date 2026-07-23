@@ -44,6 +44,12 @@ claudux serve    # preview the site locally
 
 Run `claudux` with no arguments for an interactive menu.
 
+<p align="center">
+  <img src="assets/claudux-terminal-demo.svg" alt="A real claudux session: claudux update detects the project type, generates VitePress docs with Claude, and validates links; claudux serve previews them at localhost:5173" width="780" />
+</p>
+
+Every line above is from a real run against a two-file Node CLI — detection, generation, link validation, and the VitePress preview.
+
 ## What it does
 
 **Generation.** `claudux update` drafts a full VitePress docs site straight from your code, so you start from a real draft instead of an empty `docs/` folder. It uses your authenticated Claude CLI by default (Sonnet); set `CLAUDUX_BACKEND=codex` for the Codex CLI (gpt-5.4). It is not an API-reference generator, so pair it with TypeDoc or JSDoc if you need one. Model output can be wrong; link checks and manifests shrink the blast radius, they do not replace review.

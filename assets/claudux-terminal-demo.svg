@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 452" fill="none" role="img" aria-label="A real claudux session: claudux update detects the project type, generates VitePress docs with Claude, and validates links; claudux serve previews them at localhost:5173">
+  <style>
+    .term-bg { fill: #1e1e2e; }
+    .term-titlebar { fill: #181825; }
+    .term-border { stroke: #313244; }
+    .text-base { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace; font-size: 13px; }
+    .text-dim { fill: #6c7086; }
+    .text-normal { fill: #cdd6f4; }
+    .text-green { fill: #a6e3a1; }
+    .text-blue { fill: #89b4fa; }
+    .text-yellow { fill: #f9e2af; }
+    .text-teal { fill: #94e2d5; }
+    .text-title { fill: #bac2de; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; }
+    .dot-red { fill: #f38ba8; }
+    .dot-yellow { fill: #f9e2af; }
+    .dot-green { fill: #a6e3a1; }
+    .cursor { fill: #cdd6f4; animation: blink 1.2s infinite; }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .cursor { animation: none; opacity: 1; } }
+  </style>
+
+  <rect class="term-bg" width="820" height="452" rx="10"/>
+  <rect class="term-border" width="820" height="452" rx="10" stroke-width="1" fill="none"/>
+
+  <rect class="term-titlebar" x="1" y="1" width="818" height="36" rx="10"/>
+  <rect class="term-titlebar" x="1" y="27" width="818" height="10"/>
+  <line x1="1" y1="37" x2="819" y2="37" class="term-border" stroke-width="1"/>
+  <circle cx="22" cy="19" r="6" class="dot-red"/>
+  <circle cx="42" cy="19" r="6" class="dot-yellow"/>
+  <circle cx="62" cy="19" r="6" class="dot-green"/>
+  <text class="text-title" x="410" y="23" text-anchor="middle">your-project — claudux</text>
+
+  <g class="text-base" transform="translate(26, 68)">
+    <text y="0">
+      <tspan class="text-green">$</tspan>
+      <tspan class="text-normal"> claudux update</tspan>
+    </text>
+    <text y="22" class="text-dim">📚 claudux — generate docs from your codebase · powered by Claude AI</text>
+    <text y="42">
+      <tspan class="text-green">✅ Claude Code CLI found:</tspan>
+      <tspan class="text-normal"> 2.1.214</tspan>
+    </text>
+    <text y="62">
+      <tspan class="text-blue">📁 Detected project type:</tspan>
+      <tspan class="text-normal"> javascript</tspan>
+    </text>
+    <text y="82">
+      <tspan class="text-green">✅ Prompt built successfully</tspan>
+      <tspan class="text-dim"> (8775 chars)</tspan>
+    </text>
+
+    <text y="112" class="text-teal">━━━ Phase 1: Analysis &amp; Planning ━━━</text>
+    <text y="132">
+      <tspan class="text-teal">🔧 Using tool: Read</tspan>
+      <tspan class="text-dim"> — src/, package.json, existing docs (×7)</tspan>
+    </text>
+    <text y="152">
+      <tspan class="text-teal">🔧 Using tool: Write</tspan>
+      <tspan class="text-dim"> — docs/index.md, docs/guide/, docs/api/ (×6)</tspan>
+    </text>
+
+    <text y="182" class="text-green">✅ Documentation update complete!</text>
+    <text y="202">
+      <tspan class="text-normal" x="16">✅ Valid links: 6</tspan>
+      <tspan class="text-dim"> · no duplicate heading IDs</tspan>
+    </text>
+    <text y="222">
+      <tspan class="text-yellow">✨ Added: docs/</tspan>
+      <tspan class="text-dim"> — new documentation generated</tspan>
+    </text>
+
+    <text y="258">
+      <tspan class="text-green">$</tspan>
+      <tspan class="text-normal"> claudux serve</tspan>
+    </text>
+    <text y="280" class="text-dim">  vitepress v1.6.4</text>
+    <text y="300">
+      <tspan class="text-normal">  ➜  Local: </tspan>
+      <tspan class="text-teal">http://localhost:5173/</tspan>
+    </text>
+
+    <text y="336" class="text-dim"># Codex instead of Claude: CLAUDUX_BACKEND=codex claudux update</text>
+    <rect class="cursor" x="0" y="346" width="8" height="15"/>
+  </g>
+</svg>
