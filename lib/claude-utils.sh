@@ -9,9 +9,13 @@ check_claude() {
     
     success "Claude Code CLI found: $(claude --version)"
     
-    # Show current model configuration
-    info "🧠 Checking available models..."
+    # Show current model configuration. A cold CLI start can sit here for the
+    # better part of a minute, so keep a ticker going (issue #122).
+    info "🧠 Checking available models... (a cold CLI start can take up to a minute)"
+    local model_check_pid
+    model_check_pid=$(show_progress "Checking Claude CLI" 10)
     claude config get model 2>/dev/null || info "ℹ️  Using default model"
+    stop_progress "$model_check_pid"
     
     # Detect and show project type
     load_project_config
@@ -46,20 +50,38 @@ get_model_settings() {
     echo "$model|$model_name|$timeout_msg|$cost_estimate"
 }
 
-# Show progress indicator
+# Elapsed-time heartbeat for phases that sit silent for 30-90s (issue #122).
+# Ticks go to stderr so a `pid=$(show_progress ...)` call site captures only
+# the PID: the previous phased version echoed to stdout inside the command
+# substitution, which blocked the caller for the full ~148s sleep chain and
+# swallowed every message it printed — the ticker never reached the user.
 show_progress() {
-    local phase1_delay="${1:-15}"
-    local phase2_delay="${2:-45}"
-    
-    {
-        sleep "$phase1_delay" && echo "$(date '+%H:%M:%S') 📊 Phase 1: Analyzing project structure..."
-        sleep $((phase1_delay + 15)) && echo "$(date '+%H:%M:%S') 📊 Phase 1: Creating documentation plan..."
-        sleep "$phase2_delay" && echo "$(date '+%H:%M:%S') ✏️  Phase 2: Generating new documentation..."
-        sleep $((phase2_delay + 15)) && echo "$(date '+%H:%M:%S') ✏️  Phase 2: Updating existing files..."
-        sleep $((phase2_delay + 30)) && echo "$(date '+%H:%M:%S') ✏️  Phase 2: Finalizing documentation..."
-    } &
-    
+    local label="${1:-Still working}"
+    local interval="${2:-10}"
+
+    # The subshell's stdout MUST be redirected away: it inherits the command
+    # substitution's pipe, and merely echoing to stderr inside still holds
+    # that pipe open, blocking the caller until the loop exits.
+    (
+        elapsed=0
+        # Self-terminate eventually so a hard-killed parent can't leave an
+        # orphan ticking forever; normal paths kill this PID much earlier.
+        while (( elapsed < 1800 )); do
+            sleep "$interval"
+            elapsed=$((elapsed + interval))
+            echo "⏳ ${label}... (${elapsed}s elapsed)"
+        done
+    ) >&2 &
+
     echo $!  # Return PID for later cleanup
+}
+
+# Kill a heartbeat started by show_progress; safe to call with an empty PID.
+stop_progress() {
+    local pid="${1:-}"
+    [[ -n "$pid" ]] || return 0
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
 }
 
 # Format Claude's output for better readability
