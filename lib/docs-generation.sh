@@ -202,6 +202,19 @@ claudux_path_is_generation_allowed() {
     [[ -z "$path" ]] && return 1
     [[ "$path" == docs/* ]] && return 0
     [[ "$path" == .claudux/* ]] && return 0
+
+    # Honor a configured manifest path (CLAUDUX_DOCS_STRUCTURE /
+    # DOCS_STRUCTURE_FILE) so legitimate updates to the active manifest are not
+    # flagged as source boundary violations when it differs from the default.
+    if declare -F docs_structure_path >/dev/null 2>&1; then
+        local configured_manifest
+        configured_manifest="$(docs_structure_path)"
+        configured_manifest="${configured_manifest#./}"
+        if [[ -n "$configured_manifest" && "$path" == "$configured_manifest" ]]; then
+            return 0
+        fi
+    fi
+
     case "$path" in
         docs-structure.json|docs-map.md|.ai-docs-style.md|docs-site-plan.json|.claudux-state.json)
             return 0
@@ -210,15 +223,19 @@ claudux_path_is_generation_allowed() {
     return 1
 }
 
-# Paths from git status --porcelain (handles renames).
+# Paths from git status --porcelain. Renames emit BOTH sides so a source→docs
+# move (e.g. `git mv src/foo.ts docs/foo.ts`) is caught on its removed source
+# side rather than passing on the allowed destination alone.
 claudux_git_status_paths() {
     git status --porcelain 2>/dev/null | while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         local raw="${line:3}"
         if [[ "$raw" == *" -> "* ]]; then
-            raw="${raw##* -> }"
+            printf '%s\n' "${raw%% -> *}"
+            printf '%s\n' "${raw##* -> }"
+        else
+            printf '%s\n' "$raw"
         fi
-        printf '%s\n' "$raw"
     done
 }
 
@@ -236,7 +253,10 @@ claudux_non_allowed_dirty_paths() {
 claudux_non_allowed_committed_paths_since() {
     local start_sha="$1"
     [[ -z "$start_sha" ]] && return 0
-    git diff --name-only "$start_sha"..HEAD 2>/dev/null | while IFS= read -r path; do
+    # --no-renames so a source→docs move surfaces as delete(source)+add(docs)
+    # and the removed source side is validated instead of being collapsed into
+    # a single allowed rename destination.
+    git diff --name-only --no-renames "$start_sha"..HEAD 2>/dev/null | while IFS= read -r path; do
         [[ -z "$path" ]] && continue
         if ! claudux_path_is_generation_allowed "$path"; then
             printf '%s\n' "$path"

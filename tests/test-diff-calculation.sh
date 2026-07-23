@@ -390,9 +390,88 @@ TEST_DIR=$(setup_repo)
 assert_contains "manifest config edits pass boundary check" "$(cat /tmp/claudux-diff-t17)" "boundary-ok"
 rm -rf "$TEST_DIR"
 
+# --- Test 18: working-tree source→docs rename fails boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    mkdir -p src
+    echo "source" > src/foo.ts
+    git add src/foo.ts
+    git commit -q -m "add source"
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    warn() { printf '%s\n' "$*"; }
+    print_color() { shift; printf '%s\n' "$*"; }
+    capture_generation_workspace_snapshot
+    git mv src/foo.ts docs/foo.ts
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t18-validate 2>&1; then
+        echo "unexpected-pass"
+    else
+        echo "boundary-blocked"
+        cat /tmp/claudux-diff-t18-validate
+    fi
+) > /tmp/claudux-diff-t18 2>&1
+result=$(cat /tmp/claudux-diff-t18)
+assert_contains "working-tree source→docs rename blocked" "$result" "boundary-blocked"
+assert_contains "rename source side reported" "$result" "src/foo.ts"
+rm -rf "$TEST_DIR"
+
+# --- Test 19: committed source→docs rename fails boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    mkdir -p src
+    echo "source" > src/foo.ts
+    git add src/foo.ts
+    git commit -q -m "add source"
+    start_head=$(git rev-parse HEAD)
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-generation.sh"
+    warn() { printf '%s\n' "$*"; }
+    print_color() { shift; printf '%s\n' "$*"; }
+    CLAUDUX_GENERATION_START_HEAD="$start_head"
+    CLAUDUX_GENERATION_START_DIRTY_FILE=""
+    git mv src/foo.ts docs/foo.ts
+    git commit -q -m "backend moved source into docs"
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t19-validate 2>&1; then
+        echo "unexpected-pass"
+    else
+        echo "boundary-blocked"
+        cat /tmp/claudux-diff-t19-validate
+    fi
+) > /tmp/claudux-diff-t19 2>&1
+result=$(cat /tmp/claudux-diff-t19)
+assert_contains "committed source→docs rename blocked" "$result" "boundary-blocked"
+assert_contains "committed rename source side reported" "$result" "src/foo.ts"
+rm -rf "$TEST_DIR"
+
+# --- Test 20: configured manifest path passes boundary check ---
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR"
+    echo '{"pages":[]}' > custom-structure.json
+    git add custom-structure.json
+    git commit -q -m "add custom manifest"
+    STATE_FILE="$TEST_DIR/.claudux-state.json"
+    source "$LIB_DIR/docs-manifest.sh"
+    source "$LIB_DIR/docs-generation.sh"
+    export CLAUDUX_DOCS_STRUCTURE="custom-structure.json"
+    capture_generation_workspace_snapshot
+    echo '{"pages":[{"id":"guide.index"}]}' > custom-structure.json
+    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t20-validate 2>&1; then
+        echo "boundary-ok"
+    else
+        echo "boundary-failed"
+        cat /tmp/claudux-diff-t20-validate
+    fi
+) > /tmp/claudux-diff-t20 2>&1
+assert_contains "configured manifest edits pass boundary check" "$(cat /tmp/claudux-diff-t20)" "boundary-ok"
+rm -rf "$TEST_DIR"
+
 # Cleanup
-rm -f /tmp/claudux-diff-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
+rm -f /tmp/claudux-diff-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20}
 rm -f /tmp/claudux-diff-t13-validate /tmp/claudux-diff-t14-validate /tmp/claudux-diff-t15-validate
-rm -f /tmp/claudux-diff-t16-validate /tmp/claudux-diff-t17-validate
+rm -f /tmp/claudux-diff-t16-validate /tmp/claudux-diff-t17-validate /tmp/claudux-diff-t18-validate
+rm -f /tmp/claudux-diff-t19-validate /tmp/claudux-diff-t20-validate
 
 test_summary
