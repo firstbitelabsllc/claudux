@@ -594,9 +594,10 @@ update() {
 
     info "🚀 Generating documentation..."
 
-    # Start progress indicator (shorter initial delay for quicker feedback)
+    # Heartbeat until the backend's first output lands; the stream formatter
+    # takes over from there. Typical time to first output is 30-90s.
     local progress_pid
-    progress_pid=$(show_progress 8 24)
+    progress_pid=$(show_progress "Generating (first output typically lands within 30-90s)" 15)
     
     # Build the prompt
     info "📝 Building prompt for $PROJECT_TYPE project..."
@@ -802,6 +803,10 @@ $base_prompt"
             return 124
         fi
 
+        # First output arrived — the stream formatter narrates from here.
+        stop_progress "${progress_pid:-}"
+        progress_pid=""
+
         trap 'echo ""; warn "Interrupt received, stopping generation..."; kill -TERM ${stream_pid} 2>/dev/null || true; [[ -n "$progress_pid" ]] && kill $progress_pid 2>/dev/null || true; wait ${stream_pid} 2>/dev/null || true; exit 130' INT
         wait ${stream_pid}
         local ec=$?
@@ -838,6 +843,10 @@ $base_prompt"
             wait "$stream_pid" 2>/dev/null || true
             return 124
         fi
+
+        # First output arrived — the stream formatter narrates from here.
+        stop_progress "${progress_pid:-}"
+        progress_pid=""
 
         trap 'echo ""; warn "Interrupt received, stopping generation..."; kill -TERM ${stream_pid} 2>/dev/null || true; [[ -n "$progress_pid" ]] && kill $progress_pid 2>/dev/null || true; wait ${stream_pid} 2>/dev/null || true; exit 130' INT
         wait ${stream_pid}
