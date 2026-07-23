@@ -185,6 +185,155 @@ load_claudux_state() {
     return 0
 }
 
+# Print newline-delimited docs/manifest pathspecs used for incremental freshness.
+claudux_docs_manifest_pathspecs() {
+    printf '%s\n' \
+        'docs/' \
+        'docs-structure.json' \
+        'docs-map.md' \
+        '.ai-docs-style.md' \
+        'docs-site-plan.json'
+}
+
+# True when generation is allowed to touch a repo path (docs tree, manifest
+# config, or local claudux checkpoint/cache artifacts).
+claudux_path_is_generation_allowed() {
+    local path="${1#./}"
+    [[ -z "$path" ]] && return 1
+    [[ "$path" == docs/* ]] && return 0
+    [[ "$path" == .claudux/* ]] && return 0
+
+    # Honor a configured manifest path (CLAUDUX_DOCS_STRUCTURE /
+    # DOCS_STRUCTURE_FILE) so legitimate updates to the active manifest are not
+    # flagged as source boundary violations when it differs from the default.
+    if declare -F docs_structure_path >/dev/null 2>&1; then
+        local configured_manifest
+        configured_manifest="$(docs_structure_path)"
+        configured_manifest="${configured_manifest#./}"
+        if [[ -n "$configured_manifest" && "$path" == "$configured_manifest" ]]; then
+            return 0
+        fi
+    fi
+
+    case "$path" in
+        docs-structure.json|docs-map.md|.ai-docs-style.md|docs-site-plan.json|.claudux-state.json)
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+# Paths from git status --porcelain. Renames emit BOTH sides so a source→docs
+# move (e.g. `git mv src/foo.ts docs/foo.ts`) is caught on its removed source
+# side rather than passing on the allowed destination alone.
+claudux_git_status_paths() {
+    git status --porcelain 2>/dev/null | while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local raw="${line:3}"
+        if [[ "$raw" == *" -> "* ]]; then
+            printf '%s\n' "${raw%% -> *}"
+            printf '%s\n' "${raw##* -> }"
+        else
+            printf '%s\n' "$raw"
+        fi
+    done
+}
+
+# Non-allowed paths with uncommitted working-tree changes.
+claudux_non_allowed_dirty_paths() {
+    claudux_git_status_paths | while IFS= read -r path; do
+        [[ -z "$path" ]] && continue
+        if ! claudux_path_is_generation_allowed "$path"; then
+            printf '%s\n' "$path"
+        fi
+    done | sort -u
+}
+
+# Non-allowed paths changed in commits since start_sha..HEAD.
+claudux_non_allowed_committed_paths_since() {
+    local start_sha="$1"
+    [[ -z "$start_sha" ]] && return 0
+    # --no-renames so a source→docs move surfaces as delete(source)+add(docs)
+    # and the removed source side is validated instead of being collapsed into
+    # a single allowed rename destination.
+    git diff --name-only --no-renames "$start_sha"..HEAD 2>/dev/null | while IFS= read -r path; do
+        [[ -z "$path" ]] && continue
+        if ! claudux_path_is_generation_allowed "$path"; then
+            printf '%s\n' "$path"
+        fi
+    done | sort -u
+}
+
+# Snapshot repo boundary before backend generation (issue #121 direction 3).
+capture_generation_workspace_snapshot() {
+    CLAUDUX_GENERATION_START_HEAD=""
+    CLAUDUX_GENERATION_START_DIRTY_FILE=""
+
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        return 0
+    fi
+
+    CLAUDUX_GENERATION_START_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "")
+    CLAUDUX_GENERATION_START_DIRTY_FILE=$(mktemp /tmp/claudux-gen-dirty-XXXXXX 2>/dev/null || mktemp)
+    claudux_non_allowed_dirty_paths > "$CLAUDUX_GENERATION_START_DIRTY_FILE" 2>/dev/null || true
+}
+
+# Fail closed when generation touched paths outside docs/ + manifest config.
+validate_generation_workspace_unchanged() {
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        return 0
+    fi
+    if [[ -z "${CLAUDUX_GENERATION_START_HEAD:-}" ]]; then
+        return 0
+    fi
+
+    local -a unexpected=()
+    local path existing dup
+
+    while IFS= read -r path; do
+        [[ -n "$path" ]] && unexpected+=("$path")
+    done < <(claudux_non_allowed_committed_paths_since "$CLAUDUX_GENERATION_START_HEAD")
+
+    local current_dirty
+    current_dirty=$(claudux_non_allowed_dirty_paths)
+    if [[ -n "$current_dirty" ]]; then
+        while IFS= read -r path; do
+            [[ -z "$path" ]] && continue
+            if [[ -f "${CLAUDUX_GENERATION_START_DIRTY_FILE:-}" ]] \
+                && grep -Fxq "$path" "$CLAUDUX_GENERATION_START_DIRTY_FILE" 2>/dev/null; then
+                continue
+            fi
+            dup=false
+            if [[ ${#unexpected[@]} -gt 0 ]]; then
+                for existing in "${unexpected[@]}"; do
+                    if [[ "$existing" == "$path" ]]; then
+                        dup=true
+                        break
+                    fi
+                done
+            fi
+            if ! $dup; then
+                unexpected+=("$path")
+            fi
+        done <<< "$current_dirty"
+    fi
+
+    if [[ ${#unexpected[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    warn "SOURCE BOUNDARY VIOLATION: generation touched files outside docs/ and manifest paths"
+    warn "The backend must not edit or commit source files during claudux update (issue #121)."
+    for path in "${unexpected[@]}"; do
+        print_color "RED" "   • $path" >&2
+    done
+    warn "Review with: git status && git diff"
+    warn "To undo unintended commits: git reset --soft ${CLAUDUX_GENERATION_START_HEAD}"
+    warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return 1
+}
+
 # Files that affect generated documentation freshness even before they are
 # committed. `last_sha..HEAD` alone misses the common dogfood case where
 # claudux has just patched tracked docs/config files in the worktree.
@@ -193,13 +342,10 @@ claudux_docs_worktree_changes() {
         return 0
     fi
 
-    local pathspecs=(
-        "docs/"
-        "docs-structure.json"
-        "docs-map.md"
-        ".ai-docs-style.md"
-        "docs-site-plan.json"
-    )
+    local pathspecs=()
+    while IFS= read -r spec; do
+        pathspecs+=("$spec")
+    done < <(claudux_docs_manifest_pathspecs)
 
     {
         git diff --name-only -- "${pathspecs[@]}" 2>/dev/null || true
@@ -689,6 +835,8 @@ $base_prompt"
         fi
     fi
 
+    capture_generation_workspace_snapshot
+
     # Check if prompt was built successfully
     if [[ -z "$prompt" ]]; then
         warn "❌ Failed to build generation prompt"
@@ -920,6 +1068,9 @@ $base_prompt"
         if declare -F validate_docs_structure_guard_snapshot >/dev/null 2>&1; then
             validate_docs_structure_guard_snapshot || error_exit "Protected documentation structure changed during generation"
         fi
+
+        validate_generation_workspace_unchanged \
+            || error_exit "Generation modified files outside allowed docs/manifest paths"
 
         # Validate links in generated documentation
         info "🔍 Step 3: Validating documentation links..."
