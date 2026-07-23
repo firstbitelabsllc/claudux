@@ -20,6 +20,21 @@ load_project_config() {
         fi
     fi
     
+    # A configured type must be one the detector/templates understand; an
+    # unknown value (e.g. "node") would otherwise silently suppress
+    # auto-detection AND degrade to the generic profile.
+    case "$PROJECT_TYPE" in
+        ios|nextjs|react|nodejs|javascript|rust|python|go|java|generic|"") ;;
+        *)
+            if command -v warn &> /dev/null || declare -F warn >/dev/null 2>&1; then
+                warn "Unknown project.type '$PROJECT_TYPE' in config; valid: ios, nextjs, react, nodejs, javascript, rust, python, go, java, generic. Falling back to auto-detection."
+            else
+                echo "⚠️  Unknown project.type '$PROJECT_TYPE'; falling back to auto-detection." >&2
+            fi
+            PROJECT_TYPE="generic"
+            ;;
+    esac
+
     # Auto-detect type if not specified
     if [[ -z "$PROJECT_TYPE" ]] || [[ "$PROJECT_TYPE" == "generic" ]]; then
         PROJECT_TYPE=$(detect_project_type)

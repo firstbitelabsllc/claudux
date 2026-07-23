@@ -4,8 +4,8 @@
 # Quick start:
 #   curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 #
-# Or pin a branch/tag/commit:
-#   curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | CLAUDUX_REF=v2.0.0 sh
+# Or pin a branch/tag/commit (fails loudly if the ref doesn't exist):
+#   curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | CLAUDUX_REF=<branch|tag|sha> sh
 #
 # What it does: fetches claudux into ~/.local/share/claudux (git clone, or a
 # tarball download if git is absent) and symlinks bin/claudux onto your PATH.
@@ -49,8 +49,21 @@ install_source() {
     else
       info "Cloning $REPO ($REF) into $DATA_DIR ..."
       rm -rf "$DATA_DIR"
-      git clone --quiet --depth 1 --branch "$REF" "$GIT_URL" "$DATA_DIR" 2>/dev/null \
-        || git clone --quiet "$GIT_URL" "$DATA_DIR"
+      if [ "$REF" = "main" ]; then
+        git clone --quiet --depth 1 --branch "$REF" "$GIT_URL" "$DATA_DIR"
+      else
+        # A pinned ref must install that ref or fail — never silently fall back to main.
+        git clone --quiet --depth 1 --branch "$REF" "$GIT_URL" "$DATA_DIR" 2>/dev/null || {
+          git clone --quiet "$GIT_URL" "$DATA_DIR"
+          if git -C "$DATA_DIR" fetch --quiet origin "$REF" 2>/dev/null \
+            && git -C "$DATA_DIR" checkout --quiet FETCH_HEAD; then
+            :
+          else
+            rm -rf "$DATA_DIR"
+            die "CLAUDUX_REF='$REF' does not exist in $REPO (check: git ls-remote --heads --tags $GIT_URL). Refusing to silently install main."
+          fi
+        }
+      fi
     fi
   elif have curl; then
     have tar || die "Found curl but not tar; cannot extract the download. Install git or tar and re-run."

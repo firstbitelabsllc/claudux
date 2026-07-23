@@ -1000,7 +1000,7 @@ $base_prompt"
             echo "      Check Claude logs for details"
             echo ""
             echo "   5. Report issue:"
-            echo "      https://github.com/anthropics/claude-code/issues"
+            echo "      https://github.com/firstbitelabsllc/claudux/issues"
         fi
         
         exit "$claude_exit_code"
