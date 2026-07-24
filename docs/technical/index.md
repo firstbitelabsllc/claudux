@@ -52,7 +52,7 @@ Modular functionality organized by concern:
 | `content-protection.sh` | Content protection | `is_protected_path()`, protection markers |
 | `git-utils.sh` | Git operations | `show_git_status()`, `show_detailed_changes()` |
 | `server.sh` | VitePress dev server | `serve()`, dependency management |
-| `cleanup.sh` | Obsolete content removal | Smart cleanup with confidence scoring |
+| `cleanup.sh` | Legacy cleanup surface | Interactive Claude prompt; silent path is a no-op |
 | `ui.sh` | Interactive interface | `show_menu()`, `show_help()`, `create_claudux_md()` |
 | `validate-links.sh` | Link validation | Internal link checking |
 
@@ -171,12 +171,13 @@ fi
 
 ## Security Considerations
 
-### 1. Local Processing
+### 1. Local orchestration, remote models
 
-- All code analysis happens locally
-- No source code sent to external APIs
-- Claude CLI handles authentication and API communication
-- User maintains control over all data
+- Claudux orchestrates from your machine (local checkout + CLI)
+- Prompt context (which can include source/docs excerpts) is sent through the
+  **authenticated Claude or Codex CLI** to that provider
+- Do **not** read older copy that said “no source code sent to external APIs”
+- You still control which backend/account is authenticated and what trees you run on
 
 ### 2. Content Protection
 

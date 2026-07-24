@@ -55,22 +55,24 @@ claudux update  # Generates VitePress site with navigation, search, mobile suppo
 - Processes generated docs in your environment
 - Sends prompt context through the selected backend CLI
 
-### 🍰 Zero Configuration
+### 🍰 Low-friction defaults (not zero config)
 
 **Problem**: Documentation tools require extensive setup and maintenance.
 
-**Solution**: Intelligent project detection and defaults:
+**Solution**: Project-type detection plus templates reduce setup — you still
+need an authenticated Claude or Codex CLI and a writable docs tree:
 
 ```bash
 cd any-project
-claudux update  # Just works
+claudux update
 ```
 
-**Auto-detects:**
-- Project type (React, Python, Go, etc.)
-- Entry points and main modules
-- Testing frameworks and build tools
-- Existing documentation patterns
+**Typically detects:**
+- Project type hints (React, Python, Go, etc.)
+- Common entry points / package manifests
+- Existing `docs/` layout when present
+
+Not a promise of zero configuration for every monorepo or unusual layout.
 
 ## Advanced Features
 
@@ -129,19 +131,27 @@ Adapts documentation structure to your project type:
 
 ## Quality Assurance
 
-### Accuracy Guarantees
+### Accuracy — what is (and isn’t) guaranteed
 
-- **Code examples**: Extracted from actual source files
-- **API documentation**: Based on current function signatures
-- **Installation steps**: Derived from `package.json`, `requirements.txt`, etc.
-- **No placeholders**: All content references real project elements
+**True today:**
+- Write boundaries: structure manifests + section hash / source-boundary checks
+- Internal link checks that stay offline (external URLs skipped)
+- Protected paths / skip markers for curated content
+
+**Not a product guarantee:**
+- Perfect extraction of every signature or example
+- Zero placeholders forever
+- Automated “accuracy score” of prose
+
+Model output can still be wrong; Claudux refuses silent protected edits and
+keeps structure contracts honest.
 
 ### Consistency Features
 
-- **Unified navigation**: Sidebar appears on all pages
-- **Cross-references**: Automatic linking between related concepts
-- **Terminology**: Consistent use of project-specific terms
-- **Styling**: Follows your project's established patterns
+- **Unified navigation**: Sidebar appears on all pages when templates apply
+- **Cross-references**: Linking between related concepts when generated
+- **Terminology**: Best-effort consistency via prompts + review
+- **Styling**: Follows VitePress / project theme defaults
 
 ## Next Steps
 
