@@ -7,7 +7,13 @@ check_codex() {
         error_exit "Codex CLI not found. Install: npm install -g @openai/codex"
     fi
 
-    success "Codex CLI found: $(codex --version)"
+    local codex_version
+    codex_version=$(codex --version 2>/dev/null || true)
+    if [[ -z "${codex_version//[[:space:]]/}" ]]; then
+        warn "Codex CLI found, but --version returned an empty string (CLI may be misinstalled)"
+    else
+        success "Codex CLI found: $codex_version"
+    fi
 
     # Probe authentication. Prefer `codex login status` (zero-token, purpose-built)
     # over running a real `codex exec` call. The old probe burned ~28K codex tokens
