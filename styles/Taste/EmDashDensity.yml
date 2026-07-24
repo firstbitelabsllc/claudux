@@ -1,0 +1,9 @@
+extends: occurrence
+# Density half of the em-dash rule: one aside per sentence is voice; two or more
+# is the reflex tell (/slop: "strip when it is REFLEX or DENSE"). Counts em
+# dashes and spaced double-hyphens within a sentence; flags 2+.
+message: "Em-dash density: 2+ dashes in one sentence reads as reflex. Keep the precise one, cut the rest. (taste)"
+level: warning
+scope: sentence
+token: '(—|\s--\s)'
+max: 1

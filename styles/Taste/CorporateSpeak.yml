@@ -1,0 +1,24 @@
+extends: substitution
+message: "Corporate-speak: prefer '%s' over '%s'. Plain word beats the fancy one. (taste)"
+level: warning
+ignorecase: true
+# The right side is the plain replacement Vale suggests. LHS is a regex.
+swap:
+  utilize: use
+  'utilization': use
+  leverage: use
+  'in order to': to
+  'prior to': before
+  'subsequent to': after
+  'a number of': 'several'
+  'the majority of': most
+  'due to the fact that': because
+  'in the event that': if
+  'at this point in time': now
+  'facilitate': help
+  'endeavor': try
+  'commence': start
+  'terminate': end
+  'methodology': method
+  'functionality': features
+  'utilizing': using

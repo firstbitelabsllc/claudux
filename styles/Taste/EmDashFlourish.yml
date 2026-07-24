@@ -1,0 +1,9 @@
+extends: existence
+# A single precise em dash is fine. The banned thing is the PARALLELISM flourish:
+# a demonstrative restatement dangling off a dash, e.g. "The tool — it was made
+# for this". Say the claim in a plain sentence instead.
+message: "Em-dash parallelism flourish: '%s'. Say the claim in a plain sentence. (taste)"
+level: warning
+nonword: true
+tokens:
+  - '(—|--)\s+(it|this|that|these|those|which)\s+(was|is|were|are|feels?|felt|makes?|made|means?|meant)\b'
