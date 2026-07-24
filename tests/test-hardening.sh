@@ -580,6 +580,11 @@ guidance_text="$(cat "$LIB_DIR/git-utils.sh" "$REPO_ROOT/docs/features/smart-cle
 assert_not_contains "recovery guidance does not suggest checkout discard" "$guidance_text" "git checkout -- docs/"
 assert_contains "recovery guidance suggests recoverable stash" "$guidance_text" "git stash push -m"
 
+# --- Test 40: project lock is per-user XDG state (not shared TMPDIR) ---
+lock_src="$(sed -n '/^acquire_lock()/,/^}/p' "$REPO_ROOT/bin/claudux")"
+assert_contains "acquire_lock uses XDG state dir" "$lock_src" 'XDG_STATE_HOME:-$HOME/.local/state}/claudux/locks'
+assert_not_contains "acquire_lock does not use shared TMPDIR" "$lock_src" '${TMPDIR:-/tmp}/claudux-'
+
 # Cleanup
 rm -f /tmp/claudux-harden-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38}
 

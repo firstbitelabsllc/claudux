@@ -82,7 +82,10 @@ This section will not be documented.
 
 ## Concurrency
 
-`bin/claudux` implements file-based locking via PID files in `$TMPDIR`. Only one claudux instance can run per project directory at a time. Stale locks from crashed processes are detected and cleaned up automatically.
+`bin/claudux` implements file-based locking via PID files under
+`${XDG_STATE_HOME:-~/.local/state}/claudux/locks/` (one lock per project path
+hash). Only one claudux instance can run per project directory at a time.
+Stale locks from crashed processes are detected and cleaned up automatically.
 
 ## Security model
 
