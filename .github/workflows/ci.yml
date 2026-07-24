@@ -9,6 +9,10 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Least privilege for GITHUB_TOKEN (code-scanning: actions/missing-workflow-permissions).
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: ShellCheck lint
