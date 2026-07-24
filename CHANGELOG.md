@@ -2,6 +2,14 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.6] - 2026-07-24
+
+### Fixed
+
+- SECURITY.md documents shared-temp / multi-user threat class and XDG locks,
+  Codex stderr, and TMPDIR-aware `claudux_mktemp` (#141).
+- README/docs install pins point at `v2.0.6`.
+
 ## [2.0.5] - 2026-07-24
 
 ### Fixed
