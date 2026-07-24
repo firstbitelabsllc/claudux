@@ -585,6 +585,11 @@ lock_src="$(sed -n '/^acquire_lock()/,/^}/p' "$REPO_ROOT/bin/claudux")"
 assert_contains "acquire_lock uses XDG state dir" "$lock_src" 'XDG_STATE_HOME:-$HOME/.local/state}/claudux/locks'
 assert_not_contains "acquire_lock does not use shared TMPDIR" "$lock_src" '${TMPDIR:-/tmp}/claudux-'
 
+# --- Test 41: docs-generation mktemps honor TMPDIR (no hardcoded /tmp) ---
+docs_gen="$(cat "$LIB_DIR/docs-generation.sh")"
+assert_contains "docs-generation defines claudux_mktemp" "$docs_gen" 'claudux_mktemp()'
+assert_not_contains "docs-generation does not hardcode mktemp /tmp/claudux-" "$docs_gen" 'mktemp /tmp/claudux-'
+
 # Cleanup
 rm -f /tmp/claudux-harden-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38}
 
