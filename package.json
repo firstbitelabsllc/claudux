@@ -10,7 +10,9 @@
     "test:all": "bash tests/run-all.sh",
     "test:ci": "bash tests/run-tests.sh && bash tests/run-all.sh",
     "lint": "shellcheck -s bash -S warning bin/claudux lib/*.sh",
-    "secret-scan": "bash scripts/secret-scan.sh"
+    "secret-scan": "bash scripts/secret-scan.sh",
+    "public-ready": "python3 scripts/claudux-public-ready-grep-gate.py --metadata",
+    "verify": "npm run test:ci && npm run secret-scan && npm run public-ready"
   },
   "keywords": [
     "documentation",
