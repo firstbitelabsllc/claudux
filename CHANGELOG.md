@@ -2,6 +2,14 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.3] - 2026-07-24
+
+### Fixed
+
+- Codex stderr log defaults to `${XDG_STATE_HOME:-~/.local/state}/claudux/codex-stderr.log`
+  instead of shared `${TMPDIR}` (#135).
+- README/docs install pins point at `v2.0.3`.
+
 ## [2.0.2] - 2026-07-24
 
 ### Fixed

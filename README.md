@@ -32,12 +32,12 @@ claudux installs straight from GitHub — no npm account, no registry. The scrip
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 
 # pin the current release
-curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.2/install.sh | CLAUDUX_REF=v2.0.2 sh
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.3/install.sh | CLAUDUX_REF=v2.0.3 sh
 ```
 
 Or run it once without installing: `npx github:firstbitelabsllc/claudux update`.
 
-Default install tracks `main`. Pin a branch, tag, or commit with `CLAUDUX_REF=<ref>` — a ref that doesn't exist fails the install instead of silently giving you `main`. Re-run it any time to update. Release notes: [v2.0.2](https://github.com/firstbitelabsllc/claudux/releases/tag/v2.0.2).
+Default install tracks `main`. Pin a branch, tag, or commit with `CLAUDUX_REF=<ref>` — a ref that doesn't exist fails the install instead of silently giving you `main`. Re-run it any time to update. Release notes: [v2.0.3](https://github.com/firstbitelabsllc/claudux/releases/tag/v2.0.3).
 
 Requirements: Node 18+ and an authenticated Claude CLI (default) or Codex CLI on the machine; there is no hosted API key path.
 
