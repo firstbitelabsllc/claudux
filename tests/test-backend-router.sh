@@ -198,6 +198,16 @@ assert_contains "section patches are extracted from model output" \
 assert_contains "section patches are applied by claudux" \
     "$update_fn" \
     'apply_manifest_section_patches'
+assert_contains "update reports applied section patch count after apply" \
+    "$update_fn" \
+    'Applied $patches_applied section patch(es) via deterministic write boundary'
+stream_fn=$(sed -n '/^format_claude_output_stream()/,/^}/p' "$LIB_DIR/claude-utils.sh")
+assert_contains "stream summary distinguishes section-patch Read-only mode" \
+    "$stream_fn" \
+    'section-patch mode — writes apply after validation'
+assert_contains "stream summary still reports Processed N outside patch mode" \
+    "$stream_fn" \
+    'Processed $file_count changes'
 
 # --- Test 19: Codex patch mode requests a read-only sandbox ---
 codex_exec_body=$(sed -n '/^run_codex_exec()/,/^}/p' "$LIB_DIR/codex-utils.sh")

@@ -406,6 +406,14 @@ format_claude_output_stream() {
     # Clear progress line and print summary
     printf "\r\033[K"
     echo ""
-    success "📚 Processed $file_count changes"
-    echo "   🔍 reads: $reads • 🆕 creates: $creates • ✏️ updates: $updates • 📝 writes: $writes • 🗑️ deletes: $deletes"
+    # Manifest section-patch mode grants the model Read only; real doc writes
+    # happen later in apply_manifest_section_patches. Do not imply "0 changes"
+    # when the model never had Write/Edit (wave 21 counter-defect).
+    if [[ "${CLAUDUX_SECTION_PATCH_MODE:-}" == "1" ]]; then
+        info "📚 Model phase: $reads read(s) (section-patch mode — writes apply after validation)"
+        echo "   🔍 reads: $reads • model tools: Read-only • patches: pending apply"
+    else
+        success "📚 Processed $file_count changes"
+        echo "   🔍 reads: $reads • 🆕 creates: $creates • ✏️ updates: $updates • 📝 writes: $writes • 🗑️ deletes: $deletes"
+    fi
 }

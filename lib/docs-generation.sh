@@ -1043,7 +1043,17 @@ $base_prompt"
                 retain_generation_debug_log "$claude_log" "section-patch-failure"
                 error_exit "Section patch mode did not produce valid patch JSON"
             fi
-            apply_manifest_section_patches "$section_patch_file" || error_exit "Section patch application failed"
+            local patch_apply_out patch_apply_rc=0
+            patch_apply_out=$(apply_manifest_section_patches "$section_patch_file" 2>&1) || patch_apply_rc=$?
+            printf '%s\n' "$patch_apply_out"
+            if [[ $patch_apply_rc -ne 0 ]]; then
+                error_exit "Section patch application failed"
+            fi
+            local patches_applied
+            patches_applied=$(printf '%s\n' "$patch_apply_out" | sed -nE 's/.*applied ([0-9]+) section patch\(es\).*/\1/p' | tail -1)
+            patches_applied="${patches_applied:-0}"
+            success "Applied $patches_applied section patch(es) via deterministic write boundary"
+            echo ""
         fi
 
         success "Documentation update complete!"
