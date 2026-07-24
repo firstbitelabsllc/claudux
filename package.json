@@ -1,6 +1,6 @@
 {
   "name": "claudux",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Local CLI that generates VitePress docs from your codebase via Claude or Codex, previews them locally, and keeps them true to your code.",
   "bin": {
     "claudux": "./bin/claudux"

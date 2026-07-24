@@ -2,6 +2,14 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.4] - 2026-07-24
+
+### Fixed
+
+- Docs-generation temp files use `claudux_mktemp` and honor `TMPDIR` (no hardcoded
+  `/tmp/claudux-*`) (#137).
+- README/docs install pins point at `v2.0.4`.
+
 ## [2.0.3] - 2026-07-24
 
 ### Fixed
