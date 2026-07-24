@@ -2,6 +2,17 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.1] - 2026-07-24
+
+### Added
+
+- Explicit `CLAUDUX_REF=v2.0.1` install pin examples on README, docs home, and installation guide (strangers no longer see main-only copy).
+- GitHub Release notes surface for the 2.0 line (honesty + write-boundary framing).
+
+### Fixed / honesty
+
+- README + rails diagram honesty (#127); section-patch counter defect (#128); public-ready identity gate (#129); residual docs oversell (smart-cleanup stub, accuracy/privacy) (#130).
+
 ## [2.0.0] - 2026-07-21
 
 Minimal, open-source-ready surface. claudux is now focused on one job: generate a VitePress docs site from your codebase, preview it locally, and update it in place.
