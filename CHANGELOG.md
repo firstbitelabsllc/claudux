@@ -2,6 +2,14 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.2] - 2026-07-24
+
+### Fixed
+
+- Project lock PID files live under `${XDG_STATE_HOME:-~/.local/state}/claudux/locks/`
+  instead of shared `${TMPDIR}` (#133).
+- README/docs install pins point at `v2.0.2`.
+
 ## [2.0.1] - 2026-07-24
 
 ### Added
