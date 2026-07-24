@@ -13,7 +13,7 @@
 
 Generate a VitePress docs site from your codebase, preview it locally, and update it in place as the code changes.
 
-claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). It is not a free-writing model pass: the repo owns the structure in a committed manifest, the model is restricted to proposing section-scoped patches, and code applies them behind deterministic guards — path boundaries, all-or-nothing validation, and sha256 hashes that refuse silent edits to protected sections.
+claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). Without a manifest, that's a full generation pass; commit a `docs-structure.json` and it stops being one — the repo owns the structure, the model is restricted to proposing section-scoped patches, and code applies them behind deterministic guards: path boundaries, all-or-nothing validation, and sha256 hashes that refuse silent edits to protected sections.
 
 ## Why this exists
 
