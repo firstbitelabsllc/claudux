@@ -136,11 +136,13 @@ check_function() {
     fi
 }
 
-# Implement file locking for concurrent execution safety
+# Implement file locking for concurrent execution safety (per-user, not shared TMPDIR).
 acquire_lock() {
-    local lock_file
-    lock_file="${TMPDIR:-/tmp}/claudux-$(pwd | md5sum 2>/dev/null | cut -d' ' -f1 || pwd | md5 | awk '{print $NF}').lock"
-    local lock_pid
+    local lock_dir lock_file lock_pid path_hash
+    lock_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claudux/locks"
+    mkdir -p "$lock_dir"
+    path_hash="$(pwd | md5sum 2>/dev/null | cut -d' ' -f1 || pwd | md5 | awk '{print $NF}')"
+    lock_file="${lock_dir}/claudux-${path_hash}.lock"
     
     # Check if lock file exists and if the process is still running
     if [[ -f "$lock_file" ]]; then
