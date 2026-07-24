@@ -182,3 +182,6 @@ jobs:
 
       - name: Secret scan
         run: bash scripts/secret-scan.sh
+
+      - name: Public-ready identity gate
+        run: python3 scripts/claudux-public-ready-grep-gate.py --metadata
