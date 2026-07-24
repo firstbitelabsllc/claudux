@@ -72,17 +72,17 @@ get_codex_model_settings() {
 # Run Codex non-interactively with a prompt
 # Resolve the Codex stderr log path.
 #
-# Defaults into the per-user temp dir rather than shared /tmp, and refuses to
-# append through a symlink or a file owned by someone else. Codex stderr can
-# carry auth failures, so on a multi-user host a predictable world-writable
-# path is both a redirect target and an info leak.
+# Defaults into per-user XDG state (not shared /tmp), and refuses to append
+# through a symlink or a file owned by someone else. Codex stderr can carry
+# auth failures, so on a multi-user host a predictable world-writable path is
+# both a redirect target and an info leak.
 codex_stderr_log_path() {
-    local tmpdir="${TMPDIR:-/tmp}"
-    tmpdir="${tmpdir%/}"
-    local path="${CODEX_STDERR_LOG:-$tmpdir/claudux-codex-stderr.log}"
+    local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claudux"
+    mkdir -p "$state_dir"
+    local path="${CODEX_STDERR_LOG:-$state_dir/codex-stderr.log}"
 
     if [[ -L "$path" || ( -e "$path" && ! -O "$path" ) ]]; then
-        path=$(mktemp "$tmpdir/claudux-codex-stderr-XXXXXX" 2>/dev/null || mktemp)
+        path=$(mktemp "$state_dir/codex-stderr-XXXXXX" 2>/dev/null || mktemp)
     elif [[ ! -e "$path" ]]; then
         (umask 077; : > "$path") 2>/dev/null || path=$(mktemp)
     else
@@ -90,14 +90,15 @@ codex_stderr_log_path() {
         # claudux (or another tool) with a group/other-readable mode. Codex
         # stderr can carry auth failures, so tighten it to owner-only before we
         # append; if we can't, fall back to a fresh owner-only mktemp file.
-        chmod 600 "$path" 2>/dev/null || path=$(mktemp "$tmpdir/claudux-codex-stderr-XXXXXX" 2>/dev/null || mktemp)
+        chmod 600 "$path" 2>/dev/null || path=$(mktemp "$state_dir/codex-stderr-XXXXXX" 2>/dev/null || mktemp)
     fi
 
     echo "$path"
 }
 
 # Usage: run_codex_exec "prompt text" [output_file]
-# Stdout: JSONL events only.  Stderr: sent to CODEX_STDERR_LOG (default /tmp/claudux-codex-stderr.log).
+# Stdout: JSONL events only.  Stderr: sent to CODEX_STDERR_LOG
+# (default: ${XDG_STATE_HOME:-~/.local/state}/claudux/codex-stderr.log).
 # Respects CLAUDUX_TIMEOUT (seconds). Default: 600 (10 min). Set 0 to disable.
 run_codex_exec() {
     local prompt="$1"
