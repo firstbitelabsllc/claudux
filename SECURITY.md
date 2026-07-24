@@ -28,6 +28,7 @@ Claudux runs locally on your machine. It shells out to the Claude CLI and Node.j
 - **File system access** -- the tool reads source files and writes to the `docs/` directory. Path traversal bugs could read or overwrite unintended files.
 - **Dependency chain** -- claudux itself has zero npm runtime dependencies, but it invokes `npx vitepress` which pulls packages at runtime. Supply-chain attacks on VitePress or its transitive dependencies are in scope.
 - **Secrets in generated docs** -- if source files contain credentials, those could be reproduced in the generated documentation. Claudux does not currently scrub secrets from output.
+- **Shared temp / multi-user hosts** -- paths under a shared `TMPDIR` (or world-writable `/tmp`) can leak lock files, stderr logs, or mktemp artifacts across users or concurrent jobs. Isolation bugs here are in scope.
 
 ## Out of Scope
 
@@ -41,4 +42,6 @@ Claudux runs locally on your machine. It shells out to the Claude CLI and Node.j
 - **No direct model API calls.** Claudux runs locally and delegates model transport to the authenticated Claude or Codex CLI you selected. Those backend CLIs may make their own network requests according to their configuration and provider terms.
 - **No runtime npm dependencies.** The attack surface from `node_modules` is zero at install time.
 - **No eval or dynamic code execution.** Shell scripts use `set -u` and `set -o pipefail` for safer defaults.
+- **XDG-scoped runtime state.** Project locks live under `${XDG_STATE_HOME:-~/.local/state}/claudux/locks/` (not a shared temp dir). Codex backend stderr appends to `.../claudux/codex-stderr.log` in the same tree.
+- **TMPDIR-aware mktemps.** `claudux_mktemp` creates temps under `${TMPDIR:-/tmp}` so a caller-isolated `TMPDIR` stays isolated; it does not hardcode `/tmp/claudux-*`.
 - **Lock file for concurrency.** Prevents multiple claudux instances from corrupting the same docs directory simultaneously.
