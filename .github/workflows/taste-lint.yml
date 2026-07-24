@@ -4,18 +4,18 @@
 # `.vale.ini` + `styles/` are vendored at the repo root (or adjust `working` /
 # StylesPath). Fails the build on error-level tells; warnings show in the log.
 #
-# Scope it to the prose surfaces that matter (docs, README, marketing copy) — do
-# NOT run it over generated docs or vendored content, or you lint someone else's
-# voice.
+# Scope the `vale` invocation at the bottom to the prose surfaces that matter
+# (docs, README, marketing copy). Do NOT point it at generated docs or vendored
+# content, or you lint someone else's voice.
+#
+# NO `paths:` FILTER, DELIBERATELY. If you make this a required status check in
+# branch protection, a paths filter means the job never runs on PRs that touch
+# no markdown — and GitHub blocks those PRs forever waiting for a status that
+# will never arrive. Scope the vale command, not the trigger. The job is ~5s.
 name: taste anti-slop lint
 
 on:
   pull_request:
-    paths:
-      - '**/*.md'
-      - '**/*.mdx'
-      - '.vale.ini'
-      - 'styles/**'
   workflow_dispatch:
 
 permissions:
