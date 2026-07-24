@@ -28,12 +28,16 @@ Anyone can ask a model to write docs. The hard part is keeping the model on rail
 claudux installs straight from GitHub — no npm account, no registry. The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claudux` onto your PATH:
 
 ```bash
+# latest main
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
+
+# pin the current release
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.0/install.sh | CLAUDUX_REF=v2.0.0 sh
 ```
 
 Or run it once without installing: `npx github:firstbitelabsllc/claudux update`.
 
-This tracks `main`, so you get the latest straight from the repo. Pin a branch, tag, or commit with `CLAUDUX_REF=<ref>` — a ref that doesn't exist fails the install instead of silently giving you `main`. Re-run it any time to update.
+Default install tracks `main`. Pin a branch, tag, or commit with `CLAUDUX_REF=<ref>` — a ref that doesn't exist fails the install instead of silently giving you `main`. Re-run it any time to update. Release notes: [v2.0.0](https://github.com/firstbitelabsllc/claudux/releases/tag/v2.0.0).
 
 Requirements: Node 18+ and an authenticated Claude CLI (default) or Codex CLI on the machine; there is no hosted API key path.
 

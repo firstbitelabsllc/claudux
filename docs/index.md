@@ -42,7 +42,11 @@ features:
 ## Quick Start
 
 ```bash
+# latest main
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
+
+# pin the current release
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.0/install.sh | CLAUDUX_REF=v2.0.0 sh
 ```
 
 ```bash
