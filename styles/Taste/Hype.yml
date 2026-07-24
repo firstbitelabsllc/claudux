@@ -1,0 +1,25 @@
+extends: existence
+message: "Hype/filler tell: '%s'. Keep it only if it is the precise word. (taste)"
+level: warning
+ignorecase: true
+# Strong tells that CAN be legitimate in context — warning, not error, so they
+# surface in review without blocking a repo that has a real reason to keep one.
+tokens:
+  - "it'?s worth noting( that)?"
+  - 'it is (?:important|worth) (?:to note|noting|mentioning)'
+  - 'plays a (?:crucial|vital|pivotal|key|significant) role'
+  - 'at the end of the day'
+  - '(?:deep[- ]dive|dive deep)'
+  - 'seamless(?:ly)?'
+  - 'effortless(?:ly)?'
+  - 'boasts (?:a |an )?'
+  - 'whether you''?re a \w+ or (?:a |an )?\w+'
+  - 'not only \w+ but also'
+  - 'furthermore,'
+  - 'moreover,'
+  - 'that being said'
+  - 'in the fast[- ]paced'
+  - 'cutting[- ]edge'
+  - 'state[- ]of[- ]the[- ]art'
+  - 'best[- ]in[- ]class'
+  - 'first and foremost'

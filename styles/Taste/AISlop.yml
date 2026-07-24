@@ -1,0 +1,28 @@
+extends: existence
+message: "AI-slop tell: '%s'. Cut it or say the specific thing. (taste: mechanical layer)"
+level: error
+ignorecase: true
+# High-precision tells: phrases that are almost never the precise word. Error
+# level = fails CI. Keep this list near-certain; strong-but-not-certain tells
+# live in Hype.yml at warning level so adopting repos are not drowned.
+tokens:
+  - 'delve into'
+  - 'delve deeper'
+  - 'a testament to'
+  - "in today's (?:fast[- ]paced )?(?:digital )?world"
+  - 'navigating the (?:complex |ever[- ]changing )?landscape'
+  - 'in the (?:ever[- ]evolving )?realm of'
+  - 'unlock(?:ing)? (?:the |your )?(?:full |true )?potential'
+  - 'take (?:it|your \w+|things) to the next level'
+  - 'a (?:rich |vibrant )?tapestry'
+  - 'game[- ]?changer'
+  - 'look no further'
+  - 'rest assured'
+  - 'needless to say'
+  - 'it goes without saying'
+  - 'when it comes to the world of'
+  - 'elevate your \w+'
+  - "in conclusion, "
+  - 'the power of \w+ cannot be (?:overstated|understated)'
+  - "let's dive (?:right )?in"
+  - 'buckle up'
