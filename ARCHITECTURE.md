@@ -87,12 +87,23 @@ This section will not be documented.
 hash). Only one claudux instance can run per project directory at a time.
 Stale locks from crashed processes are detected and cleaned up automatically.
 
+Ephemeral generation temps (prompt, backend JSONL, retain copies, dirty
+snapshots) go through `claudux_mktemp` in `lib/docs-generation.sh`, which
+honors `${TMPDIR:-/tmp}` and never hardcodes `/tmp/claudux-*`.
+
+Codex stderr defaults to
+`${XDG_STATE_HOME:-~/.local/state}/claudux/codex-stderr.log` (override with
+`CODEX_STDERR_LOG`); the helper refuses symlinks and non-owned paths and
+tightens mode to `0600` before append.
+
 ## Security model
 
 - No network calls except to the AI backend CLI (which handles its own auth).
 - Zero runtime npm dependencies -- the `dependencies` field in `package.json` is empty.
 - No `eval` or dynamic code execution.
 - No secrets stored or transmitted -- authentication is delegated to the backend CLI.
+- Runtime state that can carry auth failures (Codex stderr, project locks) is
+  per-user under XDG state, not a predictable shared `/tmp` path.
 - See [SECURITY.md](./SECURITY.md) for the full threat model and disclosure policy.
 
 ## Testing
