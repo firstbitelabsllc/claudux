@@ -231,7 +231,10 @@ assert_contains "codex-utils.sh defines codex_stderr_log_path" \
     "$codex_utils_content" \
     "codex_stderr_log_path()"
 stderr_path_fn=$(sed -n '/^codex_stderr_log_path()/,/^}/p' "$LIB_DIR/codex-utils.sh")
-assert_contains "stderr log prefers the per-user temp dir" \
+assert_contains "stderr log prefers per-user XDG state" \
+    "$stderr_path_fn" \
+    'XDG_STATE_HOME:-$HOME/.local/state}/claudux'
+assert_not_contains "stderr log does not default to shared TMPDIR" \
     "$stderr_path_fn" \
     'TMPDIR:-/tmp'
 assert_contains "stderr log refuses a symlinked path" \

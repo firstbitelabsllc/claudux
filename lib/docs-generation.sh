@@ -1151,7 +1151,7 @@ $base_prompt"
             if declare -F codex_stderr_log_path >/dev/null 2>&1; then
                 codex_stderr_log="$(codex_stderr_log_path)"
             else
-                codex_stderr_log="${CODEX_STDERR_LOG:-${TMPDIR:-/tmp}/claudux-codex-stderr.log}"
+                codex_stderr_log="${CODEX_STDERR_LOG:-${XDG_STATE_HOME:-$HOME/.local/state}/claudux/codex-stderr.log}"
             fi
             echo "   1. Check Codex CLI is authenticated:"
             echo "      codex login status"
