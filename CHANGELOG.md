@@ -2,6 +2,14 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.5] - 2026-07-24
+
+### Fixed
+
+- ARCHITECTURE documents XDG locks/Codex stderr and TMPDIR-aware `claudux_mktemp`
+  (#139).
+- README/docs install pins point at `v2.0.5`.
+
 ## [2.0.4] - 2026-07-24
 
 ### Fixed
