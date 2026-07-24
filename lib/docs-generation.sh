@@ -4,6 +4,15 @@
 STATE_FILE=".claudux-state.json"
 CLAUDUX_PROMPT_VERSION="${CLAUDUX_PROMPT_VERSION:-docs-generation-v1}"
 
+# Ephemeral temp files: honor TMPDIR (never hardcode /tmp). Pattern arg is the
+# mktemp template basename, e.g. claudux-prompt-XXXXXX.
+claudux_mktemp() {
+    local template="${1:-claudux.XXXXXX}"
+    local dir="${TMPDIR:-/tmp}"
+    dir="${dir%/}"
+    mktemp "$dir/$template" 2>/dev/null || mktemp
+}
+
 # Build deterministic checkpoint metadata from the static analysis index.
 # This stays best-effort so state saving never fails after successful docs output.
 build_deterministic_state_metadata_json() {
@@ -274,7 +283,7 @@ capture_generation_workspace_snapshot() {
     fi
 
     CLAUDUX_GENERATION_START_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "")
-    CLAUDUX_GENERATION_START_DIRTY_FILE=$(mktemp /tmp/claudux-gen-dirty-XXXXXX 2>/dev/null || mktemp)
+    CLAUDUX_GENERATION_START_DIRTY_FILE=$(claudux_mktemp claudux-gen-dirty-XXXXXX)
     claudux_non_allowed_dirty_paths > "$CLAUDUX_GENERATION_START_DIRTY_FILE" 2>/dev/null || true
 }
 
@@ -421,7 +430,7 @@ retain_generation_debug_log() {
 
     local safe_reason retained
     safe_reason=$(printf '%s' "$reason" | tr -c 'A-Za-z0-9_.-' '-')
-    retained=$(mktemp "/tmp/claudux-${safe_reason}.jsonl.XXXXXX" 2>/dev/null || mktemp)
+    retained=$(claudux_mktemp "claudux-${safe_reason}.jsonl.XXXXXX")
     cp "$log_file" "$retained" 2>/dev/null || return 0
     warn "🧾 Retained backend JSONL log:"
     echo "      $retained"
@@ -857,9 +866,9 @@ $base_prompt"
     # Save prompt for debugging
     # Create unique temp files for this session
     local prompt_file
-    prompt_file=$(mktemp /tmp/claudux-prompt-XXXXXX || mktemp)
+    prompt_file=$(claudux_mktemp claudux-prompt-XXXXXX)
     local claude_log
-    claude_log=$(mktemp /tmp/claudux-claude-XXXXXX || mktemp)
+    claude_log=$(claudux_mktemp claudux-claude-XXXXXX)
     
     # Ensure we got valid temp files
     if [[ -z "$prompt_file" ]] || [[ -z "$claude_log" ]]; then
@@ -1097,7 +1106,7 @@ $base_prompt"
                 if [[ -z "$already_autofixed" ]]; then
                     # Re-run validator to collect machine-readable list
                     local missing_tmp
-                    missing_tmp=$(mktemp /tmp/claudux-missing-XXXXXX || mktemp)
+                    missing_tmp=$(claudux_mktemp claudux-missing-XXXXXX)
                     rm -f "$missing_tmp" 2>/dev/null || true
                     if "$LIB_DIR/validate-links.sh" --output "$missing_tmp" >/dev/null 2>&1; then
                         : # no-op; shouldn't happen because prior run failed

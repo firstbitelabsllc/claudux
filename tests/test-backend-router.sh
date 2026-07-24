@@ -255,9 +255,12 @@ retain_fn=$(sed -n '/^retain_generation_debug_log()/,/^}/p' "$LIB_DIR/docs-gener
 assert_contains "docs-generation defines debug log retention helper" \
     "$retain_fn" \
     'Retained backend JSONL log'
-assert_contains "debug log retention writes a /tmp claudux jsonl copy" \
+assert_contains "debug log retention uses claudux_mktemp (TMPDIR-aware)" \
     "$retain_fn" \
-    '/tmp/claudux-'
+    'claudux_mktemp'
+assert_not_contains "debug log retention does not hardcode /tmp/claudux-" \
+    "$retain_fn" \
+    'mktemp "/tmp/claudux-'
 assert_contains "section patch failure retains the backend log" \
     "$update_fn" \
     'retain_generation_debug_log "$claude_log" "section-patch-failure"'
