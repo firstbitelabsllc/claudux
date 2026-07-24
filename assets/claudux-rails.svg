@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" fill="none" role="img" aria-label="How claudux keeps the model on rails during claudux update: the repo owns the docs structure, the model proposes section-scoped patches it cannot write itself, and code checks every patch against deterministic guards — impact allowlist, single-section span, sha256 protected-block hashes, and a path boundary — applying them all-or-nothing before any file is written.">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-dim: #ede9fe;
+      --node-bg: #ffffff;
+      --node-border: #e2e8f0;
+      --arrow: #cbd5e1;
+      --green: #10b981;
+      --green-dim: #d1fae5;
+      --red: #ef4444;
+      --red-dim: #fee2e2;
+      --gate-bg: #f8fafc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --accent: #a78bfa;
+        --accent-dim: #2e1065;
+        --node-bg: #1e293b;
+        --node-border: #334155;
+        --arrow: #475569;
+        --green: #34d399;
+        --green-dim: #064e3b;
+        --red: #f87171;
+        --red-dim: #450a0a;
+        --gate-bg: #111c33;
+      }
+    }
+    .bg { fill: var(--bg); }
+    .gate-bg { fill: var(--gate-bg); }
+    .t-primary { fill: var(--text-primary); }
+    .t-secondary { fill: var(--text-secondary); }
+    .t-muted { fill: var(--text-muted); }
+    .accent { fill: var(--accent); }
+    .accent-dim { fill: var(--accent-dim); }
+    .node-bg { fill: var(--node-bg); }
+    .node-border { stroke: var(--node-border); fill: none; }
+    .accent-stroke { stroke: var(--accent); fill: none; }
+    .arrow-stroke { stroke: var(--arrow); fill: none; }
+    .arrow-fill { fill: var(--arrow); }
+    .green { fill: var(--green); }
+    .green-dim { fill: var(--green-dim); }
+    .green-stroke { stroke: var(--green); fill: none; }
+    .red { fill: var(--red); }
+    .red-dim { fill: var(--red-dim); }
+    .red-stroke { stroke: var(--red); fill: none; }
+    .mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+    .sans { font-family: system-ui, -apple-system, sans-serif; }
+    @keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+    .flow-line { stroke-dasharray: 5 5; animation: flow 1.4s linear infinite; }
+    @media (prefers-reduced-motion: reduce) { .flow-line { animation: none; } }
+  </style>
+
+  <rect width="960" height="470" rx="12" class="bg"/>
+
+  <!-- title -->
+  <text x="480" y="40" text-anchor="middle" class="t-primary sans" font-size="22" font-weight="700" letter-spacing="-0.4">How claudux keeps the model on rails</text>
+  <text x="480" y="63" text-anchor="middle" class="t-secondary sans" font-size="13">
+    <tspan class="mono" font-weight="600">claudux update</tspan><tspan> — the model proposes wording; code decides what may change</tspan>
+  </text>
+
+  <!-- INPUT: your code + manifest -->
+  <g>
+    <rect x="315" y="86" width="150" height="34" rx="8" class="node-bg"/>
+    <rect x="315" y="86" width="150" height="34" rx="8" class="node-border" stroke-width="1.5"/>
+    <text x="390" y="108" text-anchor="middle" class="t-primary mono" font-size="12" font-weight="600">your code</text>
+
+    <rect x="495" y="86" width="180" height="34" rx="8" class="accent-dim"/>
+    <rect x="495" y="86" width="180" height="34" rx="8" class="accent-stroke" stroke-width="1.5"/>
+    <text x="585" y="108" text-anchor="middle" class="accent mono" font-size="12" font-weight="600">docs-structure.json</text>
+  </g>
+  <text x="480" y="138" text-anchor="middle" class="t-muted sans" font-size="10.5">the repo owns page structure + a source&#8594;section map (not the model)</text>
+
+  <!-- arrow into model -->
+  <line x1="480" y1="146" x2="480" y2="168" class="arrow-stroke flow-line" stroke-width="1.5"/>
+  <polygon points="475,165 480,175 485,165" class="arrow-fill"/>
+
+  <!-- MODEL lane (dashed = proposes, not deterministic) -->
+  <rect x="170" y="176" width="620" height="58" rx="10" class="accent-dim"/>
+  <rect x="170" y="176" width="620" height="58" rx="10" class="accent-stroke" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <text x="480" y="201" text-anchor="middle" class="accent mono" font-size="15" font-weight="700">model proposes section-scoped patches</text>
+  <text x="480" y="221" text-anchor="middle" class="t-secondary sans" font-size="11.5">reads code &amp; manifest · authors the wording (can be wrong) · <tspan class="mono" font-weight="600">Read</tspan>-only, cannot write files</text>
+
+  <!-- arrow into gate -->
+  <line x1="480" y1="234" x2="480" y2="256" class="arrow-stroke flow-line" stroke-width="1.5"/>
+  <polygon points="475,253 480,263 485,253" class="arrow-fill"/>
+
+  <!-- GATE: deterministic guards (code) -->
+  <rect x="70" y="264" width="820" height="120" rx="12" class="gate-bg"/>
+  <rect x="70" y="264" width="820" height="120" rx="12" class="node-border" stroke-width="1.5"/>
+  <text x="90" y="286" class="t-primary sans" font-size="12.5" font-weight="700">deterministic guards <tspan class="t-muted" font-weight="400">— code, not the model, decides</tspan></text>
+
+  <!-- 4 gate chips -->
+  <g>
+    <!-- 1 -->
+    <rect x="90" y="298" width="185" height="50" rx="8" class="node-bg"/>
+    <rect x="90" y="298" width="185" height="50" rx="8" class="node-border" stroke-width="1.25"/>
+    <text x="102" y="318" class="accent mono" font-size="12" font-weight="700">1</text>
+    <text x="118" y="318" class="t-primary sans" font-size="11.5" font-weight="600">in the impact allowlist</text>
+    <text x="102" y="336" class="t-muted sans" font-size="9.5">changed files &#8594; allowed sections</text>
+
+    <!-- 2 -->
+    <rect x="285" y="298" width="185" height="50" rx="8" class="node-bg"/>
+    <rect x="285" y="298" width="185" height="50" rx="8" class="node-border" stroke-width="1.25"/>
+    <text x="297" y="318" class="accent mono" font-size="12" font-weight="700">2</text>
+    <text x="313" y="318" class="t-primary sans" font-size="11.5" font-weight="600">one section span</text>
+    <text x="297" y="336" class="t-muted sans" font-size="9.5">no new headings, no reorg</text>
+
+    <!-- 3 -->
+    <rect x="480" y="298" width="185" height="50" rx="8" class="node-bg"/>
+    <rect x="480" y="298" width="185" height="50" rx="8" class="node-border" stroke-width="1.25"/>
+    <text x="492" y="318" class="accent mono" font-size="12" font-weight="700">3</text>
+    <text x="508" y="318" class="t-primary sans" font-size="11.5" font-weight="600">sha256 guards</text>
+    <text x="492" y="336" class="t-muted sans" font-size="9.5">protected blocks unchanged</text>
+
+    <!-- 4 -->
+    <rect x="675" y="298" width="185" height="50" rx="8" class="node-bg"/>
+    <rect x="675" y="298" width="185" height="50" rx="8" class="node-border" stroke-width="1.25"/>
+    <text x="687" y="318" class="accent mono" font-size="12" font-weight="700">4</text>
+    <text x="703" y="318" class="t-primary sans" font-size="11.5" font-weight="600">path boundary</text>
+    <text x="687" y="336" class="t-muted sans" font-size="9.5">nothing outside docs/</text>
+  </g>
+
+  <text x="480" y="372" text-anchor="middle" class="t-secondary sans" font-size="11" font-weight="600">all-or-nothing — the whole patch set is validated before any file is written</text>
+
+  <!-- arrows to outcomes -->
+  <line x1="285" y1="384" x2="285" y2="404" class="green-stroke" stroke-width="1.5"/>
+  <polygon points="280,401 285,411 290,401" class="green"/>
+  <line x1="675" y1="384" x2="675" y2="404" class="red-stroke" stroke-width="1.5"/>
+  <polygon points="670,401 675,411 680,401" class="red"/>
+
+  <!-- OUTCOMES -->
+  <rect x="95" y="412" width="380" height="32" rx="8" class="green-dim"/>
+  <rect x="95" y="412" width="380" height="32" rx="8" class="green-stroke" stroke-width="1.5"/>
+  <text x="285" y="432" text-anchor="middle" class="green mono" font-size="11.5" font-weight="600">&#10003; applied — only the changed source's sections</text>
+
+  <rect x="485" y="412" width="380" height="32" rx="8" class="red-dim"/>
+  <rect x="485" y="412" width="380" height="32" rx="8" class="red-stroke" stroke-width="1.5"/>
+  <text x="675" y="432" text-anchor="middle" class="red mono" font-size="11.5" font-weight="600">&#10007; any gate fails &#8594; rejected, nothing written</text>
+
+  <!-- footer -->
+  <text x="480" y="461" text-anchor="middle" class="t-muted sans" font-size="10.5">Diagram of the control flow in <tspan class="mono">lib/docs-manifest.sh</tspan> · the allowlist narrows to changed files on incremental runs</text>
+</svg>

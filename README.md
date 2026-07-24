@@ -13,11 +13,15 @@
 
 Generate a VitePress docs site from your codebase, preview it locally, and update it in place as the code changes.
 
-claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). It is not a free-writing model pass: the repo owns the structure, generation applies bounded section patches, protected content is hashed before and after, and internal links are validated on every update.
+claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). Without a manifest, that's a full generation pass; commit a `docs-structure.json` and it stops being one — the repo owns the structure, the model is restricted to proposing section-scoped patches, and code applies them behind deterministic guards: path boundaries, all-or-nothing validation, and sha256 hashes that refuse silent edits to protected sections.
 
 ## Why this exists
 
 Anyone can ask a model to write docs. The hard part is keeping the model on rails: not reorganizing your navigation, not rewriting sections that didn't change, not touching content you marked as yours. claudux puts those rails in the repo — a committed manifest owns page structure, skip markers protect blocks, and link validation catches 404s before your readers do.
+
+<p align="center">
+  <img src="assets/claudux-rails.svg" alt="How claudux keeps the model on rails during claudux update: the repo owns the docs structure in a committed manifest; the model proposes section-scoped patches it cannot write itself; and code checks every patch against deterministic guards — impact allowlist, single-section span, sha256 protected-block hashes, and a path boundary — applying them all-or-nothing before any file is written." width="820" />
+</p>
 
 ## Install
 
@@ -48,7 +52,7 @@ Run `claudux` with no arguments for an interactive menu.
   <img src="assets/claudux-terminal-demo.svg" alt="A real claudux session: claudux update detects the project type, generates VitePress docs with Claude, and validates links; claudux serve previews them at localhost:5173" width="780" />
 </p>
 
-Every line above is from a real run against a two-file Node CLI — detection, generation, link validation, and the VitePress preview.
+Reconstructed from a real claudux run against a two-file Node CLI — detection, generation, link validation, and the VitePress preview.
 
 ## What it does
 
@@ -56,14 +60,14 @@ Every line above is from a real run against a two-file Node CLI — detection, g
 
 **Deterministic manifest mode.** A committed `docs-structure.json` owns page structure and declares which source files each doc section describes. claudux applies bounded section patches instead of broad rewrites, and guards content through skip markers and path denylists.
 
-**Link validation.** Every update validates internal links and fails loudly on broken ones. Pass `--strict` to make broken links a hard failure.
+**Link validation.** After each update, claudux checks the internal links in your VitePress nav and sidebar against the files on disk and tries one auto-fix pass. By default it continues with a warning if any remain; pass `--strict` to make broken links fail the build.
 
 **Focused updates.** `claudux update -m "document the new auth flow"` steers a regeneration at one area instead of the whole site.
 
 ## How it works
 
 - The repo owns structure. `docs-structure.json` holds page IDs, navigation order, and which source each section describes, so the model rewrites wording and never reorganizes your docs.
-- Generation is bounded. claudux applies validated section patches, so a regen touches the sections that changed instead of rewriting whole pages.
+- Generation is bounded. claudux applies validated section patches, so an incremental regen touches only the sections a changed source owns instead of rewriting whole pages.
 - Your content stays put. Pinned sections, read-only sections, and skip-marker blocks are hashed before and after generation, so protected text cannot change silently.
 - Only `update` and the interactive menu call the model. `serve` and `check` never call a backend.
 
