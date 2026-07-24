@@ -7,7 +7,13 @@ check_claude() {
         error_exit "Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code"
     fi
     
-    success "Claude Code CLI found: $(claude --version)"
+    local claude_version
+    claude_version=$(claude --version 2>/dev/null || true)
+    if [[ -z "${claude_version//[[:space:]]/}" ]]; then
+        warn "Claude Code CLI found, but --version returned an empty string (CLI may be misinstalled)"
+    else
+        success "Claude Code CLI found: $claude_version"
+    fi
     
     # Show current model configuration. A cold CLI start can sit here for the
     # better part of a minute, so keep a ticker going (issue #122).
