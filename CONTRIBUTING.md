@@ -9,8 +9,10 @@ git clone https://github.com/firstbitelabsllc/claudux.git
 cd claudux
 npm link            # symlink for local dev
 claudux check       # verify environment
-claudux update      # generate docs
 claudux serve       # preview at localhost:5173
+
+# Note: do NOT run `claudux update` here. This repo's docs/** is hand-maintained;
+# regenerating would overwrite hand-written pages.
 ```
 
 ### Project layout
@@ -22,10 +24,20 @@ lib/codex-utils.sh   Codex backend adapter (loaded when CLAUDUX_BACKEND=codex)
 lib/templates/       Per-framework prompt configs (React, Next.js, iOS, Go, etc.)
 lib/vitepress/       VitePress scaffolding (config template, theme, vite config)
 tests/               Pure-bash test suites (zero runtime deps)
-docs/                Generated VitePress site (committed to repo)
+docs/                VitePress site - HAND-MAINTAINED, hand-committed
 assets/              Static assets (banner SVG)
 .github/             CI workflows and issue/PR templates
 ```
+
+### Running the tests
+
+```bash
+npm test            # 386 bash assertions, zero runtime deps
+npm run test:all    # includes the slower integration suite
+npm run verify      # lint + secret-scan + public-ready gate
+```
+
+`npm run lint` needs `shellcheck` and `npm run verify` needs `python3`.
 
 ### Code style
 
