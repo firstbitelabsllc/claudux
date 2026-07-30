@@ -2,6 +2,19 @@
 
 All notable changes to claudux are documented in this file.
 
+## [2.0.7] - 2026-07-29
+
+### Security
+
+- The docs build now resolves PostCSS 8.5.23, above the affected range for
+  GHSA-r28c-9q8g-f849. A clean install at this release reports zero npm audit
+  vulnerabilities.
+
+### Changed
+
+- CodeQL and the anti-slop documentation lint run on the maintained branch.
+- README and docs install pins point at `v2.0.7`.
+
 ## [2.0.6] - 2026-07-24
 
 ### Fixed

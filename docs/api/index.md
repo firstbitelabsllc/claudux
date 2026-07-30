@@ -103,7 +103,7 @@ claudux serve
 
 **Description**: Display the installed claudux version.
 
-**Output**: `claudux 2.0.6`
+**Output**: `claudux 2.0.7`
 
 ## Environment Variables
 
