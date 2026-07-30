@@ -47,11 +47,11 @@ The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claud
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
 
 # pin the current release
-curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.6/install.sh | CLAUDUX_REF=v2.0.6 sh
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.7/install.sh | CLAUDUX_REF=v2.0.7 sh
 ```
 
 - Tracks `main` by default — pin a branch, tag, or commit with `CLAUDUX_REF`.
-- Release notes: [v2.0.6](https://github.com/firstbitelabsllc/claudux/releases/tag/v2.0.6).
+- Release notes: [v2.0.7](https://github.com/firstbitelabsllc/claudux/releases/tag/v2.0.7).
 - Re-run any time to update in place (idempotent).
 - Falls back to a tarball download if `git` is not present; still needs Node 18+.
 
