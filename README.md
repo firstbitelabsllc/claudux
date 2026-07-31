@@ -108,15 +108,17 @@ claudux auto-detects iOS, Next.js, React, Node.js, JavaScript, Java, Python, Go,
 
 ## Content protection
 
-claudux never writes to protected paths: `notes/`, `private/`, `.git/`, `node_modules/`, `vendor/`, `target/`, `build/`, and `dist/`. Use skip markers to protect specific blocks:
+Protection is strongest with a committed `docs-structure.json`: the model runs read-only, docs writes are section-bounded and applied all-or-nothing, and skip-marker and pinned blocks are sha256-hashed in the guard snapshot — generation aborts if a protected block changed. Mark blocks like this:
 
 ```markdown
 <!-- skip -->
-This block is preserved by claudux.
+This block is hash-guarded by claudux.
 <!-- /skip -->
 ```
 
-Language-specific pairs are supported, including `// skip`, `# skip`, `/* skip */`, and `-- skip`. In deterministic mode, skip-marker hashes are captured in the guard snapshot so protected blocks cannot change silently during generation.
+Language-specific pairs are supported, including `// skip`, `# skip`, `/* skip */`, and `-- skip`.
+
+Without a manifest, the generation pass runs with write access and path rules are prompt guidance, not an enforced barrier: prompts steer the model away from `notes/`, `private/`, secrets, and build output, and `Bash` is mechanically disallowed so it cannot run shell commands or `git commit` — but there is no code-level check on which files it writes. If that distinction matters to you, commit a manifest.
 
 ## Project docs
 

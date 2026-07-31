@@ -49,7 +49,7 @@ Modular functionality organized by concern:
 | `claude-utils.sh` | Claude AI integration | `check_claude()`, `get_model_settings()` |
 | `docs-manifest.sh` | Deterministic docs contracts | `validate_docs_structure_manifest()`, `build_static_analysis_index()` |
 | `docs-generation.sh` | Core generation logic | `build_generation_prompt()`, `update()` |
-| `content-protection.sh` | Content protection | `is_protected_path()`, protection markers |
+| `content-protection.sh` | Marker-pair reference (utility helpers; enforcement lives in `docs-manifest.sh` guards) | `get_protection_markers()` |
 | `git-utils.sh` | Git operations | `show_git_status()`, `show_detailed_changes()` |
 | `server.sh` | VitePress dev server | `serve()`, dependency management |
 | `cleanup.sh` | Legacy cleanup surface | Interactive Claude prompt; silent path is a no-op |
@@ -181,22 +181,21 @@ fi
 
 ### 2. Content Protection
 
-**Protected path enforcement** (`lib/content-protection.sh:61-74`):
-```bash
-is_protected_path() {
-    local path="$1"
-    
-    # Protected directories
-    if [[ "$path" =~ ^(notes|private|.git|node_modules|vendor|target|build|dist)/ ]]; then
-        return 0
-    fi
-    
-    # Protected files  
-    if [[ "$path" =~ \.(env|key|pem|p12|keystore)$ ]]; then
-        return 0
-    fi
-}
-```
+What is mechanically enforced, and where:
+
+- **Manifest mode** (`docs-structure.json` committed): the model runs with
+  `--allowedTools "Read"`, section patches are validated all-or-nothing
+  against the manifest, and skip-marker/pinned blocks are sha256-hashed in
+  the guard snapshot (`lib/docs-manifest.sh`); generation aborts if a
+  guarded block changed.
+- **Without a manifest**: path rules are prompt guidance only. Generation
+  prompts steer the model away from `notes/`, `private/`, secrets, and
+  build output, but no code checks which files it writes.
+
+`lib/content-protection.sh` ships marker-pair helpers
+(`get_protection_markers()`, `strip_protected_content()`,
+`is_protected_path()`) as utilities; nothing in the generation pipeline
+calls them, so do not read them as an enforcement layer.
 
 ### 3. Permission Management
 
