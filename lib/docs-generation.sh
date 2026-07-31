@@ -928,6 +928,16 @@ $base_prompt"
         if claude --help 2>&1 | grep -q "disallowedTools"; then
             claude_args+=(--disallowedTools "Bash")
         fi
+        # Config-home neutralization (issue #121): without this, the backend
+        # loads the operator's personal ~/.claude/CLAUDE.md into generation
+        # context, so docs output varies with whoever runs it. Excluding the
+        # `user` source drops user-level settings and user CLAUDE.md while
+        # keeping the repo's own project/local context and OAuth credentials
+        # (verified live: user-memory probe answers LEAK without the flag,
+        # CLEAN with it, auth unaffected).
+        if claude --help 2>&1 | grep -q "setting-sources"; then
+            claude_args+=(--setting-sources "project,local")
+        fi
         if ! $section_patch_mode; then
             claude_args+=(--permission-mode acceptEdits)
         fi
