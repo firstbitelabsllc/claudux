@@ -1,290 +1,90 @@
 # Content Protection
 
-Claudux protects sensitive, manually curated, or work-in-progress content from AI modification.
+Claudux protects manually curated content from model modification. This page
+says exactly what is mechanically enforced, what is prompt guidance, and how to
+tell the difference — so you can decide what to trust it with.
 
-## Protection Philosophy
+## The two modes
 
-**Principle**: AI should enhance documentation, not overwrite human expertise.
+### With a committed `docs-structure.json` (enforced)
 
-**Approach**: Several layers keep critical content untouched while updates continue elsewhere.
+The manifest flips generation into its guarded mode:
 
-## Skip Markers
+- The model runs **read-only** (`--allowedTools "Read"`); it proposes
+  section-scoped patches and cannot write files itself.
+- Code applies patches **all-or-nothing** against the manifest: single-section
+  span, impact allowlist, path boundary.
+- Skip-marker blocks and pinned sections are **sha256-hashed** in a guard
+  snapshot before generation; if a guarded block changed, generation aborts
+  with `Protected documentation structure changed during generation`.
 
-### Inline Protection
+This is the mode to use when protection matters. Commit the manifest.
 
-Protect specific sections within files using language-appropriate skip markers:
+### Without a manifest (guidance)
 
-**Markdown files:**
+The first generation pass runs with write access (`Read,Write,Edit,Delete`).
+Path rules here are **prompt guidance, not an enforced barrier**: generation
+prompts steer the model away from `notes/`, `private/`, secrets, and build
+output, and in practice it follows them — but no code checks which files it
+writes.
+
+Two things are still mechanically enforced in both modes:
+
+- `Bash` is disallowed, so the backend cannot run shell commands or
+  `git commit`.
+- Generated docs land via the normal working tree, so `git diff` shows you
+  everything before you commit.
+
+## Skip markers
+
+Protect specific blocks within files:
+
 ```markdown
 <!-- skip -->
-## Sensitive Configuration Details
-
-This section contains confidential setup instructions
-that should not be automatically modified.
-
-### Internal API Keys
-- Production key: [manual setup required]
-- Staging key: [contact devops]
+This block is hash-guarded in manifest mode.
 <!-- /skip -->
 ```
 
-**JavaScript/TypeScript:**
-```javascript
-// skip
-const INTERNAL_CONFIG = {
-  // This configuration is manually maintained
-  // and should not be auto-updated
-  secretEndpoint: "internal.company.com"
-};
-// /skip
-```
-
-**Python:**
-```python
-# skip
-# This function handles legacy authentication 
-# Keep unchanged for backward compatibility
-def legacy_auth_handler():
-    pass
-# /skip
-```
-
-**Swift:**
-```swift
-// skip
-// Core authentication logic - manually maintained
-class AuthManager {
-    // Implementation details preserved
-}
-// /skip
-```
-
-### Supported Languages
-
-| Language | Start Marker | End Marker |
+| Language | Start marker | End marker |
 |----------|--------------|------------|
-| Markdown | `<!-- skip -->` | `<!-- /skip -->` |
-| JavaScript/TypeScript | `// skip` | `// /skip -->` |
-| Python | `# skip` | `# /skip` |
-| Swift | `// skip` | `// /skip -->` |
-| Go | `// skip` | `// /skip -->` |
-| Rust | `// skip` | `// /skip -->` |
-| Java/C++ | `// skip` | `// /skip -->` |
+| Markdown / HTML / XML | `<!-- skip -->` | `<!-- /skip -->` |
+| JS / TS / Swift / Go / Rust / Java / C++ | `// skip` | `// /skip` |
+| Python / shell / Ruby | `# skip` | `# /skip` |
+| CSS / SCSS | `/* skip */` | `/* /skip */` |
+| SQL | `-- skip` | `-- /skip` |
 
-## Path-Based Protection
+Markers must sit on their own line. In manifest mode, every skip block's hash
+is captured in the guard snapshot, so a silent edit to a protected block fails
+the run. Without a manifest, markers are guidance the model is prompted to
+respect.
 
-### Automatically Protected Directories
+## Best practices
 
-Claudux never modifies content in these directories:
+**Commit the manifest.** `docs-structure.json` is what turns protection from
+guidance into enforcement. Everything else on this page is secondary.
 
-```
-📁 Protected Paths:
-├── notes/              # Personal notes and drafts
-├── private/            # Confidential documentation  
-├── .git/               # Version control data
-├── node_modules/       # Dependencies
-├── vendor/             # Third-party code
-├── target/build/dist/  # Build artifacts
-```
-
-### Protected File Patterns
-
-Files matching these patterns are never modified:
-
-```
-🔒 Protected Files:
-*.env          # Environment configuration
-*.key, *.pem   # Cryptographic keys
-*.p12          # Certificates  
-*.keystore     # Java keystores
-```
-
-### Custom Path Protection
-
-Configure additional protected paths in your project's content protection settings.
-
-## Work-in-Progress Protection
-
-### Draft Documentation
-
-Protect documentation that's actively being written:
-
-```markdown
-<!-- skip -->
-# 🚧 Work in Progress: New Feature Documentation
-
-This section is actively being written and should not
-be modified until complete.
-
-## Authentication Flow v2
-[Draft content being written by Sarah]
-<!-- /skip -->
-```
-
-### Collaborative Workflows
-
-Protect content being edited by team members:
-
-```markdown
-<!-- skip -->
-<!-- 
-ASSIGNED TO: John Doe
-DUE DATE: 2025-09-15
-STATUS: In Review
-
-This API documentation is being updated as part 
-of the v3.0 release cycle.
--->
-## Enterprise API Documentation
-[Content under active development]
-<!-- /skip -->
-```
-
-## Configuration-Based Protection
-
-### Project-Level Settings
-
-Configure protection in `claudux.json`:
-
-```json
-{
-  "project": {
-    "name": "My Project",
-    "type": "nodejs"
-  },
-  "protection": {
-    "directories": ["internal/", "drafts/"],
-    "files": ["*.private.md", "team-notes.md"],
-    "patterns": ["*-wip-*"]
-  }
-}
-```
-
-### Git Integration
-
-Use git patterns for protection:
-
-```bash
-# .gitignore patterns extend to documentation protection
-echo "internal-docs/" >> .gitignore
-echo "*.secret.md" >> .gitignore
-```
-
-## Protection Verification
-
-### Skip Marker Detection
-
-Claudux validates protection markers during generation:
-
-```bash
-🛡️ Protection Analysis:
-✅ Found 3 skip sections in docs/api/internal.md
-✅ Protected directory: notes/ (12 files)  
-✅ Protected files: 4 files matching *.env pattern
-ℹ️  Total protected content: 156 lines across 8 files
-```
-
-### Protection Reporting
-
-After generation, claudux reports what was protected:
-
-```bash
-📋 Protection Summary:
-🛡️ Protected content preserved:
-   • docs/internal/secrets.md (skip markers)
-   • notes/ directory (5 files)
-   • config.env (file pattern)
-
-📝 Content updated:
-   • docs/guide/setup.md (outside protected sections)
-   • docs/api/public.md (no protection markers)
-```
-
-## Best Practices
-
-### 1. Granular Protection
-
-Protect only what needs protection:
+**Protect only what needs protection.** Wrap the sensitive block, not the whole
+file, so the rest of the page keeps getting maintained:
 
 ```markdown
 ## Public API Documentation
 
 This section documents our public API endpoints.
 
-<!-- skip -->  
+<!-- skip -->
 ### Internal Debugging Endpoints
 These are for development use only...
 <!-- /skip -->
-
-## Authentication Flow
-
-Standard OAuth 2.0 implementation...
 ```
 
-### 2. Clear Boundaries
+**Commit your markers** so protection is consistent for everyone who runs
+claudux on the repo.
 
-Use descriptive comments explaining why content is protected:
+**Review the diff.** Protection narrows what the model can change; it does not
+replace reading `git diff docs/` before you commit.
 
-```markdown
-<!-- skip -->
-<!-- 
-PROTECTED: Contains production credentials and internal URLs
-Last updated: 2025-08-15 by Security Team
-Next review: 2025-09-15
--->
-## Production Deployment Checklist
-<!-- /skip -->
-```
+## Removing protection
 
-### 3. Version Control Integration
-
-Commit protection markers for team-wide consistency:
-
-```bash
-git add docs/internal.md  # Commit skip markers
-git commit -m "Add protection markers for sensitive documentation"
-```
-
-### 4. Periodic Review
-
-Regularly review protected content:
-
-```bash
-# Find all skip markers across documentation
-grep -r "skip" docs/ --include="*.md"
-
-# Review if protection is still needed
-claudux update -m "Review and update content protection markers"
-```
-
-## Protection Override
-
-### Emergency Updates
-
-When protected content needs updating:
-
-```bash
-# Temporarily remove skip markers, update, then re-add
-claudux update -m "Update protected section X after removing skip markers"
-```
-
-### Selective Protection Removal
-
-Remove protection from specific sections:
-
-```markdown
-<!-- Previously protected section now ready for AI updates -->
-## Configuration Guide
-This section is now stable and can be automatically maintained.
-```
-
-## Protection Implementation
-
-Claudux implements protection through:
-
-1. **Pre-processing scan**: Identifies all protection markers before AI analysis
-2. **Content isolation**: Protected sections are excluded from AI context  
-3. **Post-processing merge**: Protected content is merged back after generation
-4. **Validation**: Ensures protection markers remain intact
-
-This multi-layer approach guarantees that protected content remains completely untouched during the documentation generation process.
+Delete the marker pair and run `claudux update` — the section becomes
+maintainable again. In manifest mode, update the manifest entry if the section
+was pinned there.

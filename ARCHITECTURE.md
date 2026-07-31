@@ -78,7 +78,7 @@ This section will not be documented.
 <!-- /skip -->
 ```
 
-`content-protection.sh` supports markers for markdown, Swift, JS/TS, Python, shell, HTML, and XML. The markers are stripped before the codebase snapshot is assembled.
+`content-protection.sh` defines marker pairs for markdown, Swift, JS/TS, Python, shell, HTML, and XML. Its helpers are utility functions — no pre-prompt stripping pass runs. The enforced preservation mechanism is the deterministic manifest path in `docs-manifest.sh`, which mirrors the same marker pairs and sha256-hashes skip-marker and pinned blocks in the guard snapshot; generation aborts if a guarded block changed.
 
 ## Concurrency
 

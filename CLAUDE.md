@@ -9,7 +9,7 @@
   - `lib/ui.sh` — CLI help/menu text surfaced to users
 - Do not edit `docs/**` or `docs/.vitepress/**` directly; they are generated artifacts.
 - Core conventions: Bash-first, snake_case, strict mode (`set -u` and `set -o pipefail`), check command availability, keep `bin/claudux` as a router only.
-- Safety: cleanup only removes stale generated docs; never touch source code. Respect protected paths configured in `lib/content-protection.sh`.
+- Safety: cleanup only removes stale generated docs; never touch source code. Content protection is enforced by the `docs-structure.json` manifest guards in `lib/docs-manifest.sh` (`lib/content-protection.sh` holds unused utility helpers — not an enforcement layer).
 - Deployment base: local/dev uses `process.env.DOCS_BASE || '/'`; CI sets `DOCS_BASE=/claudux/` for Pages.
 
 If content becomes procedural, versioned, or command-specific, move it into generators/templates under `lib/**` so the docs stay consistent and up to date.
