@@ -183,9 +183,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history so the identity gate can scan the whole PR range.
+          fetch-depth: 0
 
       - name: Secret scan
         run: bash scripts/secret-scan.sh
 
+      # On PRs, HEAD is a synthetic merge commit authored by GitHub, so a
+      # HEAD-only scan is blind to the branch commits' identities — a bad
+      # author surfaces only AFTER the squash lands on main (proven by the
+      # #150 merge, which turned main's CI red post-merge). Scan the whole
+      # base..HEAD range at PR time instead; pushes keep the HEAD-only scan.
       - name: Public-ready identity gate
-        run: python3 scripts/claudux-public-ready-grep-gate.py --metadata
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            git fetch -q origin "${{ github.base_ref }}"
+            python3 scripts/claudux-public-ready-grep-gate.py --metadata --range "origin/${{ github.base_ref }}..HEAD"
+          else
+            python3 scripts/claudux-public-ready-grep-gate.py --metadata
+          fi
