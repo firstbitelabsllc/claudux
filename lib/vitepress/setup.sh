@@ -240,9 +240,8 @@ cat > docs/package.json << EOF
   "scripts": {
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
-    "docs:build:pages": "DOCS_BASE=/claudux/ vitepress build",
-    "docs:preview": "vitepress preview",
-    "docs:setup": "../.vitepress-config/setup.sh"
+    "docs:build:pages": "DOCS_BASE=/${PACKAGE_NAME}/ vitepress build",
+    "docs:preview": "vitepress preview"
   },
   "devDependencies": {
     "vitepress": "^1.4.5",
