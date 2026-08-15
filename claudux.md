@@ -13,8 +13,9 @@ live in the generated docs; do not restate them here or they drift.
 
 - Verbosity is on by default — do NOT document a `-v`/`--verbose` flag or any
   `CLAUDUX_VERBOSE` configuration.
-- Default model is Sonnet (speed). If you mention model selection, note that
-  `FORCE_MODEL=opus claudux update` forces Opus when a heavier model helps.
+- Model selection: `claudux.json` `project.model` pins a repo's default tier
+  (this repo pins `fable`); `FORCE_MODEL=fable|opus|sonnet` overrides per run;
+  with neither set the default is Sonnet (speed).
 
 ## Positioning and voice
 

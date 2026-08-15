@@ -114,7 +114,7 @@ DETERMINISTIC MANIFEST RULE:
         --permission-mode acceptEdits \
         --allowedTools "Read,Write,Bash" \
         --verbose \
-        --model "${FORCE_MODEL:-sonnet}"
+        --model "${FORCE_MODEL:-${PROJECT_MODEL:-sonnet}}"
     
     local exit_code=$?
     echo ""

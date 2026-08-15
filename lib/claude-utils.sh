@@ -30,12 +30,17 @@ check_claude() {
 
 # Get model name and settings
 get_model_settings() {
-    local model="${FORCE_MODEL:-sonnet}"
+    local model="${FORCE_MODEL:-${PROJECT_MODEL:-sonnet}}"
     local model_name=""
     local timeout_msg=""
     local cost_estimate=""
     
     case "$model" in
+        "fable")
+            model_name="Claude Fable (highest quality)"
+            timeout_msg="⏳ This may take 90-180 seconds with Fable..."
+            cost_estimate="💰 Estimated cost: ~\$0.10 per run"
+            ;;
         "opus")
             model_name="Claude Opus (most powerful)"
             timeout_msg="⏳ This may take 60-120 seconds with Opus..."

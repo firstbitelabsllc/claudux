@@ -1,15 +1,50 @@
 #!/bin/bash
 # Project detection and configuration utilities
 
+# Extract a string value for KEY from FILE without jq. Scans the "project"
+# object first (claudux.json nests config under it) and falls back to the whole
+# file, so a minified or flat document still resolves. Prints nothing when the
+# key is absent.
+json_string_value_no_jq() {
+    local key="$1" file="$2" value=""
+
+    value=$(awk -v pat="\"$key\"[[:space:]]*:" '
+        /"project"[[:space:]]*:/ { inproj = 1 }
+        inproj && $0 ~ pat { print; exit }
+        inproj && /^[[:space:]]*}/ { exit }
+    ' "$file" 2>/dev/null | sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1)
+
+    if [[ -z "$value" ]]; then
+        value=$(sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$file" 2>/dev/null | head -1)
+    fi
+
+    printf '%s' "$value"
+}
+
 # Load project configuration from claudux.json or .claudux.json
 load_project_config() {
     PROJECT_NAME="Your Project"
     PROJECT_TYPE="generic"
+    PROJECT_MODEL=""
     
     # Try claudux.json first
-    if [[ -f "claudux.json" ]] && command -v jq &> /dev/null; then
-        PROJECT_NAME=$(jq -r '.project.name // "Your Project"' claudux.json 2>/dev/null || echo "Your Project")
-        PROJECT_TYPE=$(jq -r '.project.type // "generic"' claudux.json 2>/dev/null || echo "generic")
+    if [[ -f "claudux.json" ]]; then
+        if command -v jq &> /dev/null; then
+            PROJECT_NAME=$(jq -r '.project.name // "Your Project"' claudux.json 2>/dev/null || echo "Your Project")
+            PROJECT_TYPE=$(jq -r '.project.type // "generic"' claudux.json 2>/dev/null || echo "generic")
+            PROJECT_MODEL=$(jq -r '.project.model // empty' claudux.json 2>/dev/null || echo "")
+        else
+            # jq is optional, so parse the handful of scalars we need directly;
+            # without this an explicit project.model would silently degrade to
+            # the sonnet default.
+            local parsed
+            parsed=$(json_string_value_no_jq "name" claudux.json)
+            if [[ -n "$parsed" ]]; then PROJECT_NAME="$parsed"; fi
+            parsed=$(json_string_value_no_jq "type" claudux.json)
+            if [[ -n "$parsed" ]]; then PROJECT_TYPE="$parsed"; fi
+            parsed=$(json_string_value_no_jq "model" claudux.json)
+            if [[ -n "$parsed" ]]; then PROJECT_MODEL="$parsed"; fi
+        fi
     # Fallback to .claudux.json
     elif [[ -f ".claudux.json" ]]; then
         if command -v jq &> /dev/null; then
@@ -48,6 +83,8 @@ load_project_config() {
     
     export PROJECT_NAME
     export PROJECT_TYPE
+    # consumed by claude-utils.sh / cleanup.sh when FORCE_MODEL is unset
+    export PROJECT_MODEL
 }
 
 # Detect project type from file patterns

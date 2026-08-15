@@ -42,7 +42,7 @@ show_help() {
     echo "  --strict                 - Fail on broken internal links (update command)"
     echo ""
     echo "Environment:"
-    echo "  FORCE_MODEL=opus|sonnet  - Select Claude model (default: sonnet)"
+    echo "  FORCE_MODEL=fable|opus|sonnet - Select Claude model (default: claudux.json project.model, else sonnet)"
     echo "  CLAUDUX_BACKEND=codex    - Use Codex instead of Claude"
     echo "  CODEX_MODEL=...          - Select Codex model (default: gpt-5.4)"
     echo "  CODEX_REASONING_EFFORT=... - Select Codex reasoning effort (default: xhigh)"
