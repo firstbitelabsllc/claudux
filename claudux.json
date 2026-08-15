@@ -2,6 +2,7 @@
   "project": {
     "name": "claudux",
     "type": "javascript",
-    "description": "Local CLI that keeps VitePress docs true to your code with deterministic, no-AI CI drift checks, plus generation via Claude or Codex"
+    "description": "Local CLI that keeps VitePress docs true to your code with deterministic, no-AI CI drift checks, plus generation via Claude or Codex",
+    "model": "fable"
   }
 }

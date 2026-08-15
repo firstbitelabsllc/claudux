@@ -5,11 +5,13 @@
 load_project_config() {
     PROJECT_NAME="Your Project"
     PROJECT_TYPE="generic"
+    PROJECT_MODEL=""
     
     # Try claudux.json first
     if [[ -f "claudux.json" ]] && command -v jq &> /dev/null; then
         PROJECT_NAME=$(jq -r '.project.name // "Your Project"' claudux.json 2>/dev/null || echo "Your Project")
         PROJECT_TYPE=$(jq -r '.project.type // "generic"' claudux.json 2>/dev/null || echo "generic")
+        PROJECT_MODEL=$(jq -r '.project.model // empty' claudux.json 2>/dev/null || echo "")
     # Fallback to .claudux.json
     elif [[ -f ".claudux.json" ]]; then
         if command -v jq &> /dev/null; then
