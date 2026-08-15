@@ -30,6 +30,20 @@ rc=$?
 assert_exit_code "check passes with node + claude present" 0 "$rc"
 assert_contains "check reports success" "$output" "Environment check passed"
 
+# ── Reported model follows the generation resolution chain ───────────
+# FORCE_MODEL > claudux.json project.model > sonnet. A diagnostic that
+# reports a model generation will not use is worse than no diagnostic.
+printf '{\n  "project": {\n    "name": "stub",\n    "type": "javascript",\n    "model": "fable"\n  }\n}\n' > "$STUB_DIR/claudux.json"
+output=$(cd "$STUB_DIR" && PATH="$STUB_DIR:/usr/bin:/bin" bash "$REPO_ROOT/bin/claudux" check 2>&1)
+assert_contains "check reports configured project.model" "$output" "Model: fable"
+
+output=$(cd "$STUB_DIR" && PATH="$STUB_DIR:/usr/bin:/bin" FORCE_MODEL=opus bash "$REPO_ROOT/bin/claudux" check 2>&1)
+assert_contains "FORCE_MODEL overrides configured model" "$output" "Model: opus"
+
+rm -f "$STUB_DIR/claudux.json"
+output=$(cd "$STUB_DIR" && PATH="$STUB_DIR:/usr/bin:/bin" bash "$REPO_ROOT/bin/claudux" check 2>&1)
+assert_contains "check falls back to sonnet with no config" "$output" "Model: sonnet"
+
 # ── Backend CLI missing → exit 1 ─────────────────────────────────────
 # /usr/bin:/bin stay on PATH for coreutils; no platform installs the
 # Claude CLI there, so removing the stub removes the backend.
