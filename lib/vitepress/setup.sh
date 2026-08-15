@@ -97,8 +97,47 @@ load_project_config() {
     PACKAGE_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
 }
 
+# Resolve the GitHub Pages base path. It must match the repository slug that
+# Pages deploys under, not the project display name (which may differ).
+resolve_pages_base() {
+    local base=""
+
+    # Explicit override wins
+    if [[ -f "claudux.json" ]] && command -v jq &> /dev/null; then
+        local configured_base
+        configured_base=$(jq -r '.deployment.base // null' claudux.json 2>/dev/null)
+        if [[ "$configured_base" != "null" && -n "$configured_base" ]]; then
+            base="$configured_base"
+        fi
+    fi
+
+    # Otherwise derive from the git remote's repository slug
+    if [[ -z "$base" ]] && command -v git &> /dev/null; then
+        local remote_url
+        remote_url=$(git config --get remote.origin.url 2>/dev/null || true)
+        if [[ -n "$remote_url" ]]; then
+            base=$(basename "$remote_url" .git)
+        fi
+    fi
+
+    # Last resort: the working directory name
+    if [[ -z "$base" ]]; then
+        base=$(basename "$(pwd)")
+    fi
+
+    # Normalize to a leading and trailing slash
+    base="${base#/}"
+    base="${base%/}"
+    if [[ -z "$base" ]]; then
+        PAGES_BASE="/"
+    else
+        PAGES_BASE="/${base}/"
+    fi
+}
+
 # Load configuration
 load_project_config
+resolve_pages_base
 
 # Auto-detect and copy logo files for VitePress
 detect_and_setup_logo() {
@@ -240,7 +279,7 @@ cat > docs/package.json << EOF
   "scripts": {
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
-    "docs:build:pages": "DOCS_BASE=/${PACKAGE_NAME}/ vitepress build",
+    "docs:build:pages": "DOCS_BASE=${PAGES_BASE} vitepress build",
     "docs:preview": "vitepress preview"
   },
   "devDependencies": {
