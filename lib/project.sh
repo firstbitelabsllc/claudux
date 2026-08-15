@@ -50,6 +50,8 @@ load_project_config() {
     
     export PROJECT_NAME
     export PROJECT_TYPE
+    # consumed by claude-utils.sh / cleanup.sh when FORCE_MODEL is unset
+    export PROJECT_MODEL
 }
 
 # Detect project type from file patterns
