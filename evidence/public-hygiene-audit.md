@@ -29,6 +29,17 @@ No product documentation, workflow, package metadata, evidence finding, or
 runtime source contains a live private host, email address, credential,
 registry, or machine path.
 
+### Candidate commit metadata
+
+```bash
+python3 -B scripts/claudux-public-ready-grep-gate.py \
+  --metadata \
+  --range=origin/main..HEAD
+```
+
+Result: passed after the candidate commit identity was normalized to the
+maintainer's established public email.
+
 ### Reachable Git history
 
 ```bash
@@ -37,9 +48,12 @@ python3 -B scripts/claudux-public-ready-grep-gate.py \
   --range=--all
 ```
 
-Result: passed after the candidate commit identity was normalized to the
-maintainer's established public email. The full reachable commit set contains
-no private-company author, committer, or co-author email.
+Result: expected nonzero for the known synthetic `test@test.com` identity,
+which appears as author and committer on
+`93d5e6437be5b388f2199b080583db97b3ac4b89` and as a co-author trailer in
+older public test-era commits. The scan reports no private-company author,
+committer, or co-author email. Rewriting published history to remove the
+synthetic identity remains out of scope.
 
 ### Generated and cache artifacts
 
