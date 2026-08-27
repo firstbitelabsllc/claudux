@@ -213,13 +213,101 @@ claudux_docs_manifest_pathspecs() {
         'docs-site-plan.json'
 }
 
+claudux_path_is_unsafe_generation_target() {
+    local path="${1#./}"
+    local component current="" remaining="$path"
+
+    [[ -n "$path" ]] || return 1
+    case "$path" in
+        /*|..|../*|*/../*|*/..) return 0 ;;
+    esac
+
+    while [[ -n "$remaining" ]]; do
+        if [[ "$remaining" == */* ]]; then
+            component="${remaining%%/*}"
+            remaining="${remaining#*/}"
+        else
+            component="$remaining"
+            remaining=""
+        fi
+
+        [[ -z "$component" || "$component" == "." ]] && continue
+        current="${current:+$current/}$component"
+        [[ -L "$current" ]] && return 0
+    done
+
+    return 1
+}
+
+claudux_existing_generation_boundary_violations() {
+    local path configured_manifest
+
+    if [[ -e docs || -L docs ]]; then
+        find docs \
+            -type l -print0 -o \
+            \( -type d \( \
+                -name node_modules -o \
+                -path '*/.vitepress/cache' -o \
+                -path '*/.vitepress/dist' -o \
+                -path '*/.vitepress/temp' \
+            \) -prune \) 2>/dev/null
+    fi
+
+    if [[ -e .claudux || -L .claudux ]]; then
+        find .claudux -type l -print0 2>/dev/null
+    fi
+
+    for path in \
+        docs-structure.json \
+        docs-map.md \
+        .ai-docs-style.md \
+        docs-site-plan.json \
+        .claudux-state.json; do
+        if claudux_path_is_unsafe_generation_target "$path"; then
+            printf '%s\0' "$path"
+        fi
+    done
+
+    if declare -F docs_structure_path >/dev/null 2>&1; then
+        configured_manifest="$(docs_structure_path)"
+        if [[ -n "$configured_manifest" ]] && claudux_path_is_unsafe_generation_target "$configured_manifest"; then
+            printf '%s\0' "${configured_manifest#./}"
+        fi
+    fi
+}
+
+validate_generation_write_boundary() {
+    local path
+    local -a violations=()
+
+    while IFS= read -r -d '' path; do
+        [[ -z "$path" ]] && continue
+        if [[ ${#violations[@]} -eq 0 ]] || ! claudux_path_in_args "$path" "${violations[@]}"; then
+            violations[${#violations[@]}]="$path"
+        fi
+    done < <(claudux_existing_generation_boundary_violations)
+
+    if [[ ${#violations[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    warn "DOCUMENTATION BOUNDARY VIOLATION: generation paths must stay repository-relative and not traverse symlinks"
+    for path in "${violations[@]}"; do
+        printf '   • %s\n' "$(claudux_format_generation_path "$path")" >&2
+    done
+    warn "Replace unsafe documentation paths with regular repository paths before claudux update."
+    return 1
+}
+
 # True when generation is allowed to touch a repo path (docs tree, manifest
 # config, or local claudux checkpoint/cache artifacts).
 claudux_path_is_generation_allowed() {
     local path="${1#./}"
+    local allowed=false
+
     [[ -z "$path" ]] && return 1
-    [[ "$path" == docs/* ]] && return 0
-    [[ "$path" == .claudux/* ]] && return 0
+    [[ "$path" == docs/* ]] && allowed=true
+    [[ "$path" == .claudux/* ]] && allowed=true
 
     # Honor a configured manifest path (CLAUDUX_DOCS_STRUCTURE /
     # DOCS_STRUCTURE_FILE) so legitimate updates to the active manifest are not
@@ -229,16 +317,18 @@ claudux_path_is_generation_allowed() {
         configured_manifest="$(docs_structure_path)"
         configured_manifest="${configured_manifest#./}"
         if [[ -n "$configured_manifest" && "$path" == "$configured_manifest" ]]; then
-            return 0
+            allowed=true
         fi
     fi
 
     case "$path" in
         docs-structure.json|docs-map.md|.ai-docs-style.md|docs-site-plan.json|.claudux-state.json)
-            return 0
+            allowed=true
             ;;
     esac
-    return 1
+
+    $allowed || return 1
+    ! claudux_path_is_unsafe_generation_target "$path"
 }
 
 _claudux_git_status_has_second_path() {
@@ -551,6 +641,8 @@ capture_generation_workspace_snapshot() {
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         return 0
     fi
+
+    validate_generation_write_boundary || return 1
 
     CLAUDUX_GENERATION_START_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "")
     CLAUDUX_GENERATION_START_INDEX_TREE=$(git write-tree 2>/dev/null || echo "")
@@ -1052,6 +1144,8 @@ update() {
     # Show current git status
     show_git_status
     echo ""
+
+    validate_generation_write_boundary || error_exit "Documentation write boundary is unsafe"
 
     # Legacy hook retained for compatibility; the current implementation is a no-op.
     cleanup_docs_silent

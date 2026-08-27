@@ -118,4 +118,175 @@ weird_untracked_path=$'src/untracked -> note\nwith newline.txt'
 assert_eq "pre-existing untracked mutation is rejected" "1" "$(cat "$TEST_TMP_ROOT/untracked-rc")"
 assert_eq "pre-existing untracked content is restored" "user draft" "$(cat "$TEST_DIR/$weird_untracked_path")"
 
+TEST_DIR=$(setup_repo)
+OUTSIDE_DIR=$(mktemp -d "$TEST_TMP_ROOT/claudux-generation-outside-XXXXXX")
+printf '# Outside baseline\n' > "$OUTSIDE_DIR/index.md"
+cp "$OUTSIDE_DIR/index.md" "$OUTSIDE_DIR/original.md"
+(
+    cd "$TEST_DIR" || exit 1
+    rm -rf docs
+    ln -s "$OUTSIDE_DIR" docs
+    git add -A
+    git commit -q -m "track external docs symlink"
+    load_boundary
+    capture_rc=0
+    capture_generation_workspace_snapshot > "$TEST_TMP_ROOT/preexisting-symlink-output" 2>&1 || capture_rc=$?
+    if [[ $capture_rc -eq 0 ]]; then
+        printf '\nEscaped write.\n' >> docs/index.md
+    fi
+    printf '%s\n' "$capture_rc" > "$TEST_TMP_ROOT/preexisting-symlink-rc"
+)
+assert_eq "tracked docs symlink is rejected before generation" "1" "$(cat "$TEST_TMP_ROOT/preexisting-symlink-rc")"
+assert_contains "tracked docs symlink rejection names the unsafe path" "$(cat "$TEST_TMP_ROOT/preexisting-symlink-output")" '"docs"'
+assert_eq "preflight rejection leaves external docs unchanged" "$(cat "$OUTSIDE_DIR/original.md")" "$(cat "$OUTSIDE_DIR/index.md")"
+
+TEST_DIR=$(setup_repo)
+OUTSIDE_DIR=$(mktemp -d "$TEST_TMP_ROOT/claudux-generation-config-outside-XXXXXX")
+printf 'outside config\n' > "$OUTSIDE_DIR/docs-map.md"
+cp "$OUTSIDE_DIR/docs-map.md" "$OUTSIDE_DIR/original.md"
+(
+    cd "$TEST_DIR" || exit 1
+    ln -s "$OUTSIDE_DIR/docs-map.md" docs-map.md
+    git add docs-map.md
+    git commit -q -m "track external docs config symlink"
+    load_boundary
+    capture_rc=0
+    capture_generation_workspace_snapshot > "$TEST_TMP_ROOT/preexisting-config-symlink-output" 2>&1 || capture_rc=$?
+    if [[ $capture_rc -eq 0 ]]; then
+        printf 'escaped config write\n' >> docs-map.md
+    fi
+    printf '%s\n' "$capture_rc" > "$TEST_TMP_ROOT/preexisting-config-symlink-rc"
+)
+assert_eq "tracked docs config symlink is rejected before generation" "1" "$(cat "$TEST_TMP_ROOT/preexisting-config-symlink-rc")"
+assert_contains "tracked docs config symlink rejection names the unsafe path" "$(cat "$TEST_TMP_ROOT/preexisting-config-symlink-output")" '"docs-map.md"'
+assert_eq "config preflight leaves the external target unchanged" "$(cat "$OUTSIDE_DIR/original.md")" "$(cat "$OUTSIDE_DIR/docs-map.md")"
+
+TEST_DIR=$(setup_repo)
+OUTSIDE_DIR=$(mktemp -d "$TEST_TMP_ROOT/claudux-generation-state-outside-XXXXXX")
+printf 'outside state\n' > "$OUTSIDE_DIR/checkpoint"
+cp "$OUTSIDE_DIR/checkpoint" "$OUTSIDE_DIR/original"
+(
+    cd "$TEST_DIR" || exit 1
+    ln -s "$OUTSIDE_DIR" .claudux
+    git add .claudux
+    git commit -q -m "track external claudux state symlink"
+    load_boundary
+    capture_rc=0
+    capture_generation_workspace_snapshot > "$TEST_TMP_ROOT/preexisting-state-symlink-output" 2>&1 || capture_rc=$?
+    if [[ $capture_rc -eq 0 ]]; then
+        printf 'escaped state write\n' >> .claudux/checkpoint
+    fi
+    printf '%s\n' "$capture_rc" > "$TEST_TMP_ROOT/preexisting-state-symlink-rc"
+)
+assert_eq "tracked claudux state symlink is rejected before generation" "1" "$(cat "$TEST_TMP_ROOT/preexisting-state-symlink-rc")"
+assert_contains "tracked claudux state symlink rejection names the unsafe path" "$(cat "$TEST_TMP_ROOT/preexisting-state-symlink-output")" '".claudux"'
+assert_eq "state preflight leaves the external target unchanged" "$(cat "$OUTSIDE_DIR/original")" "$(cat "$OUTSIDE_DIR/checkpoint")"
+
+TEST_DIR=$(setup_repo)
+OUTSIDE_DIR=$(mktemp -d "$TEST_TMP_ROOT/claudux-generation-cli-state-outside-XXXXXX")
+CLI_STUB_DIR="$TEST_TMP_ROOT/cli-stubs"
+mkdir -p "$CLI_STUB_DIR" "$TEST_TMP_ROOT/cli-state"
+printf 'outside state\n' > "$OUTSIDE_DIR/checkpoint"
+cp "$OUTSIDE_DIR/checkpoint" "$TEST_TMP_ROOT/cli-state-original"
+cat > "$CLI_STUB_DIR/claude" <<'EOF'
+#!/bin/bash
+case "${1:-}" in
+    --version)
+        printf '1.0.0 (authenticated stub)\n'
+        ;;
+    auth)
+        [[ "${2:-}" == "status" ]] || exit 2
+        ;;
+    *)
+        printf 'invoked\n' >> "${CLAUDE_STUB_LOG:?}"
+        ;;
+esac
+EOF
+chmod +x "$CLI_STUB_DIR/claude"
+(
+    cd "$TEST_DIR" || exit 1
+    ln -s "$OUTSIDE_DIR" .claudux
+    git add .claudux
+    git commit -q -m "track external claudux state symlink"
+    cli_rc=0
+    PATH="$CLI_STUB_DIR:$PATH" \
+        XDG_STATE_HOME="$TEST_TMP_ROOT/cli-state" \
+        CLAUDE_STUB_LOG="$TEST_TMP_ROOT/cli-backend-invoked" \
+        /bin/bash "$REPO_ROOT/bin/claudux" update > "$TEST_TMP_ROOT/cli-boundary-output" 2>&1 || cli_rc=$?
+    printf '%s\n' "$cli_rc" > "$TEST_TMP_ROOT/cli-boundary-rc"
+)
+assert_eq "real update rejects an unsafe state boundary" "1" "$(cat "$TEST_TMP_ROOT/cli-boundary-rc")"
+assert_contains "real update names the unsafe state boundary" "$(cat "$TEST_TMP_ROOT/cli-boundary-output")" '".claudux"'
+assert_eq "real update never invokes the backend across an unsafe boundary" "not-invoked" "$([[ -e "$TEST_TMP_ROOT/cli-backend-invoked" ]] && echo invoked || echo not-invoked)"
+assert_eq "real update creates no files through the state symlink" "1" "$(find "$OUTSIDE_DIR" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"
+assert_eq "real update leaves the external state target unchanged" "$(cat "$TEST_TMP_ROOT/cli-state-original")" "$(cat "$OUTSIDE_DIR/checkpoint")"
+
+for manifest_mode in absolute parent; do
+    TEST_DIR=$(setup_repo)
+    OUTSIDE_DIR=$(mktemp -d "$TEST_TMP_ROOT/claudux-generation-manifest-$manifest_mode-XXXXXX")
+    printf '{"pages":[]}\n' > "$OUTSIDE_DIR/manifest.json"
+    cp "$OUTSIDE_DIR/manifest.json" "$OUTSIDE_DIR/original.json"
+    if [[ "$manifest_mode" == "absolute" ]]; then
+        manifest_path="$OUTSIDE_DIR/manifest.json"
+    else
+        manifest_path="../$(basename "$OUTSIDE_DIR")/manifest.json"
+    fi
+    (
+        cd "$TEST_DIR" || exit 1
+        load_boundary
+        export CLAUDUX_DOCS_STRUCTURE="$manifest_path"
+        docs_structure_path() { printf '%s\n' "$CLAUDUX_DOCS_STRUCTURE"; }
+        capture_rc=0
+        capture_generation_workspace_snapshot > "$TEST_TMP_ROOT/unsafe-manifest-$manifest_mode-output" 2>&1 || capture_rc=$?
+        if [[ $capture_rc -eq 0 ]]; then
+            printf '{"escaped":true}\n' > "$CLAUDUX_DOCS_STRUCTURE"
+        fi
+        printf '%s\n' "$capture_rc" > "$TEST_TMP_ROOT/unsafe-manifest-$manifest_mode-rc"
+    )
+    assert_eq "$manifest_mode configured manifest is rejected before generation" "1" "$(cat "$TEST_TMP_ROOT/unsafe-manifest-$manifest_mode-rc")"
+    assert_contains "$manifest_mode configured manifest rejection names the unsafe path" "$(cat "$TEST_TMP_ROOT/unsafe-manifest-$manifest_mode-output")" "$manifest_path"
+    assert_eq "$manifest_mode manifest preflight leaves the external target unchanged" "$(cat "$OUTSIDE_DIR/original.json")" "$(cat "$OUTSIDE_DIR/manifest.json")"
+done
+
+TEST_DIR=$(setup_repo)
+(
+    cd "$TEST_DIR" || exit 1
+    mkdir -p docs/node_modules/.bin docs/.vitepress/cache
+    ln -s ../vite/bin/vite.js docs/node_modules/.bin/vite
+    ln -s ../../generated/cache-entry docs/.vitepress/cache/cache-entry
+    load_boundary
+    capture_rc=0
+    capture_generation_workspace_snapshot > "$TEST_TMP_ROOT/generated-dependency-symlink-output" 2>&1 || capture_rc=$?
+    cleanup_generation_workspace_snapshot
+    printf '%s\n' "$capture_rc" > "$TEST_TMP_ROOT/generated-dependency-symlink-rc"
+)
+assert_eq "generated dependency and cache symlinks stay outside the docs write boundary" "0" "$(cat "$TEST_TMP_ROOT/generated-dependency-symlink-rc")"
+
+for validation_mode in retained final; do
+    TEST_DIR=$(setup_repo)
+    OUTSIDE_DIR=$(mktemp -d "$TEST_TMP_ROOT/claudux-generation-post-capture-XXXXXX")
+    printf '# Outside baseline\n' > "$OUTSIDE_DIR/index.md"
+    cp "$OUTSIDE_DIR/index.md" "$OUTSIDE_DIR/original.md"
+    (
+        cd "$TEST_DIR" || exit 1
+        load_boundary
+        capture_generation_workspace_snapshot
+        ln -s "$OUTSIDE_DIR" docs/escape
+        validation_rc=0
+        if [[ "$validation_mode" == "retained" ]]; then
+            validate_generation_workspace_unchanged --retain-snapshot > "$TEST_TMP_ROOT/post-capture-$validation_mode-output" 2>&1 || validation_rc=$?
+        else
+            validate_generation_workspace_unchanged > "$TEST_TMP_ROOT/post-capture-$validation_mode-output" 2>&1 || validation_rc=$?
+        fi
+        printf '%s\n' "$validation_rc" > "$TEST_TMP_ROOT/post-capture-$validation_mode-rc"
+        if [[ ! -e docs/escape && ! -L docs/escape ]]; then
+            printf 'removed\n' > "$TEST_TMP_ROOT/post-capture-$validation_mode-state"
+        fi
+    )
+    assert_eq "$validation_mode workspace guard rejects a new docs symlink" "1" "$(cat "$TEST_TMP_ROOT/post-capture-$validation_mode-rc")"
+    assert_contains "$validation_mode workspace guard names the unsafe path" "$(cat "$TEST_TMP_ROOT/post-capture-$validation_mode-output")" '"docs/escape"'
+    assert_eq "$validation_mode workspace guard removes the unsafe symlink" "removed" "$(cat "$TEST_TMP_ROOT/post-capture-$validation_mode-state")"
+    assert_eq "$validation_mode workspace guard leaves the external target unchanged" "$(cat "$OUTSIDE_DIR/original.md")" "$(cat "$OUTSIDE_DIR/index.md")"
+done
+
 test_summary
