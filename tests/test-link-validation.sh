@@ -37,12 +37,17 @@ run_validator() {
 echo "=== Link Validation Tests ==="
 echo ""
 
+run_validator "$REPO_ROOT" "$FIXTURE_ROOT/current-repo-broken-targets.txt"
+assert_exit_code "current repository links pass" 0 "$VALIDATION_RC"
+assert_contains "current repository reports success" "$VALIDATION_OUTPUT" "All internal links validated successfully"
+
 # Valid config routes, Markdown routes, assets, generated anchors, explicit
 # anchors, repeated VitePress slugs, and reference links.
 VALID_FIXTURE="$FIXTURE_ROOT/valid"
 mkdir -p \
     "$VALID_FIXTURE/docs/guide" \
     "$VALID_FIXTURE/docs/assets" \
+    "$VALID_FIXTURE/assets" \
     "$VALID_FIXTURE/docs/public/images"
 create_config "$VALID_FIXTURE" \
 "      { text: 'Home', link: '/' },
@@ -51,6 +56,15 @@ create_config "$VALID_FIXTURE" \
       { text: 'External', link: 'https://example.invalid/not-fetched' },
       { text: 'Mail', link: 'mailto:docs@example.invalid' },
       { text: 'Phone', link: 'tel:+15555550100' }"
+cat > "$VALID_FIXTURE/README.md" <<'EOF'
+# Project
+
+[Architecture](./ARCHITECTURE.md)
+[Guide](./docs/guide/)
+![Banner](./assets/banner.svg)
+EOF
+printf '# Architecture\n' > "$VALID_FIXTURE/ARCHITECTURE.md"
+printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' > "$VALID_FIXTURE/assets/banner.svg"
 cat > "$VALID_FIXTURE/docs/index.md" <<'EOF'
 # Home Heading
 
@@ -119,6 +133,11 @@ fi
 BROKEN_FIXTURE="$FIXTURE_ROOT/broken"
 mkdir -p "$BROKEN_FIXTURE/docs/.vitepress"
 create_config "$BROKEN_FIXTURE" "      { text: 'Home', link: '/' }"
+cat > "$BROKEN_FIXTURE/README.md" <<'EOF'
+# Project
+
+[Missing root page](./ARCHITECTURE-missing.md)
+EOF
 cat > "$BROKEN_FIXTURE/docs/index.md" <<'EOF'
 # Home
 
@@ -132,11 +151,13 @@ EOF
 
 run_validator "$BROKEN_FIXTURE" "$BROKEN_FIXTURE/broken-targets.txt"
 assert_exit_code "broken Markdown targets fail validation" 1 "$VALIDATION_RC"
-assert_contains "summary counts all broken Markdown targets" "$VALIDATION_OUTPUT" "Broken links: 3"
+assert_contains "summary counts README and docs targets" "$VALIDATION_OUTPUT" "Broken links: 4"
+assert_contains "missing README page is named" "$VALIDATION_OUTPUT" "Missing page: ARCHITECTURE-missing.md"
 assert_contains "missing Markdown page is named" "$VALIDATION_OUTPUT" "Missing page: docs/missing-page.md"
 assert_contains "missing image asset is named" "$VALIDATION_OUTPUT" "Missing asset: docs/assets/missing.svg"
 assert_contains "missing cross-page anchor is named" "$VALIDATION_OUTPUT" "Missing anchor '#not-present' in docs/target.md"
 BROKEN_TARGETS=$(cat "$BROKEN_FIXTURE/broken-targets.txt")
+assert_contains "output report includes missing README page" "$BROKEN_TARGETS" "ARCHITECTURE-missing.md"
 assert_contains "output report includes missing page" "$BROKEN_TARGETS" "docs/missing-page.md"
 assert_contains "output report includes missing asset" "$BROKEN_TARGETS" "docs/assets/missing.svg"
 assert_contains "output report includes missing anchor" "$BROKEN_TARGETS" "docs/target.md#not-present"
@@ -145,19 +166,29 @@ assert_contains "output report includes missing anchor" "$BROKEN_TARGETS" "docs/
 ESCAPE_FIXTURE="$FIXTURE_ROOT/escape"
 mkdir -p "$ESCAPE_FIXTURE/docs"
 create_config "$ESCAPE_FIXTURE" "      { text: 'Home', link: '/' }"
+cat > "$ESCAPE_FIXTURE/README.md" <<'EOF'
+# Project
+
+[Outside repository](../outside-root.md)
+EOF
 cat > "$ESCAPE_FIXTURE/docs/index.md" <<'EOF'
 # Home
 
 [Outside docs](../outside.md)
 EOF
 printf '# Outside\n' > "$ESCAPE_FIXTURE/outside.md"
+printf '# Outside root\n' > "$FIXTURE_ROOT/outside-root.md"
 
 run_validator "$ESCAPE_FIXTURE" "$ESCAPE_FIXTURE/broken-targets.txt"
 assert_exit_code "path traversal fails validation" 1 "$VALIDATION_RC"
 assert_contains "path traversal explains the boundary failure" "$VALIDATION_OUTPUT" "Path escapes documentation root"
+assert_contains "README traversal explains the repository boundary" "$VALIDATION_OUTPUT" "Path escapes repository root"
 assert_contains "path traversal target is preserved in output report" \
     "$(cat "$ESCAPE_FIXTURE/broken-targets.txt")" \
     "../outside.md"
+assert_contains "README traversal target is preserved in output report" \
+    "$(cat "$ESCAPE_FIXTURE/broken-targets.txt")" \
+    "../outside-root.md"
 
 # Existing VitePress config route validation remains part of the same report.
 CONFIG_FIXTURE="$FIXTURE_ROOT/config"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Validate VitePress config routes and local links in Markdown documentation.
+# Validate README links, VitePress config routes, and local documentation links.
 
 set -u
 
@@ -33,6 +33,7 @@ const path = require('path');
 const projectRoot = process.cwd();
 const docsRoot = path.resolve(projectRoot, 'docs');
 const publicRoot = path.join(docsRoot, 'public');
+const readmeFile = path.join(projectRoot, 'README.md');
 const outputFile = process.argv[2] || '';
 
 function fail(message) {
@@ -564,6 +565,10 @@ function resolveReference(reference, targetPath) {
         || (extension && extension !== '.md' && extension !== '.html' && extension !== '.htm')
         ? 'asset'
         : 'page';
+    const sourceIsDocumentation = reference.sourceType === 'config'
+        || isWithin(docsRoot, reference.sourceFile);
+    const sourceRoot = sourceIsDocumentation ? docsRoot : projectRoot;
+    const boundaryLabel = sourceIsDocumentation ? 'documentation root' : 'repository root';
 
     if (!targetPath) {
         return {
@@ -571,21 +576,24 @@ function resolveReference(reference, targetPath) {
             filePath: reference.sourceType === 'markdown'
                 ? reference.sourceFile
                 : path.join(docsRoot, 'index.md'),
-            containmentRoot: docsRoot
+            containmentRoot: sourceRoot,
+            boundaryLabel
         };
     }
 
     const rooted = targetPath.startsWith('/');
-    const base = kind === 'asset' && rooted
+    const base = sourceIsDocumentation && kind === 'asset' && rooted
         ? publicRoot
         : rooted || reference.sourceType === 'config'
-            ? docsRoot
+            ? sourceRoot
             : path.dirname(reference.sourceFile);
-    const containmentRoot = kind === 'asset' && rooted ? publicRoot : docsRoot;
+    const containmentRoot = sourceIsDocumentation && kind === 'asset' && rooted
+        ? publicRoot
+        : sourceRoot;
     const relativeTarget = rooted ? targetPath.replace(/^\/+/, '') : targetPath;
     const unresolved = path.resolve(base, relativeTarget || '.');
     if (!isWithin(containmentRoot, unresolved)) {
-        return { kind, escaped: true };
+        return { kind, escaped: true, boundaryLabel };
     }
 
     let filePath = unresolved;
@@ -599,8 +607,8 @@ function resolveReference(reference, targetPath) {
         }
     }
     return isWithin(containmentRoot, filePath)
-        ? { kind, filePath, containmentRoot }
-        : { kind, escaped: true };
+        ? { kind, filePath, containmentRoot, boundaryLabel }
+        : { kind, escaped: true, boundaryLabel };
 }
 
 function inspectFile(filePath, containmentRoot) {
@@ -645,6 +653,13 @@ function main() {
     const cache = new Map();
     const references = configReferences(configFile);
     const duplicateAnchors = [];
+
+    if (fs.existsSync(readmeFile) && fs.statSync(readmeFile).isFile()) {
+        const parsed = parseMarkdownFile(readmeFile);
+        cache.set(fs.realpathSync(readmeFile), parsed);
+        references.push(...parsed.references);
+        duplicateAnchors.push(...parsed.duplicates);
+    }
 
     markdownFiles(docsRoot).forEach((markdownFile) => {
         const parsed = parseMarkdownFile(markdownFile);
@@ -692,7 +707,7 @@ function main() {
 
         const resolved = resolveReference(reference, targetPath);
         if (resolved.escaped) {
-            addBroken(broken, reference, target, 'Path escapes documentation root', target);
+            addBroken(broken, reference, target, `Path escapes ${resolved.boundaryLabel}`, target);
             return;
         }
 
@@ -702,7 +717,7 @@ function main() {
                 broken,
                 reference,
                 target,
-                'Resolved path escapes documentation root through a symlink',
+                `Resolved path escapes ${resolved.boundaryLabel} through a symlink`,
                 target
             );
             return;
