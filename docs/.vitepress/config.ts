@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitepress'
 
+const base = process.env.DOCS_BASE || '/'
+
 export default defineConfig({
   title: 'claudux',
   description: 'Generate VitePress docs from your codebase via Claude or Codex, preview them locally, ship them.',
-  base: process.env.DOCS_BASE || '/',
+  base,
   
   // Ignore localhost links during static builds
   ignoreDeadLinks: [
@@ -11,6 +13,7 @@ export default defineConfig({
   ],
   
   head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
     ['meta', { name: 'theme-color', content: '#5f67ee' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'en' }],
