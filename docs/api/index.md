@@ -1,251 +1,301 @@
-# CLI API Reference
+# CLI Reference
 
-Complete reference for all claudux command-line interface options and behaviors.
+This page documents the public command-line surface and the execution boundary
+behind each command.
 
-## Commands
+## Synopsis
 
-### `claudux`
-
-**Syntax**: `claudux [command] [options]`
-
-**Description**: Main entry point. Without arguments, shows interactive menu.
-
-**Examples:**
 ```bash
-claudux                 # Interactive menu
-claudux update          # Generate documentation
-claudux serve           # Start dev server  
-claudux --help          # Show help
+claudux
+claudux update [--with|-m <directive>] [--strict]
+claudux serve
+claudux check
+claudux help
+claudux --version
 ```
 
-### `claudux update`
+Run `claudux` without arguments to open the interactive menu.
 
-**Syntax**: `claudux update [options]`
+## `claudux update`
 
-**Description**: Generate or update documentation by analyzing the current codebase.
+Generate or update documentation from the current project.
 
-**Options:**
-- `-m, --message, --with <directive>`: Focused directive for generation
-- `--strict`: Fail on broken links (exit code 1)
-
-**Examples:**
 ```bash
 claudux update
-claudux update -m "Focus on API documentation"  
-claudux update --with "Add deployment guide"
+claudux update -m "Document the new authentication flow"
+claudux update --with "Focus on deployment"
 claudux update --strict
 ```
 
-**Process flow:**
-1. Load project configuration and detect type
-2. Build the AI prompt
-3. Execute two-phase generation (analysis → creation)  
-4. Validate all internal links
-5. Display change summary
+### Options
 
-**Exit codes:**
-- `0`: Success
-- `1`: Generation failed or broken links in strict mode
-- `124`: Timeout
-- `130`: Interrupted
+| Option | Meaning |
+|--------|---------|
+| `-m <directive>` | Add a focused instruction to the generation prompt |
+| `--message <directive>` | Same as `-m` |
+| `--with <directive>` | Same as `-m` |
+| `--strict` | Fail if local-link problems remain after the optional repair pass |
 
-### `claudux serve`
+An option without its required directive, an unknown option, or an unexpected
+positional argument exits with code `2`.
 
-**Syntax**: `claudux serve`
+### Execution flow
 
-**Description**: Start VitePress development server for local documentation preview.
+1. Load project configuration and detect the project type.
+2. Validate `docs-structure.json` when present.
+3. Build the static analysis index and manifest guard snapshot.
+4. Resolve incremental source changes and impact scope.
+5. Build one backend prompt.
+6. Check the selected backend and invoke it.
+7. Enforce default source rollback or apply the manifest patch batch.
+8. Run manifest, protected-content, source-boundary, and local-link checks.
+9. Optionally launch one focused missing-page repair update.
+10. Refresh deterministic caches and save the successful checkpoint.
+11. Print the working-tree change summary.
 
-**Behavior:**
-- Serves at `http://localhost:5173`
-- Hot reload on file changes
-- Automatically installs VitePress dependencies if needed
-- Prompts to generate docs if none exist
+The prompt asks the model to analyze before writing, but that is one backend
+invocation rather than a separate plan artifact and write artifact.
 
-**Examples:**
+### Default generation
+
+Without manifest section-patch mode, the backend may write documentation paths
+directly. In a Git checkout, claudux snapshots unrelated dirty work and
+starting `HEAD`, then rejects and restores any change or commit outside the
+documentation allowlist. Generated docs remain in the working tree for review.
+
+### Manifest generation
+
+With a qualifying committed `docs-structure.json`, the backend is read-only
+and must return section-patch JSON. Claudux validates the complete batch,
+stages target files, checks for concurrent edits, and commits or restores the
+target batch transactionally.
+
+The patch transaction does not include later guard, link, cache, or checkpoint
+stages.
+
+### Link behavior
+
+The validator checks VitePress routes, Markdown links, local assets, anchors,
+duplicate explicit IDs, traversal, and symlink escape. External URLs are
+skipped.
+
+- Default: unresolved failures warn after the optional repair pass.
+- `--strict`: unresolved failures exit nonzero.
+
+## `claudux serve`
+
+Preview existing documentation with the VitePress development server.
+
 ```bash
 claudux serve
-# 📖 Docs available at: http://localhost:5173
-# Press Ctrl+C to stop the server
 ```
 
-### `claudux check`
+Aliases: `claudux server`, `claudux dev`.
 
-**Syntax**: `claudux check`
+Behavior:
 
-**Description**: Validate environment and display system status.
+- Requires `docs/index.md`; otherwise prints `claudux update` guidance and
+  returns nonzero.
+- Never invokes Claude or Codex.
+- Runs VitePress setup when support files are missing.
+- May copy the bundled theme and build-isolation files.
+- May create a minimal VitePress config.
+- Rewrites `docs/package.json` during setup.
+- Runs `npm install --no-audit --no-fund` when VitePress is absent.
+- Verifies the `docs:dev` script.
+- Starts `npm run docs:dev` from `docs/`.
 
-**Output example:**
-```
-🔎 Environment check
+The reported preview URL is `http://localhost:5173`.
 
-• Node: v18.17.0
-• Backend: claude
-• Claude CLI: 2.1.214 (Claude Code)
-• docs/: present
-```
+## `claudux check`
 
-**Validates:**
-- Node.js version (≥18 required)
-- Claude CLI installation and authentication
-- Documentation directory status
-
-## Global Options
-
-### `--help`, `-h`, `help`
-
-**Syntax**: `claudux [--help|-h|help]`
-
-**Description**: Display help information and usage examples.
-
-### `--version`, `-V`, `version`
-
-**Syntax**: `claudux [--version|-V|version]`
-
-**Description**: Display the installed claudux version.
-
-**Output**: `claudux 2.0.7`
-
-## Environment Variables
-
-### `FORCE_MODEL`
-
-**Values**: `opus`, `sonnet`
-
-**Default**: `sonnet`
-
-**Description**: Select Claude model for generation.
+Validate the local runtime and selected backend.
 
 ```bash
-FORCE_MODEL=opus claudux update    # More capable, slower
-FORCE_MODEL=sonnet claudux update  # Faster, default
+claudux check
 ```
 
-### `CLAUDUX_MESSAGE`
+Alias: `claudux --check`.
 
-**Description**: Default directive message for updates.
+Checks:
+
+- Node.js exists and is version 18 or newer.
+- The selected backend is `claude` or `codex`.
+- The selected backend CLI exists.
+- The selected backend authentication check succeeds.
+- Reports whether `docs/` exists.
+
+`check` does not generate documentation. For current Codex CLIs it uses
+`codex login status`. The compatibility path for older CLIs may run a small
+`codex exec` probe and can therefore consume provider tokens.
+
+The command exits `1` when one or more required checks fail.
+
+## Help and version
 
 ```bash
-CLAUDUX_MESSAGE="Focus on API docs" claudux update
-# Equivalent to: claudux update -m "Focus on API docs"
+claudux --help
+claudux -h
+claudux help
+
+claudux --version
+claudux -V
+claudux version
 ```
 
-### `DOCS_BASE`
+Version output is read from the installed `package.json`.
 
-**Description**: Base path for deployed documentation (CI/CD use).
+## Interactive menu
 
-```bash
-export DOCS_BASE='/my-project/'  # For GitHub Pages deployment
-claudux update
-```
+Without existing docs:
 
-**Usage**: Set in CI environments for proper deployment paths. Local development always uses `/`.
-
-### `CLAUDUX_BACKEND`
-
-**Values**: `claude`, `codex`
-
-**Default**: `claude`
-
-**Description**: Select the model backend used by generation commands.
-
-```bash
-CLAUDUX_BACKEND=codex claudux update
-```
-
-### `CODEX_MODEL` and `CODEX_REASONING_EFFORT`
-
-**Defaults**: `gpt-5.4` and `xhigh`
-
-**Description**: Configure the Codex backend when `CLAUDUX_BACKEND=codex`.
-
-```bash
-export CLAUDUX_BACKEND=codex
-export CODEX_MODEL=gpt-5.4
-export CODEX_REASONING_EFFORT=xhigh
-claudux update
-```
-
-## Exit Codes
-
-Claudux follows standard Unix conventions:
-
-| Code | Meaning | Common Causes |
-|------|---------|---------------|
-| `0` | Success | Normal operation completed |
-| `1` | General error | Missing dependencies, configuration issues |
-| `2` | Usage error | Invalid command-line arguments |
-| `124` | Timeout | Backend timeout, network issues |
-| `130` | Interrupted | User pressed Ctrl+C |
-
-## Interactive Menu API
-
-### Menu States
-
-**No existing documentation:**
-```
-1) Generate docs              (scan code → markdown)
-2) Serve                      (vitepress dev server) 
+```text
+1) Generate docs
+2) Serve
 3) Exit
 ```
 
-**Existing documentation:**
-```
-1) Update docs                (regenerate from code)
-2) Update (focused)           (enter directive → update)
-3) Serve                      (vitepress dev server)
+With existing docs:
+
+```text
+1) Update docs
+2) Update (focused)
+3) Serve
 4) Exit
 ```
 
-### Menu Behavior
+The generation choices call `update`. The serve choice uses the model-free
+preview path.
 
-**Navigation**: Use number keys + Enter
-**Cancellation**: Ctrl+C at any time
-**Error handling**: Invalid selections prompt retry
+## Environment variables
 
-## Configuration Files API
+### Backend selection
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `CLAUDUX_BACKEND` | `claude` | Select `claude` or `codex` |
+| `FORCE_MODEL` | Project model or `sonnet` | Select the Claude model |
+| `CODEX_MODEL` | `gpt-5.4` | Select the Codex model |
+| `CODEX_REASONING_EFFORT` | `xhigh` | Set Codex reasoning effort |
+| `CLAUDUX_TIMEOUT` | `600` | Codex timeout in seconds when `timeout` or `gtimeout` is available; `0` disables it |
+
+### Prompt and docs behavior
+
+| Variable | Meaning |
+|----------|---------|
+| `CLAUDUX_MESSAGE` | Default focused directive when no `-m`/`--with` value is supplied |
+| `DOCS_BASE` | VitePress base path normalized into generated config |
+| `CLAUDUX_DOCS_STRUCTURE` | Override the manifest path |
+| `DOCS_STRUCTURE_FILE` | Alternate manifest-path override recognized by the manifest helper |
+| `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` | Permit an explicitly flagged manifest patch to target pinned content |
+
+Unlocking pinned sections also requires the returned patch to set
+`unlock_pinned: true`.
+
+### Runtime paths and Codex sandbox
+
+| Variable | Meaning |
+|----------|---------|
+| `XDG_STATE_HOME` | Base for project locks and Codex stderr state |
+| `TMPDIR` | Base for process-private temporary files |
+| `CODEX_STDERR_LOG` | Override the Codex stderr log path |
+| `CODEX_SANDBOX_MODE` | Override the default Codex sandbox mode |
+
+Codex defaults to `workspace-write` for normal generation and `read-only` for
+section-patch mode. Overriding the sandbox can weaken that pre-execution
+boundary; manifest patch validation still controls accepted documentation
+output.
+
+## Configuration files
 
 ### `claudux.json`
 
-**Location**: Project root
+The main CLI reads:
 
-**Schema:**
 ```json
 {
   "project": {
-    "name": "string",              // Project display name
-    "type": "string"               // Project type override
+    "name": "My Project",
+    "type": "react",
+    "model": "sonnet"
   }
 }
 ```
 
+- `project.name`: display name
+- `project.type`: accepted built-in or profile-backed project type
+- `project.model`: Claude model used when `FORCE_MODEL` is unset
+
+The VitePress setup path can additionally read:
+
+```json
+{
+  "deployment": {
+    "base": "/my-project/",
+    "siteUrl": "https://example.com/my-project/"
+  }
+}
+```
+
+Those deployment values currently require `jq` in the setup script.
+
+### `.claudux.json`
+
+Legacy flat configuration. The CLI reads `name` and `type`.
+
 ### `claudux.md`
 
-**Location**: Project root
+Optional free-form documentation preferences. The generation prompt tells the
+backend to read it when present.
 
-**Purpose**: Optional documentation preferences and site-structure guidance, read by `update` when present.
+### `docs-structure.json`
 
-**Format**: Markdown with structured sections for site configuration, page hierarchy, and styling preferences.
+Deterministic page and section contract. It can define:
 
-## Integration APIs
+- Page ID, path, title, group, and order
+- Source ownership patterns
+- Required sections
+- Pinned or explicit read-only sections
+- Deletion policy
+- Stable page and section IDs used as patch addresses
 
-### Git Integration
+See [Deterministic Generation](/technical/deterministic-generation).
 
-**Requirements**: Must be run from git repository
+## Generated and state paths
 
-**Behavior:**
-- Auto-detects project root via `git rev-parse --show-toplevel`
-- Shows git status before generation
-- Tracks documentation changes in git history
+| Path | Purpose |
+|------|---------|
+| `docs/` | Generated or maintained VitePress site |
+| `.claudux-state.json` | Successful freshness checkpoint |
+| `.claudux/index/` | Static analysis, impact, guard, and cache artifacts |
+| XDG state `claudux/locks/` | Per-project process locks |
+| XDG state `claudux/codex-stderr.log` | Owner-scoped Codex stderr by default |
 
-### VitePress Integration
+Failed runs do not advance the successful checkpoint.
 
-**Generated files:**
-- `docs/.vitepress/config.ts` - VitePress configuration
-- `docs/package.json` - VitePress dependencies
-- `docs/vite.config.js` - Vite build configuration
+## Exit codes
 
-**Development server**: 
-- Port: `5173` (VitePress default)
-- Command: `npm run docs:dev` (from docs/ directory)
+| Code | Meaning |
+|------|---------|
+| `0` | Command completed successfully |
+| `1` | Runtime, backend, generation, validation, or readiness failure |
+| `2` | Invalid command or command-line usage |
+| `124` | Backend timeout |
+| `130` | Interrupted with Ctrl+C |
 
-This API reference provides the complete interface for automating and integrating claudux into your development workflow.
+The exact nonzero code of an underlying npm or backend process can also
+propagate through the shell pipeline.
+
+## Automation guidance
+
+`claudux update` is model-backed and may change documentation. For CI gates,
+prefer deterministic checks against an already-generated tree:
+
+```bash
+bash lib/validate-links.sh
+npm --prefix docs run docs:build
+```
+
+If CI intentionally runs generation, pin the Claudux revision, backend
+configuration, manifest, and strict-link policy, then inspect the resulting
+diff rather than treating exit `0` as proof of prose correctness.

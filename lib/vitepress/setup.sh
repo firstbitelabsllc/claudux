@@ -184,6 +184,28 @@ detect_and_setup_logo() {
 # Detect and setup logo
 detect_and_setup_logo
 
+ensure_favicon() {
+    local favicon_path="docs/public/favicon.ico"
+    local encoded_favicon='AAABAAEAICAAAAEAIABXAgAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAAgAAAAIAgGAAAAc3p69AAAAAFzUkdCAK7OHOkAAABEZVhJZk1NACoAAAAIAAGHaQAEAAAAAQAAABoAAAAAAAOgAQADAAAAAQABAACgAgAEAAAAAQAAACCgAwAEAAAAAQAAACAAAAAArIZi8wAAAcFJREFUWAljZEAChoa2olxcbLlAIV9Gxv8qDAyMPEjSFDD/f/n/n/EO0IDN3779mnz+/OHXMMMYYQwrK8dgRkameYyMDHwwMVrQ//8zfPr//1/SsWP714LMBzsAYjnjakYgoIWl6Gb+h4BQkCMYocF+h9Y+x3QEwydgdKgwgeKc3paDHAOyE2Q3EwPDfz9019GR78sCdIkyIQsPH95DSAnD7t37GZqaWgmqQ1YAymnAEKBOVpOVlWOoq6tGNp8INiMP0AHUA+Q4gqoOAHmFVEdQ3QGkOoLRxsb5P6FIICYRYjPD1tYFmzCKGE1CAMUGApxRB7AQCCEU6aysfIbLl6+iiKFzdHV1GKZNm4AujJM/4FFAUghMmzYRp0/IlRhaITCaBoZlGhjwRDgYHPD/C7l5mHJ9/7+wgHoswHahAT7DiKlW8enHJQeyGxQFm3EpoIP4ZiZQXw3UXaKDZShWgOwE2c0E6iiC+mqg3hKKChpyID2zf0kgu5lB9jx+/OC6rKzCFWAT3QOYHthpaDcDpHP6PwbWOQU7AOYIERGZuayszD+AvSUBoEOAXXNGNuo4Btw9vwY0azYw2GNOnz54BmYuADCaojdY5LwgAAAAAElFTkSuQmCC'
+
+    if [[ -f "$favicon_path" ]]; then
+        echo "   ✅ Existing favicon.ico preserved"
+        return 0
+    fi
+
+    if printf '%s' "$encoded_favicon" | base64 --decode > "$favicon_path" 2>/dev/null ||
+        printf '%s' "$encoded_favicon" | base64 -D > "$favicon_path" 2>/dev/null; then
+        echo "   ✅ Added fallback favicon.ico"
+        return 0
+    fi
+
+    rm -f "$favicon_path"
+    echo "   ❌ Unable to create fallback favicon.ico"
+    return 1
+}
+
+ensure_favicon
+
 # Configure VitePress with dynamic project info
 configure_vitepress() {
     echo "⚙️  Configuring VitePress with project details..."
@@ -274,6 +296,7 @@ cat > docs/package.json << EOF
 {
   "name": "${PACKAGE_NAME}-docs",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "description": "${PROJECT_NAME} documentation with enhanced VitePress configuration",
   "scripts": {
@@ -289,8 +312,10 @@ cat > docs/package.json << EOF
     "@types/node": "^18.0.0"
   },
   "overrides": {
-    "vite": "^5.4.21",
-    "esbuild": "^0.25.0"
+    "vite": "^6.4.3",
+    "esbuild": "^0.25.0",
+    "postcss": "^8.5.18",
+    "nanoid": "^3.3.18"
   }
 }
 EOF
@@ -317,4 +342,4 @@ echo "🚀 Start the enhanced documentation server:"
 echo "   cd docs && npm run docs:dev"
 echo ""
 echo "📝 To regenerate docs:"
-echo "   Run claudux from your project root" 
+echo "   Run claudux from your project root"

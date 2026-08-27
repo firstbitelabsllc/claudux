@@ -8,11 +8,52 @@
 set -u
 set -o pipefail  # Pipe failure propagates
 
+CLAUDUX_LOCK_PATH=""
+
+release_project_lock() {
+    local lock_path="${CLAUDUX_LOCK_PATH:-}"
+    local lock_pid=""
+
+    if [[ -z "$lock_path" ]] || [[ ! -d "$lock_path" ]] || [[ -L "$lock_path" ]]; then
+        return 0
+    fi
+
+    lock_pid=$(cat "$lock_path/pid" 2>/dev/null || true)
+    if [[ "$lock_pid" == "$$" ]]; then
+        rm -f -- "$lock_path/pid"
+        rmdir -- "$lock_path" 2>/dev/null || true
+    fi
+
+    CLAUDUX_LOCK_PATH=""
+}
+
 # Better interrupt handling
 cleanup_on_exit() {
     local exit_code=$?
+    local job_pid
+    local job_pids=()
+
     # Kill any background processes
-    jobs -p 2>/dev/null | xargs -r kill 2>/dev/null || true
+    while IFS= read -r job_pid; do
+        if [[ -n "$job_pid" ]]; then
+            job_pids[${#job_pids[@]}]="$job_pid"
+        fi
+    done < <(jobs -p 2>/dev/null)
+
+    if [[ ${#job_pids[@]} -gt 0 ]]; then
+        for job_pid in "${job_pids[@]}"; do
+            kill "$job_pid" 2>/dev/null || true
+        done
+        for job_pid in "${job_pids[@]}"; do
+            wait "$job_pid" 2>/dev/null || true
+        done
+    fi
+
+    if declare -F cleanup_docs_generation_runtime >/dev/null 2>&1; then
+        cleanup_docs_generation_runtime
+    fi
+    release_project_lock
+
     exit $exit_code
 }
 
@@ -136,35 +177,172 @@ check_function() {
     fi
 }
 
-# Implement file locking for concurrent execution safety (per-user, not shared TMPDIR).
-acquire_lock() {
-    local lock_dir lock_file lock_pid path_hash
-    lock_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claudux/locks"
-    mkdir -p "$lock_dir"
-    path_hash="$(pwd | md5sum 2>/dev/null | cut -d' ' -f1 || pwd | md5 | awk '{print $NF}')"
-    lock_file="${lock_dir}/claudux-${path_hash}.lock"
-    
-    # Check if lock file exists and if the process is still running
-    if [[ -f "$lock_file" ]]; then
-        lock_pid=$(cat "$lock_file" 2>/dev/null)
-        if [[ -n "$lock_pid" ]] && kill -0 "$lock_pid" 2>/dev/null; then
-            warn "Another claudux instance is already running (PID: $lock_pid)"
-            warn "Concurrent operations may cause conflicts"
-            # Continue anyway - just a warning
-        else
-            # Stale lock file, remove it
-            rm -f "$lock_file"
-        fi
+validate_backend_selection() {
+    local backend="${CLAUDUX_BACKEND:-claude}"
+
+    case "$backend" in
+        claude|codex)
+            return 0
+            ;;
+        *)
+            error_exit "Unsupported CLAUDUX_BACKEND '$backend'; expected 'claude' or 'codex'" 2
+            ;;
+    esac
+}
+
+# Validate a PID read from a lock before passing it to kill.
+is_lock_pid() {
+    [[ "${1:-}" =~ ^[1-9][0-9]*$ ]]
+}
+
+report_live_lock() {
+    local lock_pid="$1"
+    warn "Another claudux instance is already running (PID: $lock_pid)"
+    warn "Refusing to run concurrent project updates"
+}
+
+# Older releases used a plain lock file. Honor live owners and remove only a
+# regular, unchanged file whose recorded process is no longer running.
+recover_legacy_lock() {
+    local lock_file="$1"
+    local lock_pid current_pid
+
+    if [[ ! -e "$lock_file" ]] && [[ ! -L "$lock_file" ]]; then
+        return 0
     fi
-    
-    # Create lock file with our PID
-    echo $$ > "$lock_file"
-    
-    # Set up cleanup on exit
-    # shellcheck disable=SC2064
-    trap "rm -f '$lock_file' 2>/dev/null" EXIT
-    
-    return 0
+    if [[ -L "$lock_file" ]] || [[ ! -f "$lock_file" ]]; then
+        warn "Project lock has an unsafe legacy format: $lock_file"
+        return 1
+    fi
+
+    lock_pid=$(cat "$lock_file" 2>/dev/null || true)
+    if ! is_lock_pid "$lock_pid"; then
+        warn "Project lock has an invalid owner and cannot be recovered safely: $lock_file"
+        return 1
+    fi
+    if kill -0 "$lock_pid" 2>/dev/null; then
+        report_live_lock "$lock_pid"
+        return 1
+    fi
+
+    current_pid=$(cat "$lock_file" 2>/dev/null || true)
+    if [[ "$current_pid" != "$lock_pid" ]] || kill -0 "$current_pid" 2>/dev/null; then
+        warn "Project lock changed during stale-lock recovery"
+        return 1
+    fi
+
+    rm -f -- "$lock_file"
+}
+
+# Claim stale-lock recovery inside the existing directory. The directory keeps
+# new owners out until the reclaimer has revalidated and removed the dead lock.
+reclaim_stale_lock() {
+    local lock_path="$1"
+    local expected_pid="$2"
+    local reclaim_path="$lock_path/.reclaim"
+    local current_pid
+
+    if ! mkdir "$reclaim_path" 2>/dev/null; then
+        return 2
+    fi
+    if ! printf '%s\n' "$$" > "$reclaim_path/pid"; then
+        rmdir "$reclaim_path" 2>/dev/null || true
+        return 1
+    fi
+
+    current_pid=$(cat "$lock_path/pid" 2>/dev/null || true)
+    if [[ "$current_pid" != "$expected_pid" ]] ||
+        ! is_lock_pid "$current_pid" ||
+        kill -0 "$current_pid" 2>/dev/null; then
+        rm -f -- "$reclaim_path/pid"
+        rmdir "$reclaim_path" 2>/dev/null || true
+        return 1
+    fi
+
+    rm -rf -- "$lock_path"
+}
+
+# Implement atomic project locking for concurrent execution safety.
+acquire_lock() {
+    local lock_dir lock_path legacy_lock_file lock_pid path_hash
+    local attempts=0
+    local reclaim_result
+
+    lock_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claudux/locks"
+    if ! mkdir -p "$lock_dir"; then
+        warn "Could not create project lock directory: $lock_dir"
+        return 1
+    fi
+
+    path_hash="$(pwd | md5sum 2>/dev/null | cut -d' ' -f1 || pwd | md5 | awk '{print $NF}')"
+    if [[ -z "$path_hash" ]]; then
+        warn "Could not derive a project lock identifier"
+        return 1
+    fi
+
+    lock_path="${lock_dir}/claudux-${path_hash}.lock.d"
+    legacy_lock_file="${lock_dir}/claudux-${path_hash}.lock"
+
+    if ! recover_legacy_lock "$legacy_lock_file"; then
+        return 1
+    fi
+
+    while [[ $attempts -lt 20 ]]; do
+        if mkdir "$lock_path" 2>/dev/null; then
+            if ! (umask 077 && printf '%s\n' "$$" > "$lock_path/pid"); then
+                rm -rf -- "$lock_path"
+                warn "Could not record project lock ownership"
+                return 1
+            fi
+
+            CLAUDUX_LOCK_PATH="$lock_path"
+            return 0
+        fi
+
+        if [[ -L "$lock_path" ]] || [[ ! -d "$lock_path" ]]; then
+            warn "Project lock is not a safe directory: $lock_path"
+            return 1
+        fi
+
+        lock_pid=$(cat "$lock_path/pid" 2>/dev/null || true)
+        if ! is_lock_pid "$lock_pid"; then
+            warn "Project lock has an invalid owner and cannot be recovered safely: $lock_path"
+            return 1
+        fi
+        if kill -0 "$lock_pid" 2>/dev/null; then
+            report_live_lock "$lock_pid"
+            return 1
+        fi
+
+        reclaim_stale_lock "$lock_path" "$lock_pid"
+        reclaim_result=$?
+        if [[ $reclaim_result -eq 0 ]]; then
+            attempts=$((attempts + 1))
+            continue
+        fi
+        if [[ $reclaim_result -ne 2 ]]; then
+            warn "Project lock changed during stale-lock recovery"
+            return 1
+        fi
+
+        sleep 0.05
+        attempts=$((attempts + 1))
+    done
+
+    warn "Could not acquire project lock after waiting for stale-lock recovery"
+    return 1
+}
+
+node_major_version() {
+    local version="${1:-}"
+
+    version="${version#v}"
+    version="${version%%.*}"
+    if [[ ! "$version" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+
+    printf '%s\n' "$version"
 }
 
 # Validate required dependencies
@@ -178,10 +356,13 @@ validate_dependencies() {
         has_errors=true
     else
         # Check Node version (require v18+)
-        local node_version
-        node_version=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
-        if [[ -n "$node_version" ]] && [[ "$node_version" -lt 18 ]]; then
-            echo "ERROR: Node.js v18+ is required (found v$node_version)" >&2
+        local node_output node_version
+        node_output=$(node --version 2>/dev/null || true)
+        if ! node_version=$(node_major_version "$node_output"); then
+            echo "ERROR: Could not determine the installed Node.js version" >&2
+            has_errors=true
+        elif [[ "$node_version" -lt 18 ]]; then
+            echo "ERROR: Node.js v18+ is required (found ${node_output:-unknown})" >&2
             has_errors=true
         fi
     fi
@@ -272,13 +453,21 @@ main() {
         validate_update_args "${@:2}"
     fi
 
+    case "${1:-}" in
+        "update"|""|"check"|"--check")
+            validate_backend_selection
+            ;;
+    esac
+
     # Only validate dependencies for commands that need the LLM backend.
     # Unknown commands skip validation and fall through to the error handler.
     case "${1:-}" in
         "update"|"")
             validate_dependencies
             # Acquire lock for commands that modify files
-            acquire_lock
+            if ! acquire_lock; then
+                error_exit "Could not acquire the project lock"
+            fi
             ;;
     esac
     
@@ -308,17 +497,28 @@ main() {
             local check_failures=0
             # Node version
             if command -v node >/dev/null 2>&1; then
-                echo "• Node: $(node --version)"
+                local node_output node_version
+                node_output=$(node --version 2>/dev/null || true)
+                echo "• Node: ${node_output:-unknown}"
+                if ! node_version=$(node_major_version "$node_output"); then
+                    warn "Could not determine the installed Node.js version"
+                    check_failures=$((check_failures + 1))
+                elif [[ "$node_version" -lt 18 ]]; then
+                    warn "Node.js v18+ is required (found ${node_output:-unknown})"
+                    check_failures=$((check_failures + 1))
+                fi
             else
                 warn "Node is not installed"
                 check_failures=$((check_failures + 1))
             fi
             # Backend
             local backend="${CLAUDUX_BACKEND:-claude}"
+            local backend_cli_present=false
             echo "• Backend: $backend"
             # LLM CLI
             if [[ "$backend" == "codex" ]]; then
                 if command -v codex >/dev/null 2>&1; then
+                    backend_cli_present=true
                     echo "• Codex CLI: $(codex --version 2>/dev/null || echo 'installed')"
                     echo "• Model: ${CODEX_MODEL:-gpt-5.4}"
                     echo "• Reasoning effort: ${CODEX_REASONING_EFFORT:-xhigh}"
@@ -328,6 +528,7 @@ main() {
                 fi
             else
                 if command -v claude >/dev/null 2>&1; then
+                    backend_cli_present=true
                     echo "• Claude CLI: $(claude --version 2>/dev/null || echo 'installed')"
                     # Same resolution chain generation uses (get_model_settings):
                     # FORCE_MODEL > claudux.json project.model > sonnet.
@@ -336,6 +537,13 @@ main() {
                     echo "• Model: ${FORCE_MODEL:-${PROJECT_MODEL:-sonnet}}"
                 else
                     warn "Claude CLI not found. Install: npm install -g @anthropic-ai/claude-code"
+                    check_failures=$((check_failures + 1))
+                fi
+            fi
+            if $backend_cli_present; then
+                check_function "check_generation_backend"
+                if ! (check_generation_backend); then
+                    warn "Active backend authentication check failed: $backend"
                     check_failures=$((check_failures + 1))
                 fi
             fi

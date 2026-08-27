@@ -22,11 +22,11 @@ claudux supports Claude (default) and Codex as backends. Install at least one:
 ```bash
 # Claude (default backend)
 npm install -g @anthropic-ai/claude-code
-claude config  # authenticate
+claude  # complete the CLI's sign-in flow
 
 # Codex (alternative backend)
 npm install -g @openai/codex
-# Set CLAUDUX_BACKEND=codex to use
+codex login
 ```
 
 Verify your setup:
@@ -36,7 +36,9 @@ claudux check  # shows active backend and CLI status
 
 ## Install Claudux
 
-claudux is a bash CLI distributed straight from GitHub — there is no npm registry package to install. Pick whichever fits your workflow.
+The supported Claudux release is distributed straight from GitHub. A legacy
+package may still exist on the public npm registry, but it is not the current
+2.x release. Pick one of the GitHub-backed installation paths below.
 
 ### Install script (Recommended)
 
@@ -114,17 +116,16 @@ Example output:
 ```bash
 # For Claude (default)
 npm install -g @anthropic-ai/claude-code
-claude config
+claude
 
 # For Codex
 npm install -g @openai/codex
+codex login
 ```
 
-**Permission errors**
-```bash
-# Fix npm permissions
-sudo chown -R $(whoami) ~/.npm
-```
+If a global backend install fails with `EACCES`, use a Node version manager
+such as `nvm` or `fnm` instead of recursively changing system-directory
+ownership.
 
 **Node version issues**
 ```bash
@@ -134,6 +135,9 @@ node --version
 # Update if needed
 nvm install --lts
 ```
+
+See the [troubleshooting guide](/troubleshooting) for authentication, manifest,
+link, preview, and diagnostic failures.
 
 ## Next Steps
 

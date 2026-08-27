@@ -1,208 +1,166 @@
-# Two-Phase Generation
+# Generation Pipeline
 
-Claudux generates docs in two phases: plan first, then write.
+`claudux update` prepares context, invokes one selected backend, enforces the
+applicable write boundary, validates the result, and saves a checkpoint only
+on the successful path.
 
-## Why Two Phases?
+The generation prompt asks the model to analyze first and write second. Those
+“phase 1” and “phase 2” labels are instructions inside one backend invocation,
+not an enforced two-artifact protocol. Claudux does not require a separate plan
+file or validate a model plan before writing. A later missing-page repair can
+launch one additional focused update.
 
-**Problem**: Single-pass generation often produces:
-- Inconsistent navigation structure
-- Missing cross-references between pages
-- Outdated content mixed with new content
-- Broken internal links
+## 1. Resolve project context
 
-**Solution**: Plan first, then execute systematically.
+Claudux loads:
 
-## Phase 1: Analysis & Planning
+- `claudux.json` or the legacy `.claudux.json`
+- Auto-detected project type when no accepted type is configured
+- The matching JSON project profile under `lib/templates/`
+- `.ai-docs-style.md` when present
+- `claudux.md` when present
+- `docs-structure.json`, preferred over the legacy `docs-map.md`
+- Existing documentation and the repository files available to the backend
 
-### 🔍 Configuration Loading
+Project profiles are prompt inputs. They are not rendered or schema-validated
+by the shell CLI.
 
-Reads all relevant configuration files:
+## 2. Validate deterministic inputs
 
-```bash
-# Project configuration
-claudux.json                    # Project settings
-CLAUDE.md                      # Coding patterns and conventions
+Before model invocation, the update path:
 
-# Template configuration  
-lib/templates/{type}/config.json # Project-type specific structure
+1. Validates `docs-structure.json` when the manifest helper is loaded.
+2. Builds the static analysis index.
+3. Enables section-patch mode when the committed manifest qualifies.
+4. Captures the manifest guard snapshot for pinned, explicit read-only, and
+   skip-marker content.
+5. Resolves incremental changes and the source-to-section impact allowlist when
+   a valid checkpoint exists.
+6. Builds the final backend prompt.
 
-# Documentation preferences
-claudux.md                     # Site structure preferences (if exists)
-```
+A malformed manifest, failed static index, or failed guard snapshot stops the
+run before generation.
 
-### 📊 Codebase Analysis
+## 3. Capture the source boundary
 
-Scans source code to understand:
+In a Git checkout, claudux snapshots:
 
-**Architecture patterns:**
-- Entry points and main modules
-- Import/export relationships
-- Framework usage (React, Express, FastAPI, etc.)
-- Testing approaches
+- Starting `HEAD`
+- The starting index tree
+- Every dirty path outside the documentation allowlist
+- File type, mode, content, directory tree, or symlink target for those paths
 
-**Code organization:**
-- Directory structure and naming conventions
-- Configuration file patterns
-- Build and deployment setup
-- Documentation style (if exists)
+Allowed generation paths include `docs/`, `.claudux/`, the active manifest,
+legacy docs-map and style files, the docs site plan, and the claudux state file.
 
-**Example analysis output:**
-```
-📊 Project Analysis Results:
-• Type: Next.js application
-• Entry points: pages/, app/, components/
-• API routes: pages/api/, app/api/
-• Testing: Jest + React Testing Library
-• Deployment: Vercel configuration detected
-```
+The snapshot lets claudux distinguish a backend mutation from unrelated work
+that was already dirty before the command started.
 
-### 📋 Documentation Audit
+## 4. Invoke the selected backend
 
-Reviews existing documentation:
+### Default generation
 
-**Content analysis:**
-- Cross-references docs against current code
-- Identifies outdated sections (confidence scores)
-- Finds missing documentation gaps
-- Detects broken internal links
+Without manifest section-patch mode:
 
-**Structure analysis:**
-- Evaluates current navigation hierarchy
-- Identifies redundant or obsolete pages
-- Plans optimal information architecture
+- Claude receives `Read,Write,Edit,Delete`, with `Bash` explicitly disallowed
+  when the installed CLI supports that flag.
+- Codex defaults to a workspace-write sandbox with
+  `approval_policy="never"`.
+- The backend writes documentation paths directly.
 
-### 🗺️ Execution Planning
+After the invocation, claudux scans both the working tree and commits created
+since the starting `HEAD`. Any unrelated path mutation fails the run. Claudux
+restores that source path or pre-existing dirty value and soft-resets an
+unexpected commit, while leaving generated documentation available for review.
 
-Creates a detailed plan before making changes:
+This boundary requires Git. A non-Git directory does not have a restorable
+source snapshot.
 
-**New files to create:**
-```
-✨ NEW FILES:
-- docs/guide/deployment.md (Vercel deployment guide)
-- docs/api/authentication.md (New auth endpoints)
-- docs/examples/hooks.md (React hooks examples)
-```
+### Manifest section-patch mode
 
-**Files to update:**
-```
-📝 UPDATES:
-- docs/guide/installation.md (Update Node version requirement)
-- docs/api/routes.md (Add 3 new API endpoints)
-```
+With a qualifying committed manifest:
 
-**Files to remove:**
-```
-🗑️ OBSOLETE (95% confidence):
-- docs/legacy/old-api.md (References deleted endpoints)
-```
+- Claude receives `Read` only.
+- Codex defaults to a read-only sandbox unless explicitly overridden.
+- The backend must return one delimited JSON payload containing section
+  patches.
+- Direct documentation writes are not the accepted output.
 
-### ⚙️ VitePress Configuration Generation
+Claudux validates every patch before committing a target:
 
-Generates optimized VitePress config:
+- Known page and section IDs
+- No duplicate targets
+- Incremental impact allowlist
+- Pinned and explicit read-only status
+- Safe page path inside the documentation root
+- Existing target page unless creation is explicitly allowed
+- Required Markdown body
+- No transient cache-provenance prose
+- No same-level or higher-level heading that escapes the declared section
 
-**Auto-detected elements:**
-- Project name and description from `package.json`
-- Repository links from git remote
-- Logo/icon detection
-- Social links (GitHub, npm)
+It then builds each final page in memory, writes staged copies beside the
+targets, verifies the originals did not change concurrently, and commits the
+target files by rename. If a later target commit fails, already-committed
+targets are restored. A restoration failure is reported explicitly.
 
-**Navigation structure:**
-- Sidebar hierarchy matching planned docs
-- Cross-section consistency
-- Mobile-optimized navigation
-- Breadcrumb integration
+The transaction covers the manifest section-patch batch. It does **not** mean
+the entire `claudux update` command is rolled back if a later guard, link,
+cache, or checkpoint step fails.
 
-## Phase 2: Execution
+## 5. Run post-generation checks
 
-### 📝 Content Generation
+After backend success and patch application:
 
-Executes the plan systematically:
+1. The source boundary is checked again.
+2. `DOCS_BASE` handling in `docs/.vitepress/config.ts` is normalized.
+3. The manifest receives post-generation validation.
+4. The pre-generation guard snapshot is verified.
+5. The source boundary is checked after claudux's own documentation edits.
+6. Local links, routes, assets, anchors, duplicate IDs, traversal, and symlink
+   escapes are validated.
+7. One missing-page repair update may run.
+8. Deterministic caches are refreshed.
+9. The successful checkpoint is saved.
+10. The working-tree change summary is printed.
 
-**Creation process:**
-1. Generate new documentation files
-2. Update existing content with current information
-3. Remove obsolete files (high confidence only)
-4. Update VitePress configuration
+External URLs are skipped. Without `--strict`, unresolved link failures warn
+and the update can continue. With `--strict`, they fail the command.
 
-**Quality controls:**
-- Every code example from actual source
-- All internal links verified before creation
-- Consistent terminology across pages
-- No placeholder or hypothetical content
+## Failure behavior
 
-### 🔗 Link Validation
+| Failure | Result |
+|---------|--------|
+| Invalid manifest or static index | Stops before backend invocation |
+| Backend unavailable or unauthenticated | Stops before generation |
+| Backend timeout or malformed output | No successful checkpoint |
+| Default-mode source escape | Unrelated source paths are restored in Git; docs remain reviewable |
+| Invalid manifest patch batch | Target docs are unchanged |
+| Transaction commit failure | Already-committed targets are restored when possible; rollback failure is explicit |
+| Protected-block mismatch | Update fails after guard validation |
+| Broken links without `--strict` | Warning after the optional repair pass |
+| Broken links with `--strict` | Update fails |
+| Cache refresh failure | Update fails and does not advance the checkpoint |
 
-Final validation pass:
+## Focused and incremental updates
 
-```bash
-🔍 Validating documentation links...
-✅ Internal links: 47/47 valid
-✅ Anchor links: 23/23 valid  
-✅ Asset references: 12/12 valid
-🔗 External links: 2 (skipped)
-```
-
-**Auto-fix capability:**
-If validation finds broken internal references, claudux can automatically create the missing pages and retry validation.
-
-## Benefits of Two-Phase Approach
-
-### 🎯 Accuracy
-
-- **Consistent structure**: All pages follow planned hierarchy
-- **Complete coverage**: Nothing gets missed in analysis phase
-- **Current content**: Everything reflects actual code state
-
-### 🚀 Performance  
-
-- **Efficient AI usage**: One analysis pass vs multiple queries
-- **Reduced regeneration**: Only updates what actually changed
-- **Faster iterations**: Plan guides focused updates
-
-### 🛠️ Reliability
-
-- **Predictable output**: Plan phase catches issues before generation
-- **Link integrity**: All links validated before file creation  
-- **Error recovery**: Failed generations don't leave partial artifacts
-
-## Monitoring Phase Progress
-
-During generation, claudux shows real-time progress:
+A focused directive changes the prompt:
 
 ```bash
-📊 Phase 1: Analyzing project structure...
-✅ Configuration loaded
-✅ Codebase scanned (247 files)  
-✅ Documentation audit complete
-✅ Execution plan created
-
-📝 Phase 2: Generating documentation...
-✨ Created docs/guide/deployment.md
-📝 Updated docs/api/routes.md  
-🔗 Validating links... ✅ 47/47 valid
-✅ Documentation generation complete!
+claudux update -m "Document the new authentication flow"
 ```
 
-## Customizing the Process
+Incremental mode changes the context and, in manifest mode, the allowed target
+set. Neither mechanism bypasses the write boundary.
 
-### Focused Directives
+## Review surface
 
-Guide the planning phase with specific instructions:
+Claudux is designed to leave a reviewable working-tree result, not to publish
+or commit documentation automatically. Before accepting generated prose:
 
 ```bash
-claudux update -m "Focus on API documentation and add more code examples"
+git status --short
+git diff -- docs/ docs-structure.json
+npm --prefix docs run docs:build
 ```
 
-The directive influences both phases:
-- **Phase 1**: Analysis prioritizes API-related code
-- **Phase 2**: Generation emphasizes API docs and examples
-
-### Template Customization
-
-Modify project-type templates in `lib/templates/{type}/config.json` to change:
-- Default documentation structure
-- Sidebar organization preferences  
-- Required vs optional sections
-- Code example priorities
-
-The planning phase then follows your preferred patterns for similar projects.
+Use `claudux update --strict` when local-link failures must block acceptance.

@@ -37,10 +37,13 @@ validate_docs_structure_manifest() {
 
     node - "$manifest" "$mode" <<'NODE'
 const fs = require('fs');
+const path = require('path');
 
 const manifestPath = process.argv[2];
 const mode = process.argv[3] || 'preflight';
 const errors = [];
+const repoRoot = fs.realpathSync(process.cwd());
+const docsRoot = path.resolve(repoRoot, 'docs');
 
 function fail(message) {
   errors.push(`docs-structure.json: ${message}`);
@@ -52,6 +55,58 @@ function isObject(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' &&
+    relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative);
+}
+
+function safeManifestPagePath(pagePath, label) {
+  const candidate = path.resolve(repoRoot, pagePath);
+  if (!isPathInside(docsRoot, candidate)) {
+    fail(`${label}: path must resolve within repo/docs (${pagePath})`);
+    return null;
+  }
+
+  try {
+    if (fs.existsSync(candidate)) {
+      const resolved = fs.realpathSync(candidate);
+      if (!isPathInside(docsRoot, resolved)) {
+        fail(`${label}: path resolves outside repo/docs (${pagePath})`);
+        return null;
+      }
+    }
+
+    let current = repoRoot;
+    for (const segment of path.relative(repoRoot, candidate).split(path.sep)) {
+      current = path.join(current, segment);
+      let stats;
+      try {
+        stats = fs.lstatSync(current);
+      } catch (error) {
+        if (error.code === 'ENOENT') break;
+        throw error;
+      }
+      if (stats.isSymbolicLink()) {
+        fail(`${label}: path must not traverse symlinks (${pagePath})`);
+        return null;
+      }
+    }
+
+    if (fs.existsSync(candidate) && !fs.statSync(candidate).isFile()) {
+      fail(`${label}: path must resolve to a regular file (${pagePath})`);
+      return null;
+    }
+  } catch (error) {
+    fail(`${label}: cannot resolve page path safely (${pagePath}: ${error.message})`);
+    return null;
+  }
+
+  return candidate;
 }
 
 function headingMatchCount(content, section) {
@@ -219,6 +274,7 @@ if (manifest) {
 
   for (const [pageIndex, page] of (manifest.pages || []).entries()) {
     const label = page?.id || `pages[${pageIndex}]`;
+    let safePagePath = null;
     if (!isObject(page)) {
       fail(`pages[${pageIndex}] must be an object`);
       continue;
@@ -243,6 +299,7 @@ if (manifest) {
       if (!page.path.startsWith('docs/') || !page.path.endsWith('.md')) {
         fail(`${label}: path must start with docs/ and end with .md`);
       }
+      safePagePath = safeManifestPagePath(page.path, label);
       if (pagePaths.has(page.path)) {
         fail(`${label}: duplicate page path ${page.path}`);
       } else {
@@ -311,8 +368,8 @@ if (manifest) {
       if (section.pinned === true) pinnedSections += 1;
     }
 
-    if (mode === 'post-generation' && page.path && fs.existsSync(page.path)) {
-      const content = fs.readFileSync(page.path, 'utf8');
+    if (mode === 'post-generation' && safePagePath && fs.existsSync(safePagePath)) {
+      const content = fs.readFileSync(safePagePath, 'utf8');
       for (const section of sections || []) {
         if (!section.heading || !section.level) continue;
         const headingCount = headingMatchCount(content, section);
@@ -324,7 +381,7 @@ if (manifest) {
           fail(`${label}: missing required heading "${section.heading}" in ${page.path}`);
         }
       }
-    } else if (mode === 'post-generation' && page.path) {
+    } else if (mode === 'post-generation' && page.path && safePagePath) {
       fail(`${label}: manifest page is missing on disk (${page.path})`);
     }
   }
@@ -372,6 +429,51 @@ const { execFileSync } = require('child_process');
 
 const manifestPath = process.argv[2];
 const indexFile = process.argv[3];
+const repoRoot = fs.realpathSync(process.cwd());
+const docsRoot = path.resolve(repoRoot, 'docs');
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' &&
+    relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative);
+}
+
+function safeManifestPagePath(pagePath, label) {
+  const candidate = path.resolve(repoRoot, pagePath);
+  if (!isPathInside(docsRoot, candidate)) {
+    throw new Error(`${label}: manifest page path must resolve within repo/docs (${pagePath})`);
+  }
+
+  if (fs.existsSync(candidate)) {
+    const resolved = fs.realpathSync(candidate);
+    if (!isPathInside(docsRoot, resolved)) {
+      throw new Error(`${label}: manifest page path resolves outside repo/docs (${pagePath})`);
+    }
+  }
+
+  let current = repoRoot;
+  for (const segment of path.relative(repoRoot, candidate).split(path.sep)) {
+    current = path.join(current, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') break;
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      throw new Error(`${label}: manifest page path must not traverse symlinks (${pagePath})`);
+    }
+  }
+
+  if (fs.existsSync(candidate) && !fs.statSync(candidate).isFile()) {
+    throw new Error(`${label}: manifest page path must resolve to a regular file (${pagePath})`);
+  }
+
+  return candidate;
+}
 
 function sha256File(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
@@ -593,18 +695,22 @@ function protectedBlocksForFile(filePath) {
   let startLine = 0;
   let blockLines = [];
 
-  lines.forEach((line, index) => {
+  for (const [index, line] of lines.entries()) {
     const trimmed = line.trim();
-    if (!active && trimmed === markers.start) {
+    if (trimmed === markers.start) {
+      if (active) {
+        throw new Error(`${filePath}:${index + 1}: nested protection start marker "${markers.start}"`);
+      }
       active = true;
       startLine = index + 1;
       blockLines = [line];
-      return;
+      continue;
     }
-    if (!active) return;
-
-    blockLines.push(line);
     if (trimmed === markers.end) {
+      if (!active) {
+        throw new Error(`${filePath}:${index + 1}: unmatched protection end marker "${markers.end}"`);
+      }
+      blockLines.push(line);
       blocks.push({
         path: filePath,
         start_marker: markers.start,
@@ -615,8 +721,14 @@ function protectedBlocksForFile(filePath) {
       });
       active = false;
       blockLines = [];
+      continue;
     }
-  });
+    if (active) blockLines.push(line);
+  }
+
+  if (active) {
+    throw new Error(`${filePath}:${startLine}: unmatched protection start marker "${markers.start}"`);
+  }
 
   return blocks;
 }
@@ -634,6 +746,12 @@ const sourceFiles = files.filter(file => {
 let manifest = null;
 if (fs.existsSync(manifestPath)) {
   manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+}
+if (manifest && Array.isArray(manifest.pages)) {
+  for (const [index, page] of manifest.pages.entries()) {
+    if (typeof page?.path !== 'string') continue;
+    safeManifestPagePath(page.path, page.id || `pages[${index}]`);
+  }
 }
 
 let packageScripts = {};
@@ -1039,6 +1157,8 @@ const manifestPath = process.argv[2];
 const patchPath = process.argv[3];
 const unlockPinned = process.env.CLAUDUX_UNLOCK_PINNED_SECTIONS === '1';
 const impactAllowlistPath = process.env.CLAUDUX_IMPACT_ALLOWLIST_FILE || '';
+const repoRoot = fs.realpathSync(process.cwd());
+const docsRoot = path.resolve(repoRoot, 'docs');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const payload = JSON.parse(fs.readFileSync(patchPath, 'utf8'));
 const patches = Array.isArray(payload) ? payload : payload.patches;
@@ -1059,6 +1179,49 @@ function fail(message) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' &&
+    relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative);
+}
+
+function safeManifestPagePath(pagePath, label) {
+  const candidate = path.resolve(repoRoot, pagePath);
+  if (!isPathInside(docsRoot, candidate)) {
+    throw new Error(`${label} manifest page path must resolve within repo/docs (${pagePath})`);
+  }
+
+  if (fs.existsSync(candidate)) {
+    const resolved = fs.realpathSync(candidate);
+    if (!isPathInside(docsRoot, resolved)) {
+      throw new Error(`${label} manifest page path resolves outside repo/docs (${pagePath})`);
+    }
+  }
+
+  let current = repoRoot;
+  for (const segment of path.relative(repoRoot, candidate).split(path.sep)) {
+    current = path.join(current, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') break;
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      throw new Error(`${label} manifest page path must not traverse symlinks (${pagePath})`);
+    }
+  }
+
+  if (fs.existsSync(candidate) && !fs.statSync(candidate).isFile()) {
+    throw new Error(`${label} manifest page path must resolve to a regular file (${pagePath})`);
+  }
+
+  return candidate;
 }
 
 function normalizeBody(value, section) {
@@ -1126,15 +1289,23 @@ function findSection(lines, section) {
   return { start, end };
 }
 
-function readPageState(pagePath) {
-  if (!fileStates.has(pagePath)) {
-    const original = fs.readFileSync(pagePath, 'utf8').replace(/\r\n/g, '\n');
+function readPageState(pagePath, targetPath) {
+  if (!fileStates.has(targetPath)) {
+    const originalBytes = fs.readFileSync(targetPath);
+    const original = originalBytes.toString('utf8').replace(/\r\n/g, '\n');
     const hadFinalNewline = original.endsWith('\n');
     const lines = original.split('\n');
     if (hadFinalNewline) lines.pop();
-    fileStates.set(pagePath, { lines, changed: false });
+    fileStates.set(targetPath, {
+      pagePath,
+      targetPath,
+      originalBytes,
+      mode: fs.statSync(targetPath).mode & 0o7777,
+      lines,
+      changed: false,
+    });
   }
-  return fileStates.get(pagePath);
+  return fileStates.get(targetPath);
 }
 
 function impactAllowlistAllows(page, section) {
@@ -1184,7 +1355,15 @@ if (!Array.isArray(patches)) {
       continue;
     }
 
-    if (!fs.existsSync(page.path)) {
+    let targetPath;
+    try {
+      targetPath = safeManifestPagePath(page.path, `${page.id}#${section.id}`);
+    } catch (error) {
+      fail(error.message);
+      continue;
+    }
+
+    if (!fs.existsSync(targetPath)) {
       fail(`${page.path} does not exist; create manifest pages before section patching`);
       continue;
     }
@@ -1207,7 +1386,7 @@ if (!Array.isArray(patches)) {
       continue;
     }
 
-    const state = readPageState(page.path);
+    const state = readPageState(page.path, targetPath);
     const span = findSection(state.lines, section);
     if (!span && patch.create_if_missing !== true) {
       fail(`${page.path} is missing heading "${section.heading}"`);
@@ -1218,6 +1397,7 @@ if (!Array.isArray(patches)) {
       page_id: page.id,
       section_id: section.id,
       page_path: page.path,
+      target_path: targetPath,
       section,
       body,
       create_if_missing: patch.create_if_missing === true,
@@ -1227,7 +1407,7 @@ if (!Array.isArray(patches)) {
 
 if (errors.length === 0) {
   for (const operation of operations) {
-    const state = readPageState(operation.page_path);
+    const state = readPageState(operation.page_path, operation.target_path);
     let span = findSection(state.lines, operation.section);
     if (!span) {
       if (operation.create_if_missing) {
@@ -1262,10 +1442,91 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-for (const [pagePath, state] of fileStates.entries()) {
-  if (!state.changed) continue;
-  fs.mkdirSync(path.dirname(pagePath), { recursive: true });
-  fs.writeFileSync(pagePath, `${state.lines.join('\n').trimEnd()}\n`);
+const changedFiles = [...fileStates.values()]
+  .filter(state => state.changed)
+  .sort((a, b) => a.pagePath.localeCompare(b.pagePath))
+  .map(state => ({
+    ...state,
+    finalBytes: Buffer.from(`${state.lines.join('\n').trimEnd()}\n`),
+  }));
+const stagedFiles = [];
+const committedFiles = [];
+let transactionPhase = 'staging';
+let transactionError = null;
+const rollbackErrors = [];
+
+try {
+  for (const state of changedFiles) {
+    const stageDir = fs.mkdtempSync(path.join(path.dirname(state.targetPath), '.claudux-section-patch-'));
+    const stagedPath = path.join(stageDir, 'next');
+    const backupPath = path.join(stageDir, 'original');
+    try {
+      fs.writeFileSync(stagedPath, state.finalBytes, { mode: state.mode });
+      fs.chmodSync(stagedPath, state.mode);
+    } catch (error) {
+      fs.rmSync(stageDir, { recursive: true, force: true });
+      throw error;
+    }
+    stagedFiles.push({ ...state, stageDir, stagedPath, backupPath, originalMoved: false, rollbackFailed: false });
+  }
+
+  transactionPhase = 'verification';
+  for (const staged of stagedFiles) {
+    const currentTarget = safeManifestPagePath(staged.pagePath, staged.pagePath);
+    const currentBytes = fs.readFileSync(currentTarget);
+    if (!currentBytes.equals(staged.originalBytes)) {
+      throw new Error(`${staged.pagePath} changed while section patches were being prepared`);
+    }
+  }
+
+  transactionPhase = 'commit';
+  const injectedFailureAt = process.env.CLAUDUX_TEST_MODE === '1'
+    ? Number.parseInt(process.env.CLAUDUX_TEST_FAIL_SECTION_PATCH_COMMIT_AT || '', 10)
+    : Number.NaN;
+  for (const [index, staged] of stagedFiles.entries()) {
+    if (injectedFailureAt === index + 1) {
+      const error = new Error(`test-injected I/O failure before committing ${staged.pagePath}`);
+      error.code = 'EIO';
+      throw error;
+    }
+    fs.renameSync(staged.targetPath, staged.backupPath);
+    staged.originalMoved = true;
+    fs.renameSync(staged.stagedPath, staged.targetPath);
+    committedFiles.push(staged);
+  }
+} catch (error) {
+  transactionError = error;
+  for (const staged of [...stagedFiles].reverse()) {
+    if (!staged.originalMoved) continue;
+    try {
+      if (fs.existsSync(staged.targetPath)) {
+        fs.renameSync(staged.targetPath, staged.stagedPath);
+      }
+      fs.renameSync(staged.backupPath, staged.targetPath);
+      staged.originalMoved = false;
+    } catch (rollbackError) {
+      staged.rollbackFailed = true;
+      rollbackErrors.push(`${staged.pagePath}: ${rollbackError.message}`);
+    }
+  }
+} finally {
+  for (const staged of stagedFiles) {
+    if (staged.rollbackFailed) continue;
+    fs.rmSync(staged.stageDir, { recursive: true, force: true });
+  }
+}
+
+if (transactionError) {
+  const code = transactionError.code ? `${transactionError.code}: ` : '';
+  const rollbackStatus = rollbackErrors.length === 0
+    ? committedFiles.length === 0
+      ? 'no targets changed'
+      : `rolled back ${committedFiles.length} committed target(s)`
+    : `rollback failed (${rollbackErrors.join('; ')})`;
+  console.error(
+    `[claudux:patch] section patch: transactional ${transactionPhase} failed (${code}${transactionError.message}); ${rollbackStatus}`
+  );
+  process.exit(1);
 }
 
 console.log(`[claudux:patch] applied ${applied.length} section patch(es)`);
@@ -1290,6 +1551,51 @@ const childProcess = require('child_process');
 
 const manifestPath = process.argv[2];
 const snapshotFile = process.argv[3];
+const repoRoot = fs.realpathSync(process.cwd());
+const docsRoot = path.resolve(repoRoot, 'docs');
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' &&
+    relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative);
+}
+
+function safeManifestPagePath(pagePath, label) {
+  const candidate = path.resolve(repoRoot, pagePath);
+  if (!isPathInside(docsRoot, candidate)) {
+    throw new Error(`${label}: manifest page path must resolve within repo/docs (${pagePath})`);
+  }
+
+  if (fs.existsSync(candidate)) {
+    const resolved = fs.realpathSync(candidate);
+    if (!isPathInside(docsRoot, resolved)) {
+      throw new Error(`${label}: manifest page path resolves outside repo/docs (${pagePath})`);
+    }
+  }
+
+  let current = repoRoot;
+  for (const segment of path.relative(repoRoot, candidate).split(path.sep)) {
+    current = path.join(current, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') break;
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      throw new Error(`${label}: manifest page path must not traverse symlinks (${pagePath})`);
+    }
+  }
+
+  if (fs.existsSync(candidate) && !fs.statSync(candidate).isFile()) {
+    throw new Error(`${label}: manifest page path must resolve to a regular file (${pagePath})`);
+  }
+
+  return candidate;
+}
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -1375,18 +1681,22 @@ function protectedBlocksForFile(filePath) {
   let startLine = 0;
   let blockLines = [];
 
-  lines.forEach((line, index) => {
+  for (const [index, line] of lines.entries()) {
     const trimmed = line.trim();
-    if (!active && trimmed === markers.start) {
+    if (trimmed === markers.start) {
+      if (active) {
+        throw new Error(`${filePath}:${index + 1}: nested protection start marker "${markers.start}"`);
+      }
       active = true;
       startLine = index + 1;
       blockLines = [line];
-      return;
+      continue;
     }
-    if (!active) return;
-
-    blockLines.push(line);
     if (trimmed === markers.end) {
+      if (!active) {
+        throw new Error(`${filePath}:${index + 1}: unmatched protection end marker "${markers.end}"`);
+      }
+      blockLines.push(line);
       blocks.push({
         sha256: sha256(blockLines.join('\n')),
         start_marker: markers.start,
@@ -1397,8 +1707,14 @@ function protectedBlocksForFile(filePath) {
       });
       active = false;
       blockLines = [];
+      continue;
     }
-  });
+    if (active) blockLines.push(line);
+  }
+
+  if (active) {
+    throw new Error(`${filePath}:${startLine}: unmatched protection start marker "${markers.start}"`);
+  }
 
   return blocks;
 }
@@ -1410,9 +1726,11 @@ if (fs.existsSync(manifestPath)) {
 
 const pinnedPages = [];
 if (manifest && Array.isArray(manifest.pages)) {
-  for (const page of manifest.pages) {
-    if (!page.path || !fs.existsSync(page.path)) continue;
-    const content = fs.readFileSync(page.path, 'utf8');
+  for (const [index, page] of manifest.pages.entries()) {
+    if (!page.path) continue;
+    const pagePath = safeManifestPagePath(page.path, page.id || `pages[${index}]`);
+    if (!fs.existsSync(pagePath)) continue;
+    const content = fs.readFileSync(pagePath, 'utf8');
     const sections = (page.sections || [])
       .filter(section => section && (section.pinned === true || section.required !== false))
       .map(section => {
@@ -1471,10 +1789,13 @@ validate_docs_structure_guard_snapshot() {
     node - "$snapshot_file" <<'NODE'
 const fs = require('fs');
 const crypto = require('crypto');
+const path = require('path');
 
 const snapshotPath = process.argv[2];
 const errors = [];
 const unlockPinnedSections = process.env.CLAUDUX_UNLOCK_PINNED_SECTIONS === '1';
+const repoRoot = fs.realpathSync(process.cwd());
+const docsRoot = path.resolve(repoRoot, 'docs');
 
 function fail(message) {
   errors.push(`docs guard: ${message}`);
@@ -1482,6 +1803,49 @@ function fail(message) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' &&
+    relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative);
+}
+
+function safeManifestPagePath(pagePath, label) {
+  const candidate = path.resolve(repoRoot, pagePath);
+  if (!isPathInside(docsRoot, candidate)) {
+    throw new Error(`${label}: manifest page path must resolve within repo/docs (${pagePath})`);
+  }
+
+  if (fs.existsSync(candidate)) {
+    const resolved = fs.realpathSync(candidate);
+    if (!isPathInside(docsRoot, resolved)) {
+      throw new Error(`${label}: manifest page path resolves outside repo/docs (${pagePath})`);
+    }
+  }
+
+  let current = repoRoot;
+  for (const segment of path.relative(repoRoot, candidate).split(path.sep)) {
+    current = path.join(current, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') break;
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      throw new Error(`${label}: manifest page path must not traverse symlinks (${pagePath})`);
+    }
+  }
+
+  if (fs.existsSync(candidate) && !fs.statSync(candidate).isFile()) {
+    throw new Error(`${label}: manifest page path must resolve to a regular file (${pagePath})`);
+  }
+
+  return candidate;
 }
 
 function escapeRegExp(value) {
@@ -1521,29 +1885,41 @@ function sectionBodyDigest(content, section) {
   };
 }
 
-function protectedBlocks(content, markerSource = {}) {
+function protectedBlocks(content, markerSource = {}, filePath = '<unknown>') {
   const startMarker = markerSource.start_marker || '<!-- skip -->';
   const endMarker = markerSource.end_marker || '<!-- /skip -->';
   const lines = content.split(/\r?\n/);
   const blocks = [];
   let active = false;
+  let startLine = 0;
   let blockLines = [];
 
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     const trimmed = line.trim();
-    if (!active && trimmed === startMarker) {
+    if (trimmed === startMarker) {
+      if (active) {
+        throw new Error(`${filePath}:${index + 1}: nested protection start marker "${startMarker}"`);
+      }
       active = true;
+      startLine = index + 1;
       blockLines = [line];
       continue;
     }
-    if (!active) continue;
-
-    blockLines.push(line);
     if (trimmed === endMarker) {
+      if (!active) {
+        throw new Error(`${filePath}:${index + 1}: unmatched protection end marker "${endMarker}"`);
+      }
+      blockLines.push(line);
       blocks.push({ sha256: sha256(blockLines.join('\n')) });
       active = false;
       blockLines = [];
+      continue;
     }
+    if (active) blockLines.push(line);
+  }
+
+  if (active) {
+    throw new Error(`${filePath}:${startLine}: unmatched protection start marker "${startMarker}"`);
   }
 
   return blocks;
@@ -1558,11 +1934,18 @@ try {
 }
 
 for (const page of snapshot.pinned_pages || []) {
-  if (!fs.existsSync(page.path)) {
+  let pagePath;
+  try {
+    pagePath = safeManifestPagePath(page.path, page.page_id || page.path);
+  } catch (error) {
+    fail(error.message);
+    continue;
+  }
+  if (!fs.existsSync(pagePath)) {
     fail(`manifest page disappeared after generation (${page.path})`);
     continue;
   }
-  const content = fs.readFileSync(page.path, 'utf8');
+  const content = fs.readFileSync(pagePath, 'utf8');
   let previousLine = 0;
   for (const section of page.sections || []) {
     if (section.line === null) continue;
@@ -1590,7 +1973,17 @@ for (const file of snapshot.protected_files || []) {
     fail(`protected file disappeared after generation (${file.path})`);
     continue;
   }
-  const currentBlocks = protectedBlocks(fs.readFileSync(file.path, 'utf8'), (file.blocks || [])[0] || {});
+  let currentBlocks;
+  try {
+    currentBlocks = protectedBlocks(
+      fs.readFileSync(file.path, 'utf8'),
+      (file.blocks || [])[0] || {},
+      file.path
+    );
+  } catch (error) {
+    fail(error.message);
+    continue;
+  }
   if (currentBlocks.length < file.blocks.length) {
     fail(`${file.path}: protected skip block count decreased`);
     continue;

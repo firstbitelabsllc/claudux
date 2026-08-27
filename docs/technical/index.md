@@ -1,264 +1,216 @@
 # Technical Architecture
 
-Claudux is built as a modular Bash CLI tool that orchestrates AI-powered documentation generation using Claude Code and VitePress.
+Claudux is a local Bash orchestrator with Node.js validation helpers, two
+authenticated model-CLI adapters, a deterministic manifest patcher, and a
+VitePress preview layer.
 
-## High-Level Architecture
+## System shape
 
+```text
+bin/claudux
+   |
+   +-- project/config detection -------- lib/project.sh
+   +-- selected backend ---------------- lib/claude-utils.sh or lib/codex-utils.sh
+   +-- generation orchestration -------- lib/docs-generation.sh
+   |      |
+   |      +-- default source rollback
+   |      +-- manifest section patches - lib/docs-manifest.sh
+   |      +-- local link validation ---- lib/validate-links.sh
+   |
+   +-- preview-only server ------------- lib/server.sh + lib/vitepress/
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   User Input    │───▶│   claudux CLI    │───▶│  Claude AI      │
-│   (Commands)    │    │   (Orchestrator) │    │  (Analysis)     │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-                        ┌──────────────────┐    ┌─────────────────┐
-                        │   VitePress      │◀───│  Generated      │
-                        │   (Rendering)    │    │  Docs           │
-                        └──────────────────┘    └─────────────────┘
-```
 
-## Core Components
+## Runtime requirements
 
-### 1. Main Entry Point
+| Capability | Requirement |
+|------------|-------------|
+| CLI and tests | Bash |
+| Manifest, static index, patching, links | Node.js 18+ |
+| Documentation generation | Authenticated Claude CLI or Codex CLI |
+| Default rollback and incremental state | Git |
+| Preview and docs build | npm and VitePress dependencies |
 
-**`bin/claudux`** - Command router and dependency manager
+The root package has no npm runtime dependencies, but that does not make the
+product dependency-free. Node is part of the CLI contract, and `serve` manages
+a separate VitePress dependency set under `docs/`.
+
+## Entry point
+
+`bin/claudux` owns:
+
+- Command parsing and usage failures
+- One lock per project path
+- Lazy library loading
+- Node-version validation
+- Selected-backend readiness and authentication
+- Dispatch to `update`, `serve`, diagnostics, help, and version output
+
+Only generation options in the interactive menu call `update`.
+
+## Project and configuration resolution
+
+`lib/project.sh` reads these shell-level values:
+
+- `claudux.json`: `project.name`, `project.type`, `project.model`
+- Legacy `.claudux.json`: flat `name` and `type`
+- File heuristics when the type is missing or generic
+
+Unknown configured types warn and fall back to auto-detection unless a matching
+`lib/templates/<type>-project-config.json` exists.
+
+The JSON file chosen from `lib/templates/` is a project profile that the
+backend is told to read. The shell does not render it, validate a schema, or
+execute conditional sections. See [Project Profiles](/technical/templates).
+
+## Generation orchestration
+
+`lib/docs-generation.sh`:
+
+1. Parses the focused directive and `--strict`.
+2. Loads project context.
+3. Validates the manifest when present.
+4. Builds the static analysis index.
+5. Captures the documentation guard snapshot.
+6. Resolves incremental changes and manifest impact scope.
+7. Builds one backend prompt.
+8. Captures the pre-generation Git source snapshot.
+9. Invokes the selected backend.
+10. Enforces the source boundary or applies the manifest patch batch.
+11. Runs post-generation manifest, guard, source, and link checks.
+12. Refreshes deterministic caches and saves the successful checkpoint.
+
+The prompt's “phase 1” and “phase 2” headings are model instructions inside one
+invocation. They are not a separate planning transaction.
+
+## Default generation mode
+
+The backend can edit documentation paths directly:
+
+- Claude receives `Read,Write,Edit,Delete`, with `Bash` denied when supported.
+- Codex defaults to `sandbox_mode="workspace-write"` and
+  `approval_policy="never"`.
+
+In a Git checkout, claudux snapshots unrelated dirty paths and starting `HEAD`.
+After generation it detects new source changes, modifications to existing
+unrelated dirty work, rename escapes, and commits containing source paths. A
+violation fails the update and restores that source state while leaving docs
+for review.
+
+This is a repository boundary, not section-level protection within `docs/`.
+
+## Manifest section-patch mode
+
+`lib/docs-manifest.sh` owns the stricter documentation contract:
+
+- Manifest schema and canonical path validation
+- Source-to-section static index
+- Incremental impact allowlist
+- Pinned/read-only and skip-marker guard hashes
+- Read-only backend patch contract
+- Patch JSON extraction and validation
+- Transactional multi-file target commit
+
+A patch batch is fully validated before target writes. Final bytes are staged,
+original bytes are checked again for concurrent edits, and target files are
+renamed into place. If a later target commit fails, earlier target commits are
+restored when possible and rollback failure is explicit.
+
+The transaction ends at patch application. Later guard, link, cache, and
+checkpoint failures are separate and may leave a reviewable docs diff.
+
+## Static analysis index
+
+The index derives deterministic relationships used by prompt scoping and
+manifest enforcement:
+
+- Source ownership and manifest section targets
+- Shell `source` and required-library edges
+- Package-script file references
+- CLI command inventory
+- Documentation links and protected-block inventory
+- Changed-source impact resolution
+
+It is not a type checker, prose verifier, backend compatibility test, or
+VitePress renderer.
+
+## Link checker
+
+`lib/validate-links.sh` parses configuration and Markdown without fetching the
+network. It validates:
+
+- VitePress nav and sidebar targets
+- Markdown destination paths
+- Local assets
+- Generated and explicit heading anchors
+- Duplicate explicit IDs
+- Encoded traversal attempts
+- Symlinks escaping the docs root
+
+External URLs are counted and skipped. `update` can run one focused repair for
+missing pages. `--strict` converts remaining failures from warnings to a hard
+error.
+
+## Serve path
+
+`lib/server.sh` never invokes a model. It requires an existing
+`docs/index.md`, then:
+
+1. Runs `lib/vitepress/setup.sh` when support files are missing.
+2. Enters `docs/`.
+3. Runs `npm install --no-audit --no-fund` if VitePress is absent.
+4. Verifies the `docs:dev` script.
+5. Starts `npm run docs:dev`.
+
+The setup script may create or replace preview support files, so `serve` is
+model-free but not universally read-only.
+
+## Readiness path
+
+`claudux check` verifies:
+
+- Node exists and is version 18 or newer
+- Selected backend CLI exists
+- Selected backend authentication succeeds
+- Documentation directory presence
+
+It does not generate docs. Modern Codex checks `codex login status`; older
+versions may require a small exec authentication probe.
+
+## Cleanup boundary
+
+`cleanup_docs_silent` is the function called by `update`, and it is a no-op.
+The separate `cleanup_docs` helper is a legacy interactive Claude path that
+asks the model to judge obsolete files. It is not deterministic scoring and is
+not part of the public update pipeline.
+
+## State, locks, and temporary files
+
+- Project locks are keyed by canonical project path and stored under XDG state.
+- Stale locks are removed after the owning PID is gone.
+- Generation temps use process-private `mktemp` paths under `TMPDIR`.
+- Codex stderr uses an owner-scoped path, rejects symlinks and foreign-owned
+  files, and tightens permissions to `0600`.
+- The checkpoint advances only after generation, validation, cache refresh,
+  and change analysis succeed.
+
+## Security boundary
+
+Prompt context is sent through the selected authenticated backend CLI. Claudux
+does not offer a hosted API-key path or fetch external documentation links.
+
+Default mode protects source paths after the backend runs. Manifest mode
+reduces backend authority before it runs and constrains documentation changes
+to declared section patches. Neither mode proves generated prose is correct.
+
+## Verification
 
 ```bash
-#!/bin/bash
-# Entry point that:
-# - Validates environment and dependencies
-# - Routes commands to appropriate handlers  
-# - Sources library modules in dependency order
-# - Handles global error conditions and cleanup
+bash tests/run-tests.sh
+bash tests/run-all.sh
+npm run verify
+npm --prefix docs run docs:build
 ```
 
-**Key responsibilities:**
-- Command-line argument parsing
-- Environment validation (Node.js, Claude CLI)
-- Library module loading and dependency management
-- Global error handling and interrupt management
-
-### 2. Library Modules
-
-Modular functionality organized by concern:
-
-| Module | Purpose | Key Functions |
-|--------|---------|---------------|
-| `colors.sh` | Terminal output utilities | `print_color()`, `error_exit()`, `warn()` |
-| `project.sh` | Project detection and config | `detect_project_type()`, `load_project_config()` |
-| `claude-utils.sh` | Claude AI integration | `check_claude()`, `get_model_settings()` |
-| `docs-manifest.sh` | Deterministic docs contracts | `validate_docs_structure_manifest()`, `build_static_analysis_index()` |
-| `docs-generation.sh` | Core generation logic | `build_generation_prompt()`, `update()` |
-| `content-protection.sh` | Marker-pair reference (utility helpers; enforcement lives in `docs-manifest.sh` guards) | `get_protection_markers()` |
-| `git-utils.sh` | Git operations | `show_git_status()`, `show_detailed_changes()` |
-| `server.sh` | VitePress dev server | `serve()`, dependency management |
-| `cleanup.sh` | Legacy cleanup surface | Interactive Claude prompt; silent path is a no-op |
-| `ui.sh` | Interactive interface | `show_menu()`, `show_help()`, `create_claudux_md()` |
-| `validate-links.sh` | Link validation | Internal link checking |
-
-### 3. Template System
-
-**Template hierarchy:**
-```
-lib/templates/
-├── generic/config.json          # Default fallback
-├── react-project-config.json    # React-specific structure
-├── nextjs-project-config.json   # Next.js patterns  
-├── ios-project-config.json      # iOS app documentation
-└── python-project-config.json   # Python project patterns
-```
-
-**Template selection logic** (`lib/project.sh:24-26`):
-1. Use project-type specific template if available
-2. Fall back to generic template
-3. Auto-detect project type from file patterns
-
-### 4. VitePress Integration
-
-**Configuration generation** (`lib/vitepress/config.template.ts`):
-- Dynamic project metadata injection
-- Sidebar structure based on planned documentation
-- Auto-detected social links and repository information
-- Theme customization and search configuration
-
-**Development server** (`lib/server.sh`):
-- VitePress setup and dependency management
-- Live reload and hot module replacement
-- Port configuration and conflict resolution
-
-## Data Flow
-
-### 1. Command Processing Flow
-
-```
-claudux update
-    │
-    ├─ load_project_config()     # Detect type, read claudux.json
-    │
-    ├─ validate_docs_structure_manifest()
-    │
-    ├─ build_static_analysis_index()
-    │
-    ├─ build_generation_prompt() # Construct AI prompt  
-    │
-    ├─ claude [prompt]           # AI analysis and generation
-    │
-    ├─ validate_links()          # Check link integrity
-    │
-    └─ show_detailed_changes()   # Display results
-```
-
-### 2. AI Prompt Construction
-
-**Prompt building** (`lib/docs-generation.sh:5-227`):
-
-```bash
-# Input sources (in order):
-1. Template configuration (project-type specific)
-2. Style guide (.ai-docs-style.md if present)  
-3. Documentation map (docs-map.md if present)
-4. Structure manifest (docs-structure.json if present)
-5. Static analysis index (.claudux/index/static-analysis.json)
-6. CLAUDE.md (project patterns and conventions)
-7. User directive (--with flag)
-
-# Output: the prompt for two-phase generation
-```
-
-### 3. Configuration Loading
-
-**Configuration precedence** (`lib/project.sh:5-30`):
-1. `claudux.json` (primary configuration)
-2. `.claudux.json` (alternative location)
-3. Auto-detection from file patterns
-4. Generic fallback defaults
-
-## Error Handling Strategy
-
-### 1. Defensive Programming
-
-**Strict mode** (`bin/claudux:8`):
-```bash
-set -u                    # Catch undefined variables
-set -o pipefail          # Propagate pipe failures
-```
-
-**Command validation** (`lib/claude-utils.sh:6-8`):
-```bash
-if ! command -v claude &> /dev/null; then
-    error_exit "Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code"
-fi
-```
-
-### 2. Graceful Degradation
-
-**Optional dependencies:**
-```bash
-# jq is preferred but not required
-if command -v jq &> /dev/null; then
-    PROJECT_NAME=$(jq -r '.project.name' claudux.json)
-else
-    PROJECT_NAME=$(grep '"name"' claudux.json | sed 's/.*"\([^"]*\)".*/\1/')
-fi
-```
-
-### 3. User-Friendly Error Messages
-
-**Centralized error functions** (`lib/colors.sh:27-44`):
-- Consistent formatting with colors and emoji
-- Helpful next-step guidance
-- Proper stderr routing for scripting
-
-## Security Considerations
-
-### 1. Local orchestration, remote models
-
-- Claudux orchestrates from your machine (local checkout + CLI)
-- Prompt context (which can include source/docs excerpts) is sent through the
-  **authenticated Claude or Codex CLI** to that provider
-- Do **not** read older copy that said “no source code sent to external APIs”
-- You still control which backend/account is authenticated and what trees you run on
-
-### 2. Content Protection
-
-What is mechanically enforced, and where:
-
-- **Manifest mode** (`docs-structure.json` committed): the model runs with
-  `--allowedTools "Read"`, section patches are validated all-or-nothing
-  against the manifest, and skip-marker/pinned blocks are sha256-hashed in
-  the guard snapshot (`lib/docs-manifest.sh`); generation aborts if a
-  guarded block changed.
-- **Without a manifest**: path rules are prompt guidance only. Generation
-  prompts steer the model away from `notes/`, `private/`, secrets, and
-  build output, but no code checks which files it writes.
-
-`lib/content-protection.sh` ships marker-pair helpers
-(`get_protection_markers()`, `strip_protected_content()`,
-`is_protected_path()`) as utilities; nothing in the generation pipeline
-calls them, so do not read them as an enforcement layer.
-
-### 3. Permission Management
-
-**Claude CLI permissions** (controlled in AI calls):
-- `--allowedTools "Read,Write,Edit,Delete"` - Only necessary file operations
-- `--permission-mode acceptEdits` - Automatic approval for documentation edits
-- No system command execution capabilities
-
-## Performance Optimization
-
-### 1. Lazy Loading
-
-Dependencies checked only when needed:
-```bash
-# Only check jq availability when parsing JSON
-if [[ -f "claudux.json" ]] && command -v jq &> /dev/null; then
-```
-
-### 2. Early Returns
-
-Skip unnecessary work:
-```bash
-# Skip cleanup if no docs exist
-if [[ ! -d "docs" ]]; then
-    warn "📄 No documentation files found to clean"
-    return
-fi
-```
-
-### 3. Progress Indicators
-
-Long-running operations show progress:
-```bash
-# Visual feedback during AI generation
-local progress_pid=$(show_progress 8 24)
-```
-
-## Extensibility
-
-### 1. Project Type Detection
-
-**Adding new project types** (`lib/project.sh:33-64`):
-```bash
-detect_project_type() {
-    # Add new detection patterns here
-    if [[ -f "specific-file.json" ]]; then
-        echo "new-type"
-    # Existing detection logic...
-}
-```
-
-### 2. Template System
-
-**Adding project templates:**
-1. Create `lib/templates/newtype-project-config.json`
-2. Define documentation structure and patterns
-3. Project detection will automatically use new template
-
-### 3. VitePress Theme
-
-**Custom theming** (`lib/vitepress/theme/`):
-- Custom CSS in `custom.css`
-- Vue components for enhanced functionality
-- Breadcrumb navigation component
-
-Each concern lives in its own module, so changes and tests stay local.
+The focused regressions cover backend routing, manifest validation and
+transactions, rollback, links, installer behavior, server isolation, state,
+and CLI safety. Runtime proof still requires a disposable target repository.

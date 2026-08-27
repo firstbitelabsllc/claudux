@@ -3,6 +3,8 @@
 
 STATE_FILE=".claudux-state.json"
 CLAUDUX_PROMPT_VERSION="${CLAUDUX_PROMPT_VERSION:-docs-generation-v1}"
+CLAUDUX_GENERATION_PROMPT_FILE=""
+CLAUDUX_GENERATION_LOG_FILE=""
 
 # Ephemeral temp files: honor TMPDIR (never hardcode /tmp). Pattern arg is the
 # mktemp template basename, e.g. claudux-prompt-XXXXXX.
@@ -11,6 +13,13 @@ claudux_mktemp() {
     local dir="${TMPDIR:-/tmp}"
     dir="${dir%/}"
     mktemp "$dir/$template" 2>/dev/null || mktemp
+}
+
+claudux_mktemp_dir() {
+    local template="${1:-claudux.XXXXXX}"
+    local dir="${TMPDIR:-/tmp}"
+    dir="${dir%/}"
+    mktemp -d "$dir/$template" 2>/dev/null || mktemp -d
 }
 
 # Build deterministic checkpoint metadata from the static analysis index.
@@ -232,63 +241,347 @@ claudux_path_is_generation_allowed() {
     return 1
 }
 
-# Paths from git status --porcelain. Renames emit BOTH sides so a source→docs
+_claudux_git_status_has_second_path() {
+    case "$1" in
+        *R*|*C*) return 0 ;;
+    esac
+    return 1
+}
+
+# NUL-delimited paths from git status. Renames emit BOTH sides so a source→docs
 # move (e.g. `git mv src/foo.ts docs/foo.ts`) is caught on its removed source
 # side rather than passing on the allowed destination alone.
 claudux_git_status_paths() {
-    git status --porcelain 2>/dev/null | while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-        local raw="${line:3}"
-        if [[ "$raw" == *" -> "* ]]; then
-            printf '%s\n' "${raw%% -> *}"
-            printf '%s\n' "${raw##* -> }"
-        else
-            printf '%s\n' "$raw"
+    local record status path original_path
+
+    while IFS= read -r -d '' record; do
+        [[ ${#record} -lt 3 ]] && continue
+        status="${record:0:2}"
+        path="${record:3}"
+        printf '%s\0' "$path"
+
+        if _claudux_git_status_has_second_path "$status"; then
+            original_path=""
+            IFS= read -r -d '' original_path || original_path=""
+            if [[ -n "$original_path" ]]; then
+                printf '%s\0' "$original_path"
+            fi
         fi
-    done
+    done < <(git status --porcelain=v1 -z --untracked-files=all 2>/dev/null)
 }
 
-# Non-allowed paths with uncommitted working-tree changes.
+# NUL-delimited non-allowed paths with uncommitted working-tree changes.
 claudux_non_allowed_dirty_paths() {
-    claudux_git_status_paths | while IFS= read -r path; do
+    local path
+    while IFS= read -r -d '' path; do
         [[ -z "$path" ]] && continue
         if ! claudux_path_is_generation_allowed "$path"; then
-            printf '%s\n' "$path"
+            printf '%s\0' "$path"
         fi
-    done | sort -u
+    done < <(claudux_git_status_paths)
 }
 
-# Non-allowed paths changed in commits since start_sha..HEAD.
+# NUL-delimited non-allowed paths changed in commits since start_sha..HEAD.
 claudux_non_allowed_committed_paths_since() {
     local start_sha="$1"
+    local path
     [[ -z "$start_sha" ]] && return 0
     # --no-renames so a source→docs move surfaces as delete(source)+add(docs)
     # and the removed source side is validated instead of being collapsed into
     # a single allowed rename destination.
-    git diff --name-only --no-renames "$start_sha"..HEAD 2>/dev/null | while IFS= read -r path; do
+    while IFS= read -r -d '' path; do
         [[ -z "$path" ]] && continue
         if ! claudux_path_is_generation_allowed "$path"; then
-            printf '%s\n' "$path"
+            printf '%s\0' "$path"
         fi
-    done | sort -u
+    done < <(git diff --name-only -z --no-renames "$start_sha"..HEAD 2>/dev/null)
+}
+
+claudux_nul_file_contains_path() {
+    local file="$1"
+    local expected="$2"
+    local candidate
+
+    [[ -f "$file" ]] || return 1
+    while IFS= read -r -d '' candidate; do
+        [[ "$candidate" == "$expected" ]] && return 0
+    done < "$file"
+    return 1
+}
+
+claudux_path_in_args() {
+    local expected="$1"
+    shift
+    local candidate
+
+    for candidate in "$@"; do
+        [[ "$candidate" == "$expected" ]] && return 0
+    done
+    return 1
+}
+
+claudux_path_mode() {
+    local path="$1"
+    stat -f '%Lp' "$path" 2>/dev/null || stat -c '%a' "$path" 2>/dev/null || printf 'unknown'
+}
+
+claudux_path_kind() {
+    local path="$1"
+
+    if [[ -L "$path" ]]; then
+        printf 'symlink'
+    elif [[ -d "$path" ]]; then
+        printf 'directory'
+    elif [[ -e "$path" ]]; then
+        printf 'file'
+    else
+        printf 'absent'
+    fi
+}
+
+claudux_backup_generation_path() {
+    local path="$1"
+    local slot="$2"
+    local kind
+    kind=$(claudux_path_kind "$path")
+    printf '%s\n' "$kind" > "$slot.kind"
+
+    case "$kind" in
+        symlink)
+            readlink "$path" > "$slot.target"
+            ;;
+        directory)
+            claudux_path_mode "$path" > "$slot.mode"
+            cp -pR "$path" "$slot.data"
+            ;;
+        file)
+            claudux_path_mode "$path" > "$slot.mode"
+            cp -p "$path" "$slot.data"
+            ;;
+    esac
+}
+
+claudux_generation_backup_index_for_path() {
+    local expected="$1"
+    local paths_file="${CLAUDUX_GENERATION_START_DIRTY_FILE:-}"
+    local path index=0
+
+    [[ -f "$paths_file" ]] || return 1
+    while IFS= read -r -d '' path; do
+        if [[ "$path" == "$expected" ]]; then
+            printf '%s\n' "$index"
+            return 0
+        fi
+        index=$((index + 1))
+    done < "$paths_file"
+    return 1
+}
+
+claudux_generation_path_matches_backup() {
+    local path="$1"
+    local index="$2"
+    local slot="${CLAUDUX_GENERATION_SOURCE_BACKUP_DIR}/items/$index"
+    local expected_kind actual_kind expected_mode actual_mode
+
+    [[ -f "$slot.kind" ]] || return 1
+    expected_kind=$(cat "$slot.kind")
+    actual_kind=$(claudux_path_kind "$path")
+    [[ "$actual_kind" == "$expected_kind" ]] || return 1
+
+    case "$expected_kind" in
+        absent)
+            return 0
+            ;;
+        symlink)
+            [[ "$(readlink "$path" 2>/dev/null)" == "$(cat "$slot.target")" ]]
+            ;;
+        directory)
+            expected_mode=$(cat "$slot.mode")
+            actual_mode=$(claudux_path_mode "$path")
+            [[ "$actual_mode" == "$expected_mode" ]] || return 1
+            diff -qr "$slot.data" "$path" >/dev/null 2>&1
+            ;;
+        file)
+            expected_mode=$(cat "$slot.mode")
+            actual_mode=$(claudux_path_mode "$path")
+            [[ "$actual_mode" == "$expected_mode" ]] || return 1
+            cmp -s "$slot.data" "$path"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+claudux_restore_generation_backup_path() {
+    local path="$1"
+    local index="$2"
+    local slot="${CLAUDUX_GENERATION_SOURCE_BACKUP_DIR}/items/$index"
+    local kind
+
+    [[ -f "$slot.kind" ]] || return 1
+    kind=$(cat "$slot.kind")
+    rm -rf -- "$path"
+
+    case "$kind" in
+        absent)
+            return 0
+            ;;
+        symlink)
+            mkdir -p -- "$(dirname "$path")"
+            ln -s -- "$(cat "$slot.target")" "$path"
+            ;;
+        directory)
+            mkdir -p -- "$(dirname "$path")"
+            cp -pR "$slot.data" "$path"
+            ;;
+        file)
+            mkdir -p -- "$(dirname "$path")"
+            cp -p "$slot.data" "$path"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+claudux_tree_contains_path() {
+    local tree="$1"
+    local expected="$2"
+    local path=""
+
+    [[ -n "$tree" ]] || return 1
+    IFS= read -r -d '' path < <(git ls-tree --name-only -z "$tree" -- "$expected" 2>/dev/null) || true
+    [[ "$path" == "$expected" ]]
+}
+
+claudux_restore_generation_index_path() {
+    local path="$1"
+    local source_tree="${CLAUDUX_GENERATION_START_INDEX_TREE:-${CLAUDUX_GENERATION_START_HEAD:-}}"
+
+    if claudux_tree_contains_path "$source_tree" "$path"; then
+        git restore --source="$source_tree" --staged -- "$path" >/dev/null 2>&1
+    else
+        git update-index --force-remove -- "$path" >/dev/null 2>&1 || true
+    fi
+}
+
+claudux_restore_generation_worktree_path() {
+    local path="$1"
+    local backup_index=""
+    local start_head="${CLAUDUX_GENERATION_START_HEAD:-}"
+
+    backup_index=$(claudux_generation_backup_index_for_path "$path" 2>/dev/null || true)
+    if [[ -n "$backup_index" ]]; then
+        claudux_restore_generation_backup_path "$path" "$backup_index"
+    elif claudux_tree_contains_path "$start_head" "$path"; then
+        git restore --source="$start_head" --worktree -- "$path" >/dev/null 2>&1
+    else
+        rm -rf -- "$path"
+    fi
+}
+
+rollback_generation_workspace_changes() {
+    local current_head path rollback_failed=false
+    local start_head="${CLAUDUX_GENERATION_START_HEAD:-}"
+
+    current_head=$(git rev-parse HEAD 2>/dev/null || echo "")
+    if [[ -n "$start_head" && -n "$current_head" && "$current_head" != "$start_head" ]]; then
+        if ! git reset --soft "$start_head" >/dev/null 2>&1; then
+            rollback_failed=true
+        fi
+    fi
+
+    for path in "$@"; do
+        if ! claudux_restore_generation_index_path "$path"; then
+            rollback_failed=true
+        fi
+        if ! claudux_restore_generation_worktree_path "$path"; then
+            rollback_failed=true
+        fi
+    done
+
+    ! $rollback_failed
+}
+
+cleanup_generation_workspace_snapshot() {
+    if [[ -n "${CLAUDUX_GENERATION_SOURCE_BACKUP_DIR:-}" ]]; then
+        rm -rf -- "$CLAUDUX_GENERATION_SOURCE_BACKUP_DIR"
+    fi
+    CLAUDUX_GENERATION_SOURCE_BACKUP_DIR=""
+    CLAUDUX_GENERATION_START_DIRTY_FILE=""
+    CLAUDUX_GENERATION_START_INDEX_TREE=""
+}
+
+cleanup_docs_generation_runtime() {
+    if [[ -n "${CLAUDUX_GENERATION_PROMPT_FILE:-}" ]]; then
+        rm -f -- "$CLAUDUX_GENERATION_PROMPT_FILE"
+    fi
+    if [[ -n "${CLAUDUX_GENERATION_LOG_FILE:-}" ]]; then
+        rm -f -- "$CLAUDUX_GENERATION_LOG_FILE"
+    fi
+    CLAUDUX_GENERATION_PROMPT_FILE=""
+    CLAUDUX_GENERATION_LOG_FILE=""
+    cleanup_generation_workspace_snapshot
+}
+
+claudux_format_generation_path() {
+    local path="$1"
+
+    if declare -F _format_git_path >/dev/null 2>&1; then
+        _format_git_path "$path"
+        return
+    fi
+
+    path=${path//\\/\\\\}
+    path=${path//\"/\\\"}
+    path=${path//$'\t'/\\t}
+    path=${path//$'\n'/\\n}
+    path=${path//$'\r'/\\r}
+    printf '"%s"' "$path"
 }
 
 # Snapshot repo boundary before backend generation (issue #121 direction 3).
 capture_generation_workspace_snapshot() {
     CLAUDUX_GENERATION_START_HEAD=""
     CLAUDUX_GENERATION_START_DIRTY_FILE=""
+    CLAUDUX_GENERATION_START_INDEX_TREE=""
+    CLAUDUX_GENERATION_SOURCE_BACKUP_DIR=""
 
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         return 0
     fi
 
     CLAUDUX_GENERATION_START_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "")
-    CLAUDUX_GENERATION_START_DIRTY_FILE=$(claudux_mktemp claudux-gen-dirty-XXXXXX)
-    claudux_non_allowed_dirty_paths > "$CLAUDUX_GENERATION_START_DIRTY_FILE" 2>/dev/null || true
+    CLAUDUX_GENERATION_START_INDEX_TREE=$(git write-tree 2>/dev/null || echo "")
+    CLAUDUX_GENERATION_SOURCE_BACKUP_DIR=$(claudux_mktemp_dir claudux-gen-source-XXXXXX) || return 1
+    mkdir -p "$CLAUDUX_GENERATION_SOURCE_BACKUP_DIR/items"
+    CLAUDUX_GENERATION_START_DIRTY_FILE="$CLAUDUX_GENERATION_SOURCE_BACKUP_DIR/paths"
+    : > "$CLAUDUX_GENERATION_START_DIRTY_FILE"
+
+    local path index=0
+    while IFS= read -r -d '' path; do
+        [[ -z "$path" ]] && continue
+        if claudux_nul_file_contains_path "$CLAUDUX_GENERATION_START_DIRTY_FILE" "$path"; then
+            continue
+        fi
+        printf '%s\0' "$path" >> "$CLAUDUX_GENERATION_START_DIRTY_FILE"
+        claudux_backup_generation_path "$path" "$CLAUDUX_GENERATION_SOURCE_BACKUP_DIR/items/$index" || {
+            cleanup_generation_workspace_snapshot
+            return 1
+        }
+        index=$((index + 1))
+    done < <(claudux_non_allowed_dirty_paths)
 }
 
-# Fail closed when generation touched paths outside docs/ + manifest config.
+# Fail closed and restore the pre-generation source state when generation
+# touched paths outside docs/ + manifest config.
 validate_generation_workspace_unchanged() {
+    local retain_snapshot=false
+    if [[ "${1:-}" == "--retain-snapshot" ]]; then
+        retain_snapshot=true
+    fi
+
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         return 0
     fi
@@ -297,37 +590,48 @@ validate_generation_workspace_unchanged() {
     fi
 
     local -a unexpected=()
-    local path existing dup
+    local path backup_index
 
-    while IFS= read -r path; do
-        [[ -n "$path" ]] && unexpected+=("$path")
+    while IFS= read -r -d '' path; do
+        [[ -z "$path" ]] && continue
+        if [[ ${#unexpected[@]} -eq 0 ]]; then
+            unexpected[0]="$path"
+        elif ! claudux_path_in_args "$path" "${unexpected[@]}"; then
+            unexpected[${#unexpected[@]}]="$path"
+        fi
     done < <(claudux_non_allowed_committed_paths_since "$CLAUDUX_GENERATION_START_HEAD")
 
-    local current_dirty
-    current_dirty=$(claudux_non_allowed_dirty_paths)
-    if [[ -n "$current_dirty" ]]; then
-        while IFS= read -r path; do
+    while IFS= read -r -d '' path; do
+        [[ -z "$path" ]] && continue
+        if claudux_nul_file_contains_path "${CLAUDUX_GENERATION_START_DIRTY_FILE:-}" "$path"; then
+            continue
+        fi
+        if [[ ${#unexpected[@]} -eq 0 ]]; then
+            unexpected[0]="$path"
+        elif ! claudux_path_in_args "$path" "${unexpected[@]}"; then
+            unexpected[${#unexpected[@]}]="$path"
+        fi
+    done < <(claudux_non_allowed_dirty_paths)
+
+    if [[ -f "${CLAUDUX_GENERATION_START_DIRTY_FILE:-}" ]]; then
+        while IFS= read -r -d '' path; do
             [[ -z "$path" ]] && continue
-            if [[ -f "${CLAUDUX_GENERATION_START_DIRTY_FILE:-}" ]] \
-                && grep -Fxq "$path" "$CLAUDUX_GENERATION_START_DIRTY_FILE" 2>/dev/null; then
-                continue
+            backup_index=$(claudux_generation_backup_index_for_path "$path" 2>/dev/null || true)
+            [[ -n "$backup_index" ]] || continue
+            if ! claudux_generation_path_matches_backup "$path" "$backup_index"; then
+                if [[ ${#unexpected[@]} -eq 0 ]]; then
+                    unexpected[0]="$path"
+                elif ! claudux_path_in_args "$path" "${unexpected[@]}"; then
+                    unexpected[${#unexpected[@]}]="$path"
+                fi
             fi
-            dup=false
-            if [[ ${#unexpected[@]} -gt 0 ]]; then
-                for existing in "${unexpected[@]}"; do
-                    if [[ "$existing" == "$path" ]]; then
-                        dup=true
-                        break
-                    fi
-                done
-            fi
-            if ! $dup; then
-                unexpected+=("$path")
-            fi
-        done <<< "$current_dirty"
+        done < "$CLAUDUX_GENERATION_START_DIRTY_FILE"
     fi
 
     if [[ ${#unexpected[@]} -eq 0 ]]; then
+        if ! $retain_snapshot; then
+            cleanup_generation_workspace_snapshot
+        fi
         return 0
     fi
 
@@ -335,11 +639,16 @@ validate_generation_workspace_unchanged() {
     warn "SOURCE BOUNDARY VIOLATION: generation touched files outside docs/ and manifest paths"
     warn "The backend must not edit or commit source files during claudux update (issue #121)."
     for path in "${unexpected[@]}"; do
-        print_color "RED" "   • $path" >&2
+        print_color "RED" "   • $(claudux_format_generation_path "$path")" >&2
     done
-    warn "Review with: git status && git diff"
-    warn "To undo unintended commits: git reset --soft ${CLAUDUX_GENERATION_START_HEAD}"
+
+    if rollback_generation_workspace_changes "${unexpected[@]}"; then
+        warn "Rolled back unrelated source changes; generated docs remain available for review."
+    else
+        warn "Automatic rollback was incomplete. Review immediately with: git status && git diff"
+    fi
     warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cleanup_generation_workspace_snapshot
     return 1
 }
 
@@ -737,14 +1046,14 @@ update() {
     local incremental_changed_files=""
     local incremental_impact_allowlist_file=""
 
-    info "📊 Starting documentation update and cleanup..."
+    info "📊 Starting documentation update..."
     echo ""
 
     # Show current git status
     show_git_status
     echo ""
 
-    # First, clean up obsolete files (handled within generation)
+    # Legacy hook retained for compatibility; the current implementation is a no-op.
     cleanup_docs_silent
 
     info "🚀 Generating documentation..."
@@ -844,8 +1153,6 @@ $base_prompt"
         fi
     fi
 
-    capture_generation_workspace_snapshot
-
     # Check if prompt was built successfully
     if [[ -z "$prompt" ]]; then
         warn "❌ Failed to build generation prompt"
@@ -869,17 +1176,16 @@ $base_prompt"
     prompt_file=$(claudux_mktemp claudux-prompt-XXXXXX)
     local claude_log
     claude_log=$(claudux_mktemp claudux-claude-XXXXXX)
+    CLAUDUX_GENERATION_PROMPT_FILE="$prompt_file"
+    CLAUDUX_GENERATION_LOG_FILE="$claude_log"
     
     # Ensure we got valid temp files
     if [[ -z "$prompt_file" ]] || [[ -z "$claude_log" ]]; then
         error_exit "Failed to create temporary files"
     fi
     
-    # Clean up temp files on exit
-    # shellcheck disable=SC2064
-    trap "rm -f '$prompt_file' '$claude_log' 2>/dev/null" EXIT
-    
     echo "$prompt" > "$prompt_file"
+    capture_generation_workspace_snapshot || error_exit "Failed to capture the pre-generation source snapshot"
 
     local claude_exit_code=0
 
@@ -1054,6 +1360,9 @@ $base_prompt"
     fi
     
     echo ""
+
+    validate_generation_workspace_unchanged --retain-snapshot \
+        || error_exit "Generation modified files outside allowed docs/manifest paths"
     
     if [[ $claude_exit_code -eq 0 ]]; then
         if $section_patch_mode; then
@@ -1187,7 +1496,7 @@ $base_prompt"
             echo "   5. Check internet connection"
         else
             echo "   1. Check Claude CLI is authenticated:"
-            echo "      claude config get"
+            echo "      claude auth status"
             echo ""
             echo "   2. Try with a different model:"
             echo "      FORCE_MODEL=opus claudux update"

@@ -10,6 +10,8 @@ echo ""
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LIB_DIR="$REPO_ROOT/lib"
+TEST_TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/claudux-backend-router-test.XXXXXX") || exit 1
+trap 'rm -rf "$TEST_TMP_ROOT"' EXIT
 
 # Backend defaulting is covered behaviorally by the `claudux check` tests below,
 # which read the value the CLI actually reports rather than re-asserting bash
@@ -52,15 +54,15 @@ assert_contains "validate checks for CODEX_UTILS_MISSING" "$validate_fn" 'CODEX_
 # --- Test 9: CLAUDUX_BACKEND=codex sets CODEX_UTILS_MISSING when lib missing ---
 (
     export CLAUDUX_BACKEND=codex
-    codex_lib="/tmp/nonexistent-codex-utils-$$.sh"
+    codex_lib="$TEST_TMP_ROOT/nonexistent-codex-utils.sh"
     if [[ -f "$codex_lib" ]]; then
         source "$codex_lib"
     else
         CODEX_UTILS_MISSING=true
     fi
     echo "${CODEX_UTILS_MISSING:-false}"
-) > /tmp/claudux-test-missing 2>&1
-assert_eq "CODEX_UTILS_MISSING set when lib missing" "true" "$(cat /tmp/claudux-test-missing)"
+) > "$TEST_TMP_ROOT/missing" 2>&1
+assert_eq "CODEX_UTILS_MISSING set when lib missing" "true" "$(cat "$TEST_TMP_ROOT/missing")"
 
 # --- Test 10: check command shows correct backend info ---
 check_block=$(sed -n '/"check"|"--check"/,/;;/p' "$REPO_ROOT/bin/claudux")
@@ -73,9 +75,9 @@ assert_contains "check shows codex model" "$check_block" 'CODEX_MODEL'
     # header is 3 lines (title + tagline + blank); the optional "Changing to
     # project root" notice can prepend one more, so capture 4 to reach the tagline
     "$REPO_ROOT/bin/claudux" check 2>&1 | head -4
-) > /tmp/claudux-test-header-claude 2>&1
+) > "$TEST_TMP_ROOT/header-claude" 2>&1
 assert_contains "default header mentions Claude AI" \
-    "$(cat /tmp/claudux-test-header-claude)" \
+    "$(cat "$TEST_TMP_ROOT/header-claude")" \
     "powered by Claude AI"
 
 # --- Test 12: show_header switches to Codex when CLAUDUX_BACKEND=codex ---
@@ -86,15 +88,15 @@ assert_contains "default header mentions Claude AI" \
     # header is 3 lines (title + tagline + blank); the optional "Changing to
     # project root" notice can prepend one more, so capture 4 to reach the tagline
     "$REPO_ROOT/bin/claudux" check 2>&1 | head -4
-) > /tmp/claudux-test-header-codex 2>&1
+) > "$TEST_TMP_ROOT/header-codex" 2>&1
 assert_contains "codex header mentions Codex" \
-    "$(cat /tmp/claudux-test-header-codex)" \
+    "$(cat "$TEST_TMP_ROOT/header-codex")" \
     "powered by Codex (gpt-5.5, xhigh reasoning)"
 assert_not_contains "codex header does NOT hardcode GPT-5.4" \
-    "$(cat /tmp/claudux-test-header-codex)" \
+    "$(cat "$TEST_TMP_ROOT/header-codex")" \
     "GPT-5.4"
 assert_not_contains "codex header does NOT say Claude AI" \
-    "$(cat /tmp/claudux-test-header-codex)" \
+    "$(cat "$TEST_TMP_ROOT/header-codex")" \
     "powered by Claude AI"
 
 # --- Test 13: Claude-specific model lookup lives inside run_claude_once ---
@@ -269,7 +271,4 @@ assert_contains "backend nonzero failure retains the backend log" \
     'retain_generation_debug_log "$claude_log" "backend-failure"'
 
 # Cleanup
-rm -f /tmp/claudux-test-backend-default /tmp/claudux-test-backend-codex /tmp/claudux-test-missing
-rm -f /tmp/claudux-test-header-claude /tmp/claudux-test-header-codex
-
 test_summary

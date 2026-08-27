@@ -53,8 +53,8 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
-            { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
-            { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
+            { text: 'Generation Pipeline', link: '/features/two-phase-generation' },
+            { text: 'Cleanup', link: '/features/smart-cleanup' },
             { text: 'Content Protection', link: '/features/content-protection' }
           ]
         },
@@ -63,7 +63,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Architecture', link: '/technical/' },
-            { text: 'Templates', link: '/technical/templates' },
+            { text: 'Project Profiles', link: '/technical/templates' },
             { text: 'Deterministic Generation', link: '/technical/deterministic-generation' }
           ]
         },
@@ -94,8 +94,8 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
-            { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
-            { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
+            { text: 'Generation Pipeline', link: '/features/two-phase-generation' },
+            { text: 'Cleanup', link: '/features/smart-cleanup' },
             { text: 'Content Protection', link: '/features/content-protection' }
           ]
         }
@@ -106,7 +106,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Architecture', link: '/technical/' },
-            { text: 'Templates', link: '/technical/templates' },
+            { text: 'Project Profiles', link: '/technical/templates' },
             { text: 'Deterministic Generation', link: '/technical/deterministic-generation' }
           ]
         }

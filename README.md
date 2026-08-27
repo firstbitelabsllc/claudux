@@ -13,14 +13,14 @@
 
 Generate a VitePress docs site from your codebase, preview it locally, and update it in place as the code changes.
 
-claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). Without a manifest, that's a full generation pass; commit a `docs-structure.json` and it stops being one — the repo owns the structure, the model is restricted to proposing section-scoped patches, and code applies them behind deterministic guards: path boundaries, all-or-nothing validation, and sha256 hashes that refuse silent edits to protected sections.
+claudux scans your code and drafts a VitePress docs site with your authenticated Claude CLI or Codex CLI. On a first run, the backend can edit documentation paths directly; claudux snapshots the rest of the Git worktree and rolls back any unrelated file change or commit before failing the run. Commit a `docs-structure.json` to switch to the stricter mode: the backend becomes read-only, returns section-patch JSON, and claudux validates and transactionally applies only the manifest-approved patch batch.
 
 ## Why this exists
 
-Anyone can ask a model to write docs. The hard part is keeping the model on rails: not reorganizing your navigation, not rewriting sections that didn't change, not touching content you marked as yours. claudux puts those rails in the repo — a committed manifest owns page structure, skip markers protect blocks, and link validation catches 404s before your readers do.
+Anyone can ask a model to write docs. The hard part is controlling what it may change. claudux makes that boundary visible: default generation protects non-documentation paths and leaves the docs diff for review; manifest mode adds section ownership, read-only blocks, transactional patch application, and deterministic local-link checks.
 
 <p align="center">
-  <img src="assets/claudux-rails.svg" alt="How claudux keeps the model on rails during claudux update: the repo owns the docs structure in a committed manifest; the model proposes section-scoped patches it cannot write itself; and code checks every patch against deterministic guards — impact allowlist, single-section span, sha256 protected-block hashes, and a path boundary — applying them all-or-nothing before any file is written." width="820" />
+  <img src="assets/claudux-rails.svg" alt="How manifest mode applies a section-patch batch: the repository declares writable sections, the backend returns patch JSON without direct file access, and claudux validates every target, boundary, impact rule, and protected hash before transactionally committing the target documentation files." width="820" />
 </p>
 
 ## Install
@@ -60,20 +60,20 @@ Reconstructed from a real claudux run against a two-file Node CLI — detection,
 
 ## What it does
 
-**Generation.** `claudux update` drafts a full VitePress docs site straight from your code, so you start from a real draft instead of an empty `docs/` folder. It uses your authenticated Claude CLI by default (Sonnet); set `CLAUDUX_BACKEND=codex` for the Codex CLI (gpt-5.4). It is not an API-reference generator, so pair it with TypeDoc or JSDoc if you need one. Model output can be wrong; link checks and manifests shrink the blast radius, they do not replace review.
+**Generation.** `claudux update` drafts a VitePress docs site from the code and configuration in the current checkout. It uses your authenticated Claude CLI by default; set `CLAUDUX_BACKEND=codex` to use Codex. It is not a deterministic API extractor, and model output can be wrong, so review the generated diff.
 
-**Deterministic manifest mode.** A committed `docs-structure.json` owns page structure and declares which source files each doc section describes. claudux applies bounded section patches instead of broad rewrites, and guards content through skip markers and path denylists.
+**Deterministic manifest mode.** A committed `docs-structure.json` owns page structure and declares which source files each documentation section describes. The backend can only propose JSON patches. claudux validates the full patch batch, stages every target file, verifies that none changed concurrently, and then commits or restores that batch as one transaction.
 
-**Link validation.** After each update, claudux checks the internal links in your VitePress nav and sidebar against the files on disk and tries one auto-fix pass. By default it continues with a warning if any remain; pass `--strict` to make broken links fail the build.
+**Link validation.** After generation, claudux checks VitePress nav and sidebar routes, Markdown links, local assets, generated and explicit anchors, duplicate explicit IDs, path traversal, and symlink escapes. External URLs are skipped. It can attempt one missing-page repair pass; by default unresolved failures warn, while `--strict` makes them fail the update.
 
 **Focused updates.** `claudux update -m "document the new auth flow"` steers a regeneration at one area instead of the whole site.
 
 ## How it works
 
-- The repo owns structure. `docs-structure.json` holds page IDs, navigation order, and which source each section describes, so the model rewrites wording and never reorganizes your docs.
-- Generation is bounded. claudux applies validated section patches, so an incremental regen touches only the sections a changed source owns instead of rewriting whole pages.
-- Your content stays put. Pinned sections, read-only sections, and skip-marker blocks are hashed before and after generation, so protected text cannot change silently.
-- Only `update` and the interactive menu call the model. `serve` and `check` never call a backend.
+- Default generation is reviewable. The backend may write documentation paths, but claudux rejects and restores changes outside `docs/`, its local state, and documentation-manifest paths.
+- Manifest mode is section-bounded. `docs-structure.json` supplies page IDs, source ownership, writable sections, and deletion rules; code, not the backend, applies the patch batch.
+- Protected documentation is hash-guarded in manifest mode. Pinned sections, explicit read-only sections, and skip-marker blocks must match the pre-generation snapshot.
+- `serve` never invokes a model, though it may scaffold VitePress files and run `npm install`. `check` never generates docs, but it does verify the selected backend's authentication; older Codex CLIs may require a small exec probe when `codex login status` is unavailable.
 
 ## Commands
 
@@ -108,7 +108,7 @@ claudux auto-detects iOS, Next.js, React, Node.js, JavaScript, Java, Python, Go,
 
 ## Content protection
 
-Protection is strongest with a committed `docs-structure.json`: the model runs read-only, docs writes are section-bounded and applied all-or-nothing, and skip-marker and pinned blocks are sha256-hashed in the guard snapshot — generation aborts if a protected block changed. Mark blocks like this:
+Protection is strongest with a committed `docs-structure.json`: the backend runs read-only, claudux validates and transactionally applies the manifest section-patch batch, and skip-marker, pinned, and explicit read-only blocks are sha256-hashed in the guard snapshot. Mark blocks like this:
 
 ```markdown
 <!-- skip -->
@@ -118,7 +118,7 @@ This block is hash-guarded by claudux.
 
 Language-specific pairs are supported, including `// skip`, `# skip`, `/* skip */`, and `-- skip`.
 
-Without a manifest, the generation pass runs with write access and path rules are prompt guidance, not an enforced barrier: prompts steer the model away from `notes/`, `private/`, secrets, and build output, and `Bash` is mechanically disallowed so it cannot run shell commands or `git commit` — but there is no code-level check on which files it writes. If that distinction matters to you, commit a manifest.
+Without a manifest, the backend can edit documentation paths directly. `Bash` is disallowed, and claudux also snapshots non-documentation paths plus `HEAD`; if generation changes or commits an unrelated path, the update fails and restores that source state while leaving the generated docs available for review. This is a repository boundary, not section-level protection inside `docs/`. Commit a manifest when individual pages or blocks must be mechanically constrained.
 
 ## Project docs
 

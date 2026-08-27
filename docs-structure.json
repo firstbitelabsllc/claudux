@@ -111,7 +111,7 @@
     {
       "id": "features.two-phase-generation",
       "path": "docs/features/two-phase-generation.md",
-      "title": "Two-Phase Generation",
+      "title": "Generation Pipeline",
       "nav_group": "features",
       "order": 60,
       "deletion_policy": "never_delete_without_manifest_change",
@@ -124,7 +124,7 @@
     {
       "id": "features.smart-cleanup",
       "path": "docs/features/smart-cleanup.md",
-      "title": "Smart Cleanup",
+      "title": "Cleanup",
       "nav_group": "features",
       "order": 70,
       "deletion_policy": "never_delete_without_manifest_change",
@@ -162,7 +162,7 @@
     {
       "id": "technical.templates",
       "path": "docs/technical/templates.md",
-      "title": "Templates",
+      "title": "Project Profiles",
       "nav_group": "technical",
       "order": 100,
       "deletion_policy": "never_delete_without_manifest_change",

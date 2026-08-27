@@ -7,12 +7,12 @@ pass() { echo "  PASS $1"; pass=$((pass+1)); }
 fail() { echo "  FAIL $1"; fail=$((fail+1)); }
 
 set +e
-out=$(python3 "$GATE" 2>&1); rc=$?
+out=$(python3 -B "$GATE" 2>&1); rc=$?
 set -e
 [[ "$rc" == "0" ]] && pass "clean tree content scan exits 0" || fail "clean tree content scan exits 0 (rc=$rc)"
 [[ "$out" == *"public-ready gate passed"* ]] && pass "clean tree message" || fail "clean tree message"
 
-python3 - "$GATE" <<'PY' && pass "pattern contract" || fail "pattern contract"
+python3 -B - "$GATE" <<'PY' && pass "pattern contract" || fail "pattern contract"
 import importlib.util, sys
 from pathlib import Path
 spec = importlib.util.spec_from_file_location("g", Path(sys.argv[1]))
@@ -22,9 +22,10 @@ assert labels["employer email or domain"].search("wiki.snapchat.com")
 assert labels["employer source path"].search("lkwan/box")
 assert not labels["employer email or domain"].search("snapshot of docs")
 PY
+[[ ! -e "$ROOT/scripts/__pycache__" ]] && pass "pattern import leaves no bytecode residue" || fail "pattern import leaves bytecode residue"
 
 set +e
-outm=$(python3 "$GATE" --metadata 2>&1); rcm=$?
+outm=$(python3 -B "$GATE" --metadata 2>&1); rcm=$?
 set -e
 [[ "$rcm" == "0" ]] && pass "HEAD metadata scan exits 0" || fail "HEAD metadata scan exits 0 (rc=$rcm out=$outm)"
 

@@ -11,7 +11,10 @@ echo ""
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$REPO_ROOT/lib/content-protection.sh"
 
-TEST_DIR=$(mktemp -d /tmp/claudux-content-protection-XXXXXX)
+TEST_TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/claudux-content-protection-test.XXXXXX") || exit 1
+trap 'rm -rf "$TEST_TMP_ROOT"' EXIT
+TEST_DIR="$TEST_TMP_ROOT/content"
+mkdir -p "$TEST_DIR"
 
 MARKERS=$(get_protection_markers "$TEST_DIR/example.md")
 assert_eq "markdown markers preserve spaces" $'<!-- skip -->\n<!-- /skip -->' "$MARKERS"
@@ -74,7 +77,5 @@ assert_contains "indented slash markers strip protected body" "$STRIPPED_CONTENT
 assert_contains "indented slash markers keep later body" "$STRIPPED_CONTENT" "laterValue"
 assert_not_contains "indented slash markers remove protected body" "$STRIPPED_CONTENT" "do-not-document"
 rm -f "$STRIPPED"
-
-rm -rf "$TEST_DIR"
 
 test_summary

@@ -92,14 +92,59 @@ link_bin() {
   info "Linked $BIN_DIR/claudux -> $DATA_DIR/bin/claudux"
 }
 
-# --- verify the installed binary runs ---
+# --- verify the installed binary matches the installed package ---
 verify() {
-  installed_version=$("$DATA_DIR/bin/claudux" --version 2>/dev/null || true)
-  if [ -n "$installed_version" ]; then
-    info "Installed: $installed_version"
+  [ -f "$DATA_DIR/package.json" ] || die "Install incomplete: $DATA_DIR/package.json is missing."
+
+  if package_version=$(node -e '
+const fs = require("node:fs");
+const numeric = "(?:0|[1-9][0-9]*)";
+const prerelease = "(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)";
+const semver = new RegExp(
+  "^" + numeric + "\\." + numeric + "\\." + numeric +
+  "(?:-" + prerelease + "(?:\\." + prerelease + ")*)?" +
+  "(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+);
+
+let manifest;
+try {
+  manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+} catch {
+  process.exit(1);
+}
+
+if (typeof manifest.version !== "string" || !semver.test(manifest.version)) {
+  process.exit(1);
+}
+
+process.stdout.write(manifest.version);
+' "$DATA_DIR/package.json" 2>/dev/null); then
+    :
   else
-    warn "Installed, but '$DATA_DIR/bin/claudux --version' produced no output."
+    die "Install verification failed: package.json does not contain a valid semantic version."
   fi
+
+  capture_marker=$(printf '\037')
+  if captured_output=$("$DATA_DIR/bin/claudux" --version 2>&1 && printf '\037'); then
+    :
+  else
+    die "Install verification failed: '$DATA_DIR/bin/claudux --version' exited nonzero."
+  fi
+
+  case "$captured_output" in
+    *"$capture_marker") installed_output=${captured_output%"$capture_marker"} ;;
+    *) die "Install verification failed while reading '$DATA_DIR/bin/claudux --version'." ;;
+  esac
+
+  expected_output="claudux $package_version"
+  newline=$(printf '\n_')
+  newline=${newline%_}
+  case "$installed_output" in
+    "$expected_output"|"$expected_output$newline") ;;
+    *) die "Install verification failed: '$DATA_DIR/bin/claudux --version' must output exactly '$expected_output'." ;;
+  esac
+
+  info "Installed: $expected_output"
 }
 
 # --- tell the user how to reach it if PATH is missing the bin dir ---
