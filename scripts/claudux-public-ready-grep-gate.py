@@ -42,6 +42,18 @@ ALLOWLIST_AUTHOR_EMAILS = {
     "41898282+github-actions[bot]@users.noreply.github.com",
 }
 
+AI_IDENTITY_PATTERN = re.compile(
+    r"\b(?:chatgpt|openai|codex|claude(?:\s+code)?|anthropic|"
+    r"cursor(?:\s*agent)?|(?:github\s+)?copilot|gemini|codesmith|"
+    r"ai\s+assistant)\b",
+    re.IGNORECASE,
+)
+
+AI_GENERATION_FOOTER_PATTERN = re.compile(
+    r"^\s*(?:generated|created|written|assisted)[ -]+(?:by|with):?\s+.+$",
+    re.IGNORECASE,
+)
+
 
 def tracked_files() -> list[Path]:
     out = subprocess.check_output(
@@ -87,19 +99,27 @@ def scan_commit_metadata(range_spec: str | None) -> list[str]:
         return [f"git log failed: {exc}"]
     hits: list[str] = []
     coauthor = re.compile(
-        r"^Co-authored-by:\s*.*<([^>]+)>",
+        r"^Co-authored-by:\s*(.*?)\s*<([^>]+)>",
         re.IGNORECASE | re.MULTILINE,
     )
     emails: set[str] = set()
     lines = blob.splitlines()
+    for match in coauthor.finditer(blob):
+        name = match.group(1).strip()
+        email = match.group(2).lower()
+        emails.add(email)
+        if AI_IDENTITY_PATTERN.search(f"{name} {email}"):
+            hits.append(f"commit metadata: AI co-author trailer {name} <{email}>")
+    for line in lines:
+        if AI_GENERATION_FOOTER_PATTERN.match(line) and AI_IDENTITY_PATTERN.search(line):
+            hits.append(f"commit metadata: AI generation footer {line.strip()[:160]}")
+
     # First two lines of each commit block are %ae / %ce when format is per-commit;
     # for simplicity collect every bare email-looking token + coauthor trailers.
     for line in lines:
         stripped = line.strip()
         if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", stripped):
             emails.add(stripped.lower())
-    for match in coauthor.finditer(blob):
-        emails.add(match.group(1).lower())
     allow = {e.lower() for e in ALLOWLIST_AUTHOR_EMAILS}
     for email in sorted(emails):
         if email in allow:

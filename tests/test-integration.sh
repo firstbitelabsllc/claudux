@@ -10,6 +10,8 @@ echo ""
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LIB_DIR="$REPO_ROOT/lib"
+TEST_TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/claudux-integration-test.XXXXXX") || exit 1
+trap 'rm -rf "$TEST_TMP_ROOT"' EXIT
 
 # Stub color/logging functions
 info()    { :; }
@@ -23,7 +25,7 @@ show_help() { echo "usage: claudux <command>"; }
 # Helper: create a temp git repo
 setup_repo() {
     local dir
-    dir=$(mktemp -d /tmp/claudux-integ-test-XXXXXX)
+    dir=$(mktemp -d "$TEST_TMP_ROOT/repo.XXXXXX")
     (
         cd "$dir"
         git init -q
@@ -69,8 +71,8 @@ TEST_DIR=$(setup_repo)
             echo "invalid-json"
         fi
     fi
-) > /tmp/claudux-integ-t1 2>&1
-assert_eq "filenames with double-quotes produce valid JSON" "valid-json" "$(cat /tmp/claudux-integ-t1)"
+) > "$TEST_TMP_ROOT/t1" 2>&1
+assert_eq "filenames with double-quotes produce valid JSON" "valid-json" "$(cat "$TEST_TMP_ROOT/t1")"
 rm -rf "$TEST_DIR"
 
 # --- Test 2: Filenames with backslashes produce valid JSON ---
@@ -94,8 +96,8 @@ TEST_DIR=$(setup_repo)
     else
         echo "valid-json"
     fi
-) > /tmp/claudux-integ-t2 2>&1
-assert_eq "filenames with backslashes produce valid JSON" "valid-json" "$(cat /tmp/claudux-integ-t2)"
+) > "$TEST_TMP_ROOT/t2" 2>&1
+assert_eq "filenames with backslashes produce valid JSON" "valid-json" "$(cat "$TEST_TMP_ROOT/t2")"
 rm -rf "$TEST_DIR"
 
 # ═══════════════════════════════════════════
@@ -124,8 +126,8 @@ TEST_DIR=$(setup_repo)
     else
         echo "diff-broken"
     fi
-) > /tmp/claudux-integ-t3 2>&1
-assert_eq "diff works across backend switch (claude->codex)" "diff-works" "$(cat /tmp/claudux-integ-t3)"
+) > "$TEST_TMP_ROOT/t3" 2>&1
+assert_eq "diff works across backend switch (claude->codex)" "diff-works" "$(cat "$TEST_TMP_ROOT/t3")"
 rm -rf "$TEST_DIR"
 
 # --- Test 4: State saved with codex, diff works with default (claude) backend ---
@@ -150,8 +152,8 @@ TEST_DIR=$(setup_repo)
     else
         echo "diff-broken"
     fi
-) > /tmp/claudux-integ-t4 2>&1
-assert_eq "diff works across backend switch (codex->claude)" "diff-works" "$(cat /tmp/claudux-integ-t4)"
+) > "$TEST_TMP_ROOT/t4" 2>&1
+assert_eq "diff works across backend switch (codex->claude)" "diff-works" "$(cat "$TEST_TMP_ROOT/t4")"
 rm -rf "$TEST_DIR"
 
 # --- Test 5: State shows different backend after save with new backend ---
@@ -176,8 +178,8 @@ TEST_DIR=$(setup_repo)
     b2=$(grep '"backend"' "$STATE_FILE" | sed 's/.*: *"\([^"]*\)".*/\1/')
 
     echo "$b1|$b2"
-) > /tmp/claudux-integ-t5 2>&1
-assert_eq "backend field updates on save" "claude|codex" "$(cat /tmp/claudux-integ-t5)"
+) > "$TEST_TMP_ROOT/t5" 2>&1
+assert_eq "backend field updates on save" "claude|codex" "$(cat "$TEST_TMP_ROOT/t5")"
 rm -rf "$TEST_DIR"
 
 # ═══════════════════════════════════════════
@@ -189,44 +191,44 @@ rm -rf "$TEST_DIR"
     source "$LIB_DIR/codex-utils.sh"
     echo '{"type":"thread.started","thread_id":"abc' | format_codex_output_stream
     echo "exit-ok"
-) > /tmp/claudux-integ-t6 2>&1
-assert_contains "truncated JSON exits ok" "$(cat /tmp/claudux-integ-t6)" "exit-ok"
+) > "$TEST_TMP_ROOT/t6" 2>&1
+assert_contains "truncated JSON exits ok" "$(cat "$TEST_TMP_ROOT/t6")" "exit-ok"
 
 # --- Test 7: Formatter handles JSON with unexpected top-level type ---
 (
     source "$LIB_DIR/codex-utils.sh"
     echo '{"type":"unknown.future.event","data":"something"}' | format_codex_output_stream
     echo "exit-ok"
-) > /tmp/claudux-integ-t7 2>&1
-assert_contains "unknown event type exits ok" "$(cat /tmp/claudux-integ-t7)" "exit-ok"
+) > "$TEST_TMP_ROOT/t7" 2>&1
+assert_contains "unknown event type exits ok" "$(cat "$TEST_TMP_ROOT/t7")" "exit-ok"
 
 # --- Test 8: Formatter handles line with type key not at start ---
 # e.g. {"id":"1","type":"item.started",...} — type is not the first field
 (
     source "$LIB_DIR/codex-utils.sh"
     echo '{"id":"1","type":"item.started","item":{"id":"i1","type":"command_execution","command":"echo hi","status":"in_progress"}}' | format_codex_output_stream
-) > /tmp/claudux-integ-t8 2>&1
+) > "$TEST_TMP_ROOT/t8" 2>&1
 # The top-level type regex anchors after opening brace — it may miss this.
 # This is an edge case worth documenting: our parser expects "type" as the first key.
 # As long as it doesn't crash, it's acceptable.
-assert_not_contains "non-first-key type does not crash" "$(cat /tmp/claudux-integ-t8)" "ERROR"
+assert_not_contains "non-first-key type does not crash" "$(cat "$TEST_TMP_ROOT/t8")" "ERROR"
 
 # --- Test 9: Formatter handles agent_message with embedded quotes ---
 (
     source "$LIB_DIR/codex-utils.sh"
     echo '{"type":"item.completed","item":{"id":"i1","type":"agent_message","text":"Found file \"README.md\" in root"}}' | format_codex_output_stream
-) > /tmp/claudux-integ-t9 2>&1
+) > "$TEST_TMP_ROOT/t9" 2>&1
 # The sed-based text extractor will stop at the first closing quote, so it may truncate.
 # The important thing is it doesn't crash.
-assert_not_contains "embedded quotes in message don't crash" "$(cat /tmp/claudux-integ-t9)" "ERROR"
+assert_not_contains "embedded quotes in message don't crash" "$(cat "$TEST_TMP_ROOT/t9")" "ERROR"
 
 # --- Test 10: Formatter handles very long command strings ---
 (
     source "$LIB_DIR/codex-utils.sh"
     long_cmd=$(printf 'x%.0s' {1..300})
     echo '{"type":"item.started","item":{"id":"i1","type":"command_execution","command":"'"$long_cmd"'","status":"in_progress"}}' | format_codex_output_stream
-) > /tmp/claudux-integ-t10 2>&1
-result10=$(cat /tmp/claudux-integ-t10)
+) > "$TEST_TMP_ROOT/t10" 2>&1
+result10=$(cat "$TEST_TMP_ROOT/t10")
 assert_contains "long command is truncated in display" "$result10" "Running [1]:"
 # The display truncates to 100 chars
 assert_not_contains "long command does not show full 300 chars" "$result10" "$(printf 'x%.0s' {1..200})"
@@ -249,8 +251,8 @@ assert_eq "check_generation_backend referenced in bin/claudux" "true" "$( [[ $ch
     else
         echo "no-dispatch"
     fi
-) > /tmp/claudux-integ-t17 2>&1
-assert_eq "check_generation_backend dispatches to check_codex" "dispatches-codex" "$(cat /tmp/claudux-integ-t17)"
+) > "$TEST_TMP_ROOT/t17" 2>&1
+assert_eq "check_generation_backend dispatches to check_codex" "dispatches-codex" "$(cat "$TEST_TMP_ROOT/t17")"
 
 # --- Test 18: check_generation_backend dispatches to check_claude for default backend ---
 (
@@ -260,8 +262,8 @@ assert_eq "check_generation_backend dispatches to check_codex" "dispatches-codex
     else
         echo "no-dispatch"
     fi
-) > /tmp/claudux-integ-t18 2>&1
-assert_eq "check_generation_backend dispatches to check_claude" "dispatches-claude" "$(cat /tmp/claudux-integ-t18)"
+) > "$TEST_TMP_ROOT/t18" 2>&1
+assert_eq "check_generation_backend dispatches to check_claude" "dispatches-claude" "$(cat "$TEST_TMP_ROOT/t18")"
 
 # ═══════════════════════════════════════════
 # run_codex_exec prompt safety
@@ -276,8 +278,8 @@ assert_eq "check_generation_backend dispatches to check_claude" "dispatches-clau
     else
         echo "no-echo"
     fi
-) > /tmp/claudux-integ-t19 2>&1
-assert_eq "run_codex_exec pipes prompt via stdin" "uses-echo-stdin" "$(cat /tmp/claudux-integ-t19)"
+) > "$TEST_TMP_ROOT/t19" 2>&1
+assert_eq "run_codex_exec pipes prompt via stdin" "uses-echo-stdin" "$(cat "$TEST_TMP_ROOT/t19")"
 
 # --- Test 20: run_codex_exec redirects stderr to log file ---
 (
@@ -288,8 +290,8 @@ assert_eq "run_codex_exec pipes prompt via stdin" "uses-echo-stdin" "$(cat /tmp/
     else
         echo "no-stderr-log"
     fi
-) > /tmp/claudux-integ-t20 2>&1
-assert_eq "run_codex_exec has stderr log redirect" "has-stderr-log" "$(cat /tmp/claudux-integ-t20)"
+) > "$TEST_TMP_ROOT/t20" 2>&1
+assert_eq "run_codex_exec has stderr log redirect" "has-stderr-log" "$(cat "$TEST_TMP_ROOT/t20")"
 
 # ═══════════════════════════════════════════
 # State file with deleted files (file removed between saves)
@@ -318,11 +320,8 @@ TEST_DIR=$(setup_repo)
     has_after=$(grep -c "setup.md" "$STATE_FILE")
 
     echo "$has_before|$has_after"
-) > /tmp/claudux-integ-t21 2>&1
-assert_eq "deleted file removed from state on re-save" "1|0" "$(cat /tmp/claudux-integ-t21)"
+) > "$TEST_TMP_ROOT/t21" 2>&1
+assert_eq "deleted file removed from state on re-save" "1|0" "$(cat "$TEST_TMP_ROOT/t21")"
 rm -rf "$TEST_DIR"
-
-# Cleanup
-rm -f /tmp/claudux-integ-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15c,16,17,18,19,20,21}
 
 test_summary

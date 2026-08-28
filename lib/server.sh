@@ -9,24 +9,10 @@ serve() {
     if [[ ! -d "docs" ]] || [[ ! -f "docs/index.md" ]]; then
         warn "📄 No documentation found!"
         echo ""
-        echo "You need to generate documentation first."
-        echo "Run: claudux update (or select option 1 from the menu)"
+        echo "The serve command only previews existing documentation."
+        echo "Generate it first with: claudux update"
         echo ""
-        read -p "Would you like to generate docs now? (y/N): " -r
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            # serve skips the router's preflight, so run the same checks the
-            # `update` command gets: validate deps, take the lock, and verify the
-            # backend. A missing/unauthenticated CLI then fails immediately with
-            # the documented dependency error instead of a stalled generation.
-            declare -F validate_dependencies >/dev/null 2>&1 && validate_dependencies
-            declare -F acquire_lock >/dev/null 2>&1 && acquire_lock
-            declare -F check_generation_backend >/dev/null 2>&1 && check_generation_backend
-            update
-            return
-        else
-            info "Skipping generation. Exiting without bootstrapping docs. Run: claudux update"
-            return 0
-        fi
+        return 1
     fi
     
     # Set up VitePress if needed (also check for vite.config.js and postcss.config.js for isolation)

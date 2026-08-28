@@ -1,162 +1,153 @@
-# Features Overview
+# Features
 
-Claudux generates VitePress docs from your codebase with Claude or Codex, and keeps the model on rails so it rewrites wording without reorganizing your docs or touching content you protect.
+Claudux generates VitePress documentation through an authenticated Claude or
+Codex CLI. Its safety model has two distinct levels: default generation guards
+the source tree, while a committed `docs-structure.json` adds section-level
+control over the documentation itself.
 
-## Generation Features
+## Generation modes
 
-### 🔄 Automatic Updates
+| Mode | Backend authority | Enforced boundary |
+|------|-------------------|-------------------|
+| Default generation | May edit documentation paths directly | In a Git checkout, changes and commits outside the documentation allowlist are rejected and restored |
+| Manifest mode | Read-only; returns section-patch JSON | Only writable manifest sections may change, and the target-file batch is applied transactionally |
 
-**Problem**: Documentation becomes stale the moment you ship new code.
+The distinction matters. Default mode is useful for creating a first draft.
+Manifest mode is the stronger choice once people have curated parts of the
+site.
 
-**Solution**: Claudux analyzes your actual source code on every run, detecting:
-- New functions and APIs
-- Changed behavior and patterns  
-- Deprecated or removed features
-- Updated configuration options
+## First-draft generation
 
-```bash
-claudux update  # Always generates current documentation
-```
-
-### 🧠 Code Understanding
-
-**Problem**: Generic documentation templates don't capture your project's uniqueness.
-
-**Solution**: Claude AI understands your codebase structure and patterns:
-- Analyzes import/export relationships
-- Detects architectural patterns (MVC, microservices, etc.)
-- Understands framework conventions (React hooks, Express middleware)
-- Preserves domain-specific terminology
-
-### ⚡ One-Command Generation
-
-**Problem**: Documentation toolchains are complex and time-consuming.
-
-**Solution**: Single command generates complete sites:
+`claudux update` detects the project type, selects a project profile, reads
+project configuration and existing docs, builds one prompt, and invokes the
+selected backend.
 
 ```bash
-claudux update  # Generates VitePress site with navigation, search, mobile support
-```
-
-**Includes:**
-- Responsive navigation structure
-- Full-text search
-- Mobile-friendly design  
-- Auto-generated breadcrumbs
-- Dark/light theme toggle
-
-### 🔒 Local Orchestration
-
-**Problem**: Docs tools should be explicit about where orchestration runs and which model backend is used.
-
-**Solution**: Claudux runs as a local CLI and delegates model work to your selected authenticated backend:
-- Reads files from your local checkout
-- Uses locally installed Claude or Codex CLI
-- Processes generated docs in your environment
-- Sends prompt context through the selected backend CLI
-
-### 🍰 Low-friction defaults (not zero config)
-
-**Problem**: Documentation tools require extensive setup and maintenance.
-
-**Solution**: Project-type detection plus templates reduce setup — you still
-need an authenticated Claude or Codex CLI and a writable docs tree:
-
-```bash
-cd any-project
 claudux update
 ```
 
-**Typically detects:**
-- Project type hints (React, Python, Go, etc.)
-- Common entry points / package manifests
-- Existing `docs/` layout when present
+The backend can create or rewrite documentation files. Before that invocation,
+claudux snapshots `HEAD` and all existing dirty paths outside the documentation
+allowlist. If generation changes an unrelated source file, rewrites one of
+those pre-existing dirty paths, renames source into `docs/`, or creates a
+commit that includes source changes, the run fails and restores the source
+state. The generated docs remain available for review.
 
-Not a promise of zero configuration for every monorepo or unusual layout.
+This rollback boundary depends on Git. In a non-Git directory, there is no
+source snapshot to restore.
 
-## Advanced Features
+## Manifest-owned updates
 
-### 🔗 Link Validation
+A committed `docs-structure.json` changes the execution contract:
 
-Prevents broken documentation with built-in validation:
-
-```bash
-claudux update  # Includes automatic link checking
-```
-
-**Validates:**
-- Internal page references
-- Anchor links within pages
-- Asset and image references
-
-External URLs are skipped, not fetched — link checking stays offline and deterministic.
-
-**Auto-fix capability:**
-```bash
-claudux update -m "Fix broken links and create missing pages"
-```
-
-### 🛡️ Content Protection
-
-Preserves sensitive or manually curated content:
-
-```markdown
-<!-- skip -->
-This section won't be modified by claudux
-<!-- /skip -->
-```
-
-**Automatically protects:**
-- `notes/` and `private/` directories
-- Environment files (`*.env`, `*.key`)
-- Configuration secrets
-
-### 🎯 Focused Updates
-
-Target specific documentation areas:
+- Page IDs, paths, navigation order, source ownership, required sections, and
+  deletion policy come from the repository.
+- Pinned sections and sections with `generated: false` are read-only.
+- Changed source files narrow the incremental impact allowlist when a valid
+  checkpoint exists.
+- The backend receives read-only authority and returns a JSON patch batch.
+- Claudux rejects unknown, duplicate, read-only, out-of-impact, path-escaping,
+  heading-escaping, or provenance-leaking patches.
+- Target files are staged, checked for concurrent edits, and committed as one
+  patch transaction. A commit failure triggers restoration of already-moved
+  targets and a hard error if restoration itself fails.
+- Pinned, explicit read-only, and skip-marker blocks are hash-checked against
+  the pre-generation guard snapshot.
 
 ```bash
-claudux update -m "Update API documentation only"
-claudux update --with "Add examples for the new authentication flow"
+git add docs-structure.json
+claudux update
 ```
 
-### 📱 Project-Specific Optimization
+Manifest mode constrains what may change. It does not make generated prose
+factually correct; the diff still needs review.
 
-Adapts documentation structure to your project type:
+## Incremental scoping
 
-**CLI tools**: Command reference, installation, examples  
-**Libraries**: API docs, integration guides, usage patterns  
-**Web apps**: Features, deployment, configuration  
-**Mobile apps**: Setup, architecture, app store guidelines
+Claudux records a successful documentation checkpoint. On a later run it
+compares source, docs, and manifest inputs with that checkpoint:
 
-## Quality Assurance
+- A usable checkpoint plus changed files enables incremental prompt scoping.
+- The static index resolves changed sources to manifest-owned pages and
+  sections.
+- No source changes or an unusable checkpoint falls back to a full scan.
 
-### Accuracy — what is (and isn’t) guaranteed
+Incremental scoping narrows the work. It does not bypass manifest validation.
 
-**True today:**
-- Write boundaries: structure manifests + section hash / source-boundary checks
-- Internal link checks that stay offline (external URLs skipped)
-- Protected paths / skip markers for curated content
+## Local link validation
 
-**Not a product guarantee:**
-- Perfect extraction of every signature or example
-- Zero placeholders forever
-- Automated “accuracy score” of prose
+The link checker stays local and validates:
 
-Model output can still be wrong; Claudux refuses silent protected edits and
-keeps structure contracts honest.
+- VitePress nav and sidebar routes
+- Inline and reference-style Markdown links
+- Local images and other assets
+- Generated and explicit heading anchors
+- Duplicate explicit IDs
+- Encoded path traversal
+- Symlink escapes outside `docs/`
 
-### Consistency Features
+External URLs are counted and skipped rather than fetched. If a generated site
+has missing local pages, `update` can launch one focused repair pass. Remaining
+failures warn by default and fail the command with `--strict`.
 
-- **Unified navigation**: Sidebar appears on all pages when templates apply
-- **Cross-references**: Linking between related concepts when generated
-- **Terminology**: Best-effort consistency via prompts + review
-- **Styling**: Follows VitePress / project theme defaults
+```bash
+claudux update --strict
+```
 
-## Next Steps
+## Focused directives
 
-Explore specific features in detail:
+`-m`, `--message`, and `--with` provide the same high-level directive:
 
-- [Two-Phase Generation →](/features/two-phase-generation)
-- [Smart Cleanup →](/features/smart-cleanup)  
-- [Content Protection →](/features/content-protection)
+```bash
+claudux update -m "Document the new authentication flow"
+```
+
+The directive changes the prompt. It does not grant broader write authority or
+override the manifest allowlist.
+
+## Project profiles
+
+Project-type JSON files under `lib/templates/` are prompt profiles. They give
+the backend framework-specific context and suggested focus areas. They are not
+a deterministic renderer, schema validator, substitution engine, or
+conditional page generator.
+
+See [Project Profiles](/technical/templates) for the exact selection order and
+the separate VitePress scaffolding behavior.
+
+## Preview and readiness
+
+`claudux serve` previews an existing docs site. It never invokes a model, but it
+may create missing VitePress support files and run `npm install` before
+starting the development server.
+
+`claudux check` validates Node 18+, selected-backend CLI presence,
+selected-backend authentication, and whether `docs/` exists. It does not
+generate docs. Modern Codex uses `codex login status`; the legacy compatibility
+path may execute a small authentication probe.
+
+## Cleanup
+
+The main update path does not run automatic semantic cleanup:
+
+- `cleanup_docs_silent` is intentionally empty.
+- `cleanup_docs` is a separate legacy, interactive model-judgment helper.
+- There is no deterministic confidence score or automatic obsolete-page
+  deletion pipeline.
+
+Use the manifest deletion contract, review proposed removals, and delete pages
+intentionally.
+
+## Trust boundary
+
+Claudux can enforce paths, section targets, protected hashes, and local-link
+integrity. It cannot prove that a model-authored explanation is complete or
+correct. The final acceptance surface is the working-tree diff plus the
+project's own tests and build.
+
+## Next steps
+
+- [Generation Pipeline](/features/two-phase-generation)
+- [Cleanup](/features/smart-cleanup)
+- [Content Protection](/features/content-protection)
+- [Deterministic Generation](/technical/deterministic-generation)

@@ -1,9 +1,7 @@
-# Cleanup (legacy name: “Smart Cleanup”)
+# Cleanup
 
-Honest status: the CLI still ships a cleanup surface, but **it is not a
-confidence-scored semantic cleanup engine**. Treat marketing that talks about
-95% confidence scoring and automatic obsolete-file deletion as **aspirational
-docs debt**, not current product behavior.
+The CLI still contains a legacy cleanup helper, but `claudux update` does not
+run an automatic semantic cleanup pass.
 
 ## What exists today
 
@@ -25,7 +23,7 @@ Prefer the write-boundary path Claudux actually ships:
 1. Keep docs structure under the **docs structure manifest**
 2. Prefer **section-level** updates with hash guards / source-boundary checks
 3. Delete obsolete pages yourself (or ask the model via `-m`) and re-run
-   `npm test` / `claudux doctor` as needed
+   `npm test` / `claudux check` as needed
 
 Example:
 
@@ -36,12 +34,11 @@ claudux update -m "List obsolete pages that reference deleted APIs; do not delet
 
 ## Why this page stays
 
-Older releases and screenshots referred to “Smart Cleanup.” Renaming the nav
-overnight breaks links. This page remains as the honest stub until a real
-cleanup product exists.
+The route remains `/features/smart-cleanup` so existing links keep working.
+The visible label is now simply **Cleanup**.
 
 ## Related
 
 - [Content Protection](/features/content-protection)
-- [Two-Phase Generation](/features/two-phase-generation)
+- [Generation Pipeline](/features/two-phase-generation)
 - [Deterministic Generation](/technical/deterministic-generation)

@@ -10,6 +10,8 @@ echo ""
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LIB_DIR="$REPO_ROOT/lib"
+TEST_TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/claudux-diff-calculation-test.XXXXXX") || exit 1
+trap 'rm -rf "$TEST_TMP_ROOT"' EXIT
 
 # Stub color/logging functions
 info()    { :; }
@@ -21,7 +23,7 @@ print_color() { :; }
 # Helper: create a temp git repo with a docs/ directory
 setup_repo() {
     local dir
-    dir=$(mktemp -d /tmp/claudux-diff-test-XXXXXX)
+    dir=$(mktemp -d "$TEST_TMP_ROOT/repo.XXXXXX")
     (
         cd "$dir"
         git init -q
@@ -48,8 +50,8 @@ TEST_DIR=$(setup_repo)
     output=$(claudux_diff_since_last 2>&1)
     ec=$?
     echo "$ec|$output"
-) > /tmp/claudux-diff-t1 2>&1
-result=$(cat /tmp/claudux-diff-t1)
+) > "$TEST_TMP_ROOT/t1" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t1")
 assert_contains "no state returns error" "$result" "No previous checkpoint"
 assert_contains "no state exits non-zero" "$result" "1|"
 rm -rf "$TEST_DIR"
@@ -64,8 +66,8 @@ TEST_DIR=$(setup_repo)
     save_claudux_state
     output=$(claudux_diff_since_last 2>&1)
     if [[ -z "$output" ]]; then echo "empty"; else echo "has-output: $output"; fi
-) > /tmp/claudux-diff-t2 2>&1
-assert_eq "no changes gives empty diff" "empty" "$(cat /tmp/claudux-diff-t2)"
+) > "$TEST_TMP_ROOT/t2" 2>&1
+assert_eq "no changes gives empty diff" "empty" "$(cat "$TEST_TMP_ROOT/t2")"
 rm -rf "$TEST_DIR"
 
 # --- Test 3: One file changed — shows that file ---
@@ -82,8 +84,8 @@ TEST_DIR=$(setup_repo)
     git commit -q -m "modify readme"
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t3 2>&1
-assert_contains "changed file appears in diff" "$(cat /tmp/claudux-diff-t3)" "README.md"
+) > "$TEST_TMP_ROOT/t3" 2>&1
+assert_contains "changed file appears in diff" "$(cat "$TEST_TMP_ROOT/t3")" "README.md"
 rm -rf "$TEST_DIR"
 
 # --- Test 4: New file added — shows new file ---
@@ -100,8 +102,8 @@ TEST_DIR=$(setup_repo)
     git commit -q -m "add newfile"
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t4 2>&1
-assert_contains "new file appears in diff" "$(cat /tmp/claudux-diff-t4)" "newfile.txt"
+) > "$TEST_TMP_ROOT/t4" 2>&1
+assert_contains "new file appears in diff" "$(cat "$TEST_TMP_ROOT/t4")" "newfile.txt"
 rm -rf "$TEST_DIR"
 
 # --- Test 5: Multiple files changed — all appear ---
@@ -120,8 +122,8 @@ TEST_DIR=$(setup_repo)
     git commit -q -m "add three files"
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t5 2>&1
-diff_output=$(cat /tmp/claudux-diff-t5)
+) > "$TEST_TMP_ROOT/t5" 2>&1
+diff_output=$(cat "$TEST_TMP_ROOT/t5")
 assert_contains "file-a in diff" "$diff_output" "file-a.txt"
 assert_contains "file-b in diff" "$diff_output" "file-b.txt"
 assert_contains "file-c in diff" "$diff_output" "file-c.txt"
@@ -147,8 +149,8 @@ EOF
     output=$(claudux_diff_since_last 2>&1)
     ec=$?
     echo "$ec|$output"
-) > /tmp/claudux-diff-t6 2>&1
-result=$(cat /tmp/claudux-diff-t6)
+) > "$TEST_TMP_ROOT/t6" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t6")
 assert_contains "bogus SHA returns error" "$result" "no longer in history"
 assert_contains "bogus SHA exits non-zero" "$result" "1|"
 rm -rf "$TEST_DIR"
@@ -173,8 +175,8 @@ EOF
     output=$(claudux_diff_since_last 2>&1)
     ec=$?
     echo "$ec|$output"
-) > /tmp/claudux-diff-t7 2>&1
-result=$(cat /tmp/claudux-diff-t7)
+) > "$TEST_TMP_ROOT/t7" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t7")
 assert_contains "unknown SHA returns error" "$result" "unknown"
 assert_contains "unknown SHA exits non-zero" "$result" "1|"
 rm -rf "$TEST_DIR"
@@ -199,8 +201,8 @@ TEST_DIR=$(setup_repo)
     git commit -q -m "commit two"
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t8 2>&1
-diff_output=$(cat /tmp/claudux-diff-t8)
+) > "$TEST_TMP_ROOT/t8" 2>&1
+diff_output=$(cat "$TEST_TMP_ROOT/t8")
 assert_contains "first.txt across commits" "$diff_output" "first.txt"
 assert_contains "second.txt across commits" "$diff_output" "second.txt"
 rm -rf "$TEST_DIR"
@@ -223,8 +225,8 @@ TEST_DIR=$(setup_repo)
     else
         echo "mismatch: parsed=$parsed_sha head=$actual_head"
     fi
-) > /tmp/claudux-diff-t9 2>&1
-assert_eq "grep/sed SHA parsing works" "match" "$(cat /tmp/claudux-diff-t9)"
+) > "$TEST_TMP_ROOT/t9" 2>&1
+assert_eq "grep/sed SHA parsing works" "match" "$(cat "$TEST_TMP_ROOT/t9")"
 rm -rf "$TEST_DIR"
 
 # --- Test 10: Dirty tracked docs are reported even when HEAD matches checkpoint ---
@@ -239,8 +241,8 @@ TEST_DIR=$(setup_repo)
     echo "dirty tracked body" >> docs/index.md
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t10 2>&1
-assert_contains "dirty tracked docs appear in diff" "$(cat /tmp/claudux-diff-t10)" "docs/index.md"
+) > "$TEST_TMP_ROOT/t10" 2>&1
+assert_contains "dirty tracked docs appear in diff" "$(cat "$TEST_TMP_ROOT/t10")" "docs/index.md"
 rm -rf "$TEST_DIR"
 
 # --- Test 11: Staged docs are reported even when HEAD matches checkpoint ---
@@ -256,8 +258,8 @@ TEST_DIR=$(setup_repo)
     git add docs/index.md
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t11 2>&1
-assert_contains "staged docs appear in diff" "$(cat /tmp/claudux-diff-t11)" "docs/index.md"
+) > "$TEST_TMP_ROOT/t11" 2>&1
+assert_contains "staged docs appear in diff" "$(cat "$TEST_TMP_ROOT/t11")" "docs/index.md"
 rm -rf "$TEST_DIR"
 
 # --- Test 12: Untracked docs are reported even when HEAD matches checkpoint ---
@@ -272,8 +274,8 @@ TEST_DIR=$(setup_repo)
     echo "# New" > docs/new.md
 
     claudux_diff_since_last 2>&1
-) > /tmp/claudux-diff-t12 2>&1
-assert_contains "untracked docs appear in diff" "$(cat /tmp/claudux-diff-t12)" "docs/new.md"
+) > "$TEST_TMP_ROOT/t12" 2>&1
+assert_contains "untracked docs appear in diff" "$(cat "$TEST_TMP_ROOT/t12")" "docs/new.md"
 rm -rf "$TEST_DIR"
 
 # --- Test 13: docs-only dirty changes pass generation boundary check ---
@@ -284,14 +286,14 @@ TEST_DIR=$(setup_repo)
     source "$LIB_DIR/docs-generation.sh"
     capture_generation_workspace_snapshot
     echo "docs-only dirty" >> docs/index.md
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t13-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t13-validate" 2>&1; then
         echo "boundary-ok"
     else
         echo "boundary-failed"
-        cat /tmp/claudux-diff-t13-validate
+        cat "$TEST_TMP_ROOT/t13-validate"
     fi
-) > /tmp/claudux-diff-t13 2>&1
-assert_contains "docs-only dirty passes boundary check" "$(cat /tmp/claudux-diff-t13)" "boundary-ok"
+) > "$TEST_TMP_ROOT/t13" 2>&1
+assert_contains "docs-only dirty passes boundary check" "$(cat "$TEST_TMP_ROOT/t13")" "boundary-ok"
 rm -rf "$TEST_DIR"
 
 # --- Test 14: newly dirty source file fails generation boundary check ---
@@ -307,14 +309,14 @@ TEST_DIR=$(setup_repo)
     print_color() { shift; printf '%s\n' "$*"; }
     capture_generation_workspace_snapshot
     echo '"type":"library"' > claudux.json
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t14-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t14-validate" 2>&1; then
         echo "unexpected-pass"
     else
         echo "boundary-blocked"
-        cat /tmp/claudux-diff-t14-validate
+        cat "$TEST_TMP_ROOT/t14-validate"
     fi
-) > /tmp/claudux-diff-t14 2>&1
-result=$(cat /tmp/claudux-diff-t14)
+) > "$TEST_TMP_ROOT/t14" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t14")
 assert_contains "new source dirty fails boundary check" "$result" "boundary-blocked"
 assert_contains "boundary lists mutated source file" "$result" "claudux.json"
 assert_contains "boundary warning mentions issue 121" "$result" "issue #121"
@@ -336,14 +338,14 @@ TEST_DIR=$(setup_repo)
     echo '"type":"library"' > claudux.json
     git add claudux.json
     git commit -q -m "backend mutated source"
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t15-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t15-validate" 2>&1; then
         echo "unexpected-pass"
     else
         echo "boundary-blocked"
-        cat /tmp/claudux-diff-t15-validate
+        cat "$TEST_TMP_ROOT/t15-validate"
     fi
-) > /tmp/claudux-diff-t15 2>&1
-result=$(cat /tmp/claudux-diff-t15)
+) > "$TEST_TMP_ROOT/t15" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t15")
 assert_contains "source commit fails boundary check" "$result" "boundary-blocked"
 assert_contains "committed source appears in boundary output" "$result" "claudux.json"
 rm -rf "$TEST_DIR"
@@ -359,14 +361,14 @@ TEST_DIR=$(setup_repo)
     STATE_FILE="$TEST_DIR/.claudux-state.json"
     source "$LIB_DIR/docs-generation.sh"
     capture_generation_workspace_snapshot
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t16-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t16-validate" 2>&1; then
         echo "boundary-ok"
     else
         echo "boundary-failed"
-        cat /tmp/claudux-diff-t16-validate
+        cat "$TEST_TMP_ROOT/t16-validate"
     fi
-) > /tmp/claudux-diff-t16 2>&1
-assert_contains "pre-existing source dirty passes boundary check" "$(cat /tmp/claudux-diff-t16)" "boundary-ok"
+) > "$TEST_TMP_ROOT/t16" 2>&1
+assert_contains "pre-existing source dirty passes boundary check" "$(cat "$TEST_TMP_ROOT/t16")" "boundary-ok"
 rm -rf "$TEST_DIR"
 
 # --- Test 17: manifest config edits pass generation boundary check ---
@@ -380,14 +382,14 @@ TEST_DIR=$(setup_repo)
     source "$LIB_DIR/docs-generation.sh"
     capture_generation_workspace_snapshot
     echo '{"pages":[{"id":"guide.index"}]}' > docs-structure.json
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t17-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t17-validate" 2>&1; then
         echo "boundary-ok"
     else
         echo "boundary-failed"
-        cat /tmp/claudux-diff-t17-validate
+        cat "$TEST_TMP_ROOT/t17-validate"
     fi
-) > /tmp/claudux-diff-t17 2>&1
-assert_contains "manifest config edits pass boundary check" "$(cat /tmp/claudux-diff-t17)" "boundary-ok"
+) > "$TEST_TMP_ROOT/t17" 2>&1
+assert_contains "manifest config edits pass boundary check" "$(cat "$TEST_TMP_ROOT/t17")" "boundary-ok"
 rm -rf "$TEST_DIR"
 
 # --- Test 18: working-tree source→docs rename fails boundary check ---
@@ -404,14 +406,14 @@ TEST_DIR=$(setup_repo)
     print_color() { shift; printf '%s\n' "$*"; }
     capture_generation_workspace_snapshot
     git mv src/foo.ts docs/foo.ts
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t18-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t18-validate" 2>&1; then
         echo "unexpected-pass"
     else
         echo "boundary-blocked"
-        cat /tmp/claudux-diff-t18-validate
+        cat "$TEST_TMP_ROOT/t18-validate"
     fi
-) > /tmp/claudux-diff-t18 2>&1
-result=$(cat /tmp/claudux-diff-t18)
+) > "$TEST_TMP_ROOT/t18" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t18")
 assert_contains "working-tree source→docs rename blocked" "$result" "boundary-blocked"
 assert_contains "rename source side reported" "$result" "src/foo.ts"
 rm -rf "$TEST_DIR"
@@ -433,14 +435,14 @@ TEST_DIR=$(setup_repo)
     CLAUDUX_GENERATION_START_DIRTY_FILE=""
     git mv src/foo.ts docs/foo.ts
     git commit -q -m "backend moved source into docs"
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t19-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t19-validate" 2>&1; then
         echo "unexpected-pass"
     else
         echo "boundary-blocked"
-        cat /tmp/claudux-diff-t19-validate
+        cat "$TEST_TMP_ROOT/t19-validate"
     fi
-) > /tmp/claudux-diff-t19 2>&1
-result=$(cat /tmp/claudux-diff-t19)
+) > "$TEST_TMP_ROOT/t19" 2>&1
+result=$(cat "$TEST_TMP_ROOT/t19")
 assert_contains "committed source→docs rename blocked" "$result" "boundary-blocked"
 assert_contains "committed rename source side reported" "$result" "src/foo.ts"
 rm -rf "$TEST_DIR"
@@ -458,20 +460,14 @@ TEST_DIR=$(setup_repo)
     export CLAUDUX_DOCS_STRUCTURE="custom-structure.json"
     capture_generation_workspace_snapshot
     echo '{"pages":[{"id":"guide.index"}]}' > custom-structure.json
-    if validate_generation_workspace_unchanged >/tmp/claudux-diff-t20-validate 2>&1; then
+    if validate_generation_workspace_unchanged >"$TEST_TMP_ROOT/t20-validate" 2>&1; then
         echo "boundary-ok"
     else
         echo "boundary-failed"
-        cat /tmp/claudux-diff-t20-validate
+        cat "$TEST_TMP_ROOT/t20-validate"
     fi
-) > /tmp/claudux-diff-t20 2>&1
-assert_contains "configured manifest edits pass boundary check" "$(cat /tmp/claudux-diff-t20)" "boundary-ok"
+) > "$TEST_TMP_ROOT/t20" 2>&1
+assert_contains "configured manifest edits pass boundary check" "$(cat "$TEST_TMP_ROOT/t20")" "boundary-ok"
 rm -rf "$TEST_DIR"
-
-# Cleanup
-rm -f /tmp/claudux-diff-t{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20}
-rm -f /tmp/claudux-diff-t13-validate /tmp/claudux-diff-t14-validate /tmp/claudux-diff-t15-validate
-rm -f /tmp/claudux-diff-t16-validate /tmp/claudux-diff-t17-validate /tmp/claudux-diff-t18-validate
-rm -f /tmp/claudux-diff-t19-validate /tmp/claudux-diff-t20-validate
 
 test_summary

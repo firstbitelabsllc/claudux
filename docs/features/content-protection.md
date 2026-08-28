@@ -12,9 +12,12 @@ The manifest flips generation into its guarded mode:
 
 - The model runs **read-only** (`--allowedTools "Read"`); it proposes
   section-scoped patches and cannot write files itself.
-- Code applies patches **all-or-nothing** against the manifest: single-section
-  span, impact allowlist, path boundary.
-- Skip-marker blocks and pinned sections are **sha256-hashed** in a guard
+- Code validates the entire section-patch batch before touching a target file,
+  then stages and commits the target documentation files transactionally.
+- Every patch must pass the single-section boundary, incremental impact
+  allowlist, read-only target, heading-boundary, and safe-path checks.
+- Skip-marker blocks, pinned sections, and explicit read-only sections are
+  **sha256-hashed** in a guard
   snapshot before generation; if a guarded block changed, generation aborts
   with `Protected documentation structure changed during generation`.
 
@@ -22,18 +25,24 @@ This is the mode to use when protection matters. Commit the manifest.
 
 ### Without a manifest (guidance)
 
-The first generation pass runs with write access (`Read,Write,Edit,Delete`).
-Path rules here are **prompt guidance, not an enforced barrier**: generation
-prompts steer the model away from `notes/`, `private/`, secrets, and build
-output, and in practice it follows them — but no code checks which files it
-writes.
+The first generation pass lets the backend edit documentation paths directly.
+Prompts still steer it toward the intended docs work, but claudux does not
+pretend prompt wording is the security boundary.
 
-Two things are still mechanically enforced in both modes:
+The repository boundary is still mechanically enforced in a Git checkout:
 
-- `Bash` is disallowed, so the backend cannot run shell commands or
-  `git commit`.
-- Generated docs land via the normal working tree, so `git diff` shows you
-  everything before you commit.
+- `Bash` is disallowed for Claude generation, and Codex runs with
+  `approval_policy="never"` inside its configured sandbox.
+- Before generation, claudux snapshots `HEAD` and every existing dirty path
+  outside the documentation allowlist.
+- After generation, any new source mutation, source commit, rename escape, or
+  change to a pre-existing unrelated dirty path fails the run and is restored.
+- Generated documentation changes remain in the working tree for review.
+
+This protects source code from a documentation run. It does **not** stop the
+backend from broadly rewriting one documentation page while generating
+another. Use the manifest when documentation sections themselves need a hard
+boundary.
 
 ## Skip markers
 

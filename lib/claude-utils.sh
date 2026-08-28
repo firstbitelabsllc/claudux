@@ -15,13 +15,10 @@ check_claude() {
         success "Claude Code CLI found: $claude_version"
     fi
     
-    # Show current model configuration. A cold CLI start can sit here for the
-    # better part of a minute, so keep a ticker going (issue #122).
-    info "🧠 Checking available models... (a cold CLI start can take up to a minute)"
-    local model_check_pid
-    model_check_pid=$(show_progress "Checking Claude CLI" 10)
-    claude config get model 2>/dev/null || info "ℹ️  Using default model"
-    stop_progress "$model_check_pid"
+    info "🔐 Checking Claude CLI authentication..."
+    if ! claude auth status >/dev/null 2>&1; then
+        error_exit "Claude CLI is not authenticated. Run: claude auth login"
+    fi
     
     # Detect and show project type
     load_project_config

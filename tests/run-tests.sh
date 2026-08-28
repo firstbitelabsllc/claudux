@@ -11,11 +11,13 @@ set -uo pipefail
 # ── Globals ──────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TEST_TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/claudux-run-tests.XXXXXX") || exit 1
 PASS=0
 FAIL=0
 SKIP=0
 VERBOSE=false
 [[ "${1:-}" == "-v" ]] && VERBOSE=true
+trap 'rm -rf "$TEST_TMP_ROOT"' EXIT
 
 # ── Helpers ──────────────────────────────────────────────────────────
 pass() {
@@ -299,10 +301,9 @@ section "Project detection"
     result=$(detect_project_type)
     echo "EMPTY_TYPE=$result"
     rm -rf "$tmp"
-) > /tmp/claudux-detect-test 2>&1
+) > "$TEST_TMP_ROOT/detect-test" 2>&1
 
-detect_result=$(cat /tmp/claudux-detect-test)
-rm -f /tmp/claudux-detect-test
+detect_result=$(cat "$TEST_TMP_ROOT/detect-test")
 
 if grep -q "CLAUDUX_TYPE=javascript" <<< "$detect_result"; then
     pass "detect_project_type: claudux repo -> javascript"

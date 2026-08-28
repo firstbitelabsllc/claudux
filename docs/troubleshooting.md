@@ -1,399 +1,264 @@
 # Troubleshooting
 
-Common issues and solutions when using claudux.
+Start with the command that matches the backend you intend to use:
 
-## Installation Issues
-
-### Claude CLI Not Found
-
-**Error:**
-```
-ERROR: Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code
-```
-
-**Solution:**
 ```bash
+# Claude is the default
+claudux check
+
+# Codex
+CLAUDUX_BACKEND=codex claudux check
+```
+
+`claudux check` reports the Node.js version, selected backend, backend CLI
+version, authentication probe, and whether `docs/` already exists. It does not
+validate the current Git worktree or generate documentation.
+
+## Installation
+
+### `claudux: command not found`
+
+The installer links the CLI at `~/.local/bin/claudux`. Re-run the installer,
+then add that directory to your shell path if the installer prints a path
+warning:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+claudux --version
+```
+
+Persist the `PATH` line in the shell file named by the installer.
+
+### Backend CLI not found
+
+Install the backend you plan to use:
+
+```bash
+# Claude
 npm install -g @anthropic-ai/claude-code
-claude config  # Follow authentication prompts
-claudux check  # Verify installation
+
+# Codex
+npm install -g @openai/codex
 ```
 
-### Node Version Issues
+Then run the matching environment check. Setting `CLAUDUX_BACKEND=codex`
+selects Codex; any other value uses Claude.
 
-**Error:**
-```
-ERROR: Node.js v18+ is required (found v16.14.0)
-```
+### Node.js is too old
 
-**Solution:**
+Claudux requires Node.js 18 or newer:
+
 ```bash
-# Using nvm
+node --version
+
+# Example with nvm
 nvm install 18
 nvm use 18
-
-# Using fnm  
-fnm install 18
-fnm use 18
-
-# Verify
-node --version  # Should show v18+
 ```
 
-### Permission Errors
+### Global npm permission error
 
-**Error:**
-```
-EACCES: permission denied, mkdir '/usr/local/lib/node_modules/claudux'
-```
+The Claudux installer itself is user-local and does not need a global npm
+install. If a backend CLI global install fails with `EACCES`, use a Node version
+manager such as `nvm` or `fnm`, then install the backend again. Avoid changing
+ownership of system npm directories with a recursive `sudo chown`.
 
-**Solution:**
-```bash
-# Fix npm permissions
-sudo chown -R $(whoami) ~/.npm
+## Authentication
 
-# Or use nvm to avoid system-wide installation
-nvm install 18 && nvm use 18
-curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
-```
+Claudux has no API key store. The selected backend CLI owns authentication.
 
-## Authentication Issues
+### Claude
 
-### Claude Authentication Failed
-
-If generation fails because the Claude CLI isn't signed in, re-authenticate the
-CLI — claudux delegates all auth to it:
+Check the current authentication state, sign in when needed, then re-run:
 
 ```bash
-# Re-authenticate with Claude
-claude config
-
-# Verify authentication
-claude config get
-
-# Test Claude access
-claude config get model
-```
-
-### API Key Issues
-
-claudux has no API key of its own — it drives the `claude` (or `codex`) CLI, and
-that backend CLI owns authentication. An auth failure means the backend needs
-re-authenticating, not that claudux needs a key:
-
-```bash
-# Claude backend — sign in or refresh credentials
-claude config
-claude config get
-
-# Codex backend — sign in, or export the key the CLI reads
-codex login            # or: export OPENAI_API_KEY=…
-```
-
-## Generation Issues
-
-### Empty or Incomplete Documentation
-
-**Symptoms:**
-- Documentation generates but has minimal content
-- Missing expected sections
-- Generic placeholder content
-
-**Diagnosis:**
-```bash
-claudux check  # Verify environment
-```
-
-**Solutions:**
-
-1. **Project type detection issue:**
-   ```bash
-   # Check detected type
-   claudux update -m "Debug: show detected project type and structure"
-   
-   # Override if incorrect
-   echo '{"project": {"type": "react"}}' > claudux.json
-   claudux update
-   ```
-
-2. **Insufficient source code:**
-   ```bash
-   # Ensure source files exist
-   ls src/ lib/ components/  # Check for source directories
-   ```
-
-3. **Model selection:**
-   ```bash
-   # Try more capable model
-   FORCE_MODEL=opus claudux update
-   ```
-
-### Generation Timeout
-
-Only the Codex backend enforces a hard timeout. When a Codex run exceeds
-`CLAUDUX_TIMEOUT` (default 600s), claudux surfaces:
-
-```
-{"type":"error","message":"Codex execution timed out after 600s"}
-```
-
-The Claude backend does not hard-timeout — a slow run just takes longer. Either
-way, when generation drags:
-
-**Solutions:**
-
-1. **Use faster model:**
-   ```bash
-   FORCE_MODEL=sonnet claudux update
-   ```
-
-2. **Focused generation:**
-   ```bash
-   claudux update -m "Update only the API documentation"
-   ```
-
-3. **Network issues:**
-   ```bash
-   # Check internet connectivity
-   curl -I https://api.anthropic.com
-   
-   # Retry generation
-   claudux update
-   ```
-
-## Documentation Issues
-
-### Broken Internal Links
-
-**Error:**
-```
-⚠️  Link validation found issues. Some documentation links may be broken.
-```
-
-**Auto-fix:**
-```bash
-claudux update -m "Fix broken links and create missing pages"
-```
-
-**Manual fix:**
-```bash
-# Preview to identify broken links  
-claudux serve  # Check localhost:5173
-
-# Fix specific issues
-claudux update -m "Create missing API reference page"
-```
-
-### Missing VitePress Configuration
-
-**Error:**
-```
-Failed to load VitePress config
-```
-
-**Solution:**
-```bash
-# Check if config exists
-ls docs/.vitepress/config.ts
-
-# If missing, regenerate
-claudux update
-```
-
-### Server Won't Start
-
-**Error:**
-```
-ERROR: Failed to start VitePress dev server
-```
-
-**Solutions:**
-
-1. **Port conflict:**
-   ```bash
-   # Check what's using port 5173
-   lsof -i :5173
-   
-   # Kill conflicting process
-   kill <PID>
-   
-   # Restart server
-   claudux serve
-   ```
-
-2. **Missing dependencies:**
-   ```bash
-   cd docs/
-   npm install
-   cd ..
-   claudux serve
-   ```
-
-3. **Corrupted node_modules:**
-   ```bash
-   cd docs/
-   rm -rf node_modules package-lock.json
-   npm install
-   cd ..
-   claudux serve
-   ```
-
-## Environment Issues
-
-### Git Repository Required
-
-**Error:**
-```
-⚠️  No git repository found. Are you in the right directory?
-```
-
-**Solution:**
-```bash
-# Initialize git repository
-git init
-git add .
-git commit -m "Initial commit"
-
-# Then run claudux
-claudux update
-```
-
-### Working Directory Issues
-
-**Error:**
-```
-ERROR: Working directory does not exist
-```
-
-**Solution:**
-```bash
-# Ensure you're in a valid directory
-pwd
-ls -la
-
-# Navigate to your project root
-cd /path/to/your/project
-claudux update
-```
-
-## Performance Issues
-
-### Slow Generation
-
-**Symptoms:**
-- Generation takes longer than 5 minutes
-- AI appears to hang during analysis
-
-**Solutions:**
-
-1. **Check model selection:**
-   ```bash
-   # Use faster model
-   FORCE_MODEL=sonnet claudux update
-   ```
-
-2. **Focused updates:**
-   ```bash
-   # Target specific areas
-   claudux update -m "Update only the installation guide"
-   ```
-
-3. **Project size:**
-   ```bash
-   # For very large codebases, consider focused updates
-   claudux update -m "Document only public API, skip internal modules"
-   ```
-
-### Memory Issues
-
-**Error:**
-```
-JavaScript heap out of memory
-```
-
-**Solution:**
-```bash
-# Increase Node memory limit
-export NODE_OPTIONS="--max_old_space_size=4096"
-claudux update
-```
-
-## Debugging Tools
-
-### Environment Check
-
-```bash
+claude auth status
+claude auth login
 claudux check
 ```
 
-**Output includes:**
-- Node.js version and availability
-- Claude CLI installation status
-- Documentation directory status
-- Git repository validation
+Claudux checks `claude auth status` without printing account metadata; the
+environment check fails when the CLI is not authenticated.
 
-### Verbose Output
-
-All claudux commands are verbose by default. For additional debugging:
+### Codex
 
 ```bash
-# Check git status before generation
-git status
-
-# Monitor file changes during generation
-ls -la docs/ && claudux update && ls -la docs/
-
-# Review generated VitePress config
-cat docs/.vitepress/config.ts
+codex login
+codex login status
+CLAUDUX_BACKEND=codex claudux check
 ```
 
-### Log Analysis
+`OPENAI_API_KEY` is also supported by the Codex CLI. Claudux does not read or
+store that value itself.
 
-Check Claude CLI logs for detailed error information:
+## Generation
+
+### No Git repository found
+
+`update`, `serve`, and the interactive menu require a Git repository. Run the
+command from an existing repository root, or initialize Git only when that is
+actually how you want to manage the project:
 
 ```bash
-# Claude CLI maintains logs of API interactions
-claude config get  # Shows configuration and status
+git rev-parse --show-toplevel
+cd /path/to/project
+claudux update
 ```
 
-## Getting Help
+`help`, `--version`, and `check` can run outside a repository.
 
-### Community Support
+### Empty or generic documentation
 
-1. **GitHub Issues**: [Report bugs and request features](https://github.com/firstbitelabsllc/claudux/issues)
-2. **Documentation**: This site documents each command and workflow
-
-### Diagnostic Information
-
-When reporting issues, include:
+First verify the detected project configuration:
 
 ```bash
-# Environment details
+cat claudux.json 2>/dev/null || true
+claudux check
+```
+
+Then give the backend a bounded directive and review the diff:
+
+```bash
+claudux update --with "Document the public API and its tested error behavior"
+git diff -- docs/
+```
+
+`project.type` in `claudux.json` can override auto-detection. Use one of the
+built-in types or a type backed by `lib/templates/<type>-project-config.json`;
+unknown values fall back to detection.
+
+### Manifest or section-patch failure
+
+When `docs-structure.json` is present, Claudux validates it before invoking the
+backend. The backend must then return one bounded section-patch payload instead
+of writing docs directly.
+
+Read the first reported manifest or patch error. Common causes are:
+
+- a page path outside `docs/`
+- duplicate page, section, navigation, or order values
+- a missing required heading
+- a patch targeting a pinned or out-of-scope section
+- a patch body containing a same-level heading or run-specific cache data
+
+The section-patch batch is all-or-nothing. A rejected batch does not partially
+edit its target documentation files.
+
+### Backend timeout or stalled output
+
+The Codex adapter honors `CLAUDUX_TIMEOUT` when `timeout` or `gtimeout` is
+available. Its default is 600 seconds; `0` disables the wrapper timeout. The
+Claude adapter has no equivalent hard timeout.
+
+```bash
+CLAUDUX_TIMEOUT=900 CLAUDUX_BACKEND=codex claudux update
+```
+
+For a slow run, narrow the request rather than changing unrelated project
+files:
+
+```bash
+claudux update --with "Update only the API documentation affected by src/api/"
+```
+
+### Backend exits nonzero
+
+Claudux prints the tail of the backend output and retains a temporary JSONL log
+when output exists. The failure message prints that retained path.
+
+Codex stderr defaults to:
+
+```text
+${XDG_STATE_HOME:-$HOME/.local/state}/claudux/codex-stderr.log
+```
+
+The file can contain authentication errors or backend output. Do not attach it
+to a public issue without reviewing and redacting it.
+
+## Links
+
+### Broken internal links
+
+`claudux update` runs the internal link validator after generation. The normal
+mode warns when unresolved links remain; strict mode exits nonzero:
+
+```bash
+claudux update --strict
+```
+
+Claudux may attempt one focused missing-page repair when the validator reports
+missing files. It does not guarantee that every broken anchor, navigation
+target, or sidebar target can be repaired automatically.
+
+Review the reported source and target, fix the link or manifest entry, and run
+strict mode again.
+
+## Preview
+
+### VitePress dependencies are missing
+
+`claudux serve` creates missing support files and runs
+`npm install --no-audit --no-fund` under `docs/` when VitePress is absent.
+
+To restore exactly the dependencies in an existing lockfile:
+
+```bash
+npm --prefix docs ci --no-audit --no-fund
+claudux serve
+```
+
+Do not delete `docs/package-lock.json` as a first recovery step; it is the
+reproducible dependency record.
+
+### Port 5173 is already in use
+
+Identify the listener before stopping it:
+
+```bash
+lsof -nP -iTCP:5173 -sTCP:LISTEN
+```
+
+Stop only a process you recognize and own. To preview on another port without
+changing Claudux:
+
+```bash
+npm --prefix docs run docs:dev -- --port 5174
+```
+
+### Static build fails
+
+Run the same build script used by the generated site:
+
+```bash
+npm --prefix docs run docs:build
+```
+
+Fix the first VitePress error, then rerun the build and
+`claudux update --strict`. A successful dev-server start is not proof that the
+static production build succeeds.
+
+## Diagnostic report
+
+Before opening an issue, collect the smallest useful, non-secret report:
+
+```bash
 claudux --version
-claudux check
-node --version  
+node --version
+git status --short
+
+# Include only the selected backend
 claude --version
-
-# Project context
-cat claudux.json       # If exists
-head -20 package.json  # Project metadata
-git status             # Repository state
-```
-
-### Error Recovery
-
-**Safe recovery workflow:**
-```bash
-# 1. Check environment
 claudux check
 
-# 2. Verify Claude authentication  
-claude config get
-
-# 3. Regenerate with basic approach
-claudux update
-
-# 4. If still failing, try different model
-FORCE_MODEL=sonnet claudux update
+# Or:
+codex --version
+codex login status
+CLAUDUX_BACKEND=codex claudux check
 ```
 
-This troubleshooting guide covers the most common issues encountered when using claudux across different environments and project types.
+Also include the exact Claudux command, its exit code, and the first relevant
+error. Review configuration, retained JSONL, and stderr files before sharing
+them; they may contain repository details or authentication diagnostics.
+
+Report bugs through [GitHub Issues](https://github.com/firstbitelabsllc/claudux/issues).

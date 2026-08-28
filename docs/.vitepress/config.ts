@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitepress'
 
+const base = process.env.DOCS_BASE || '/'
+
 export default defineConfig({
   title: 'claudux',
   description: 'Generate VitePress docs from your codebase via Claude or Codex, preview them locally, ship them.',
-  base: process.env.DOCS_BASE || '/',
+  base,
   
   // Ignore localhost links during static builds
   ignoreDeadLinks: [
@@ -11,6 +13,7 @@ export default defineConfig({
   ],
   
   head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
     ['meta', { name: 'theme-color', content: '#5f67ee' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'en' }],
@@ -53,8 +56,8 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
-            { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
-            { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
+            { text: 'Generation Pipeline', link: '/features/two-phase-generation' },
+            { text: 'Cleanup', link: '/features/smart-cleanup' },
             { text: 'Content Protection', link: '/features/content-protection' }
           ]
         },
@@ -63,7 +66,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Architecture', link: '/technical/' },
-            { text: 'Templates', link: '/technical/templates' },
+            { text: 'Project Profiles', link: '/technical/templates' },
             { text: 'Deterministic Generation', link: '/technical/deterministic-generation' }
           ]
         },
@@ -94,8 +97,8 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/features/' },
-            { text: 'Two-Phase Generation', link: '/features/two-phase-generation' },
-            { text: 'Smart Cleanup', link: '/features/smart-cleanup' },
+            { text: 'Generation Pipeline', link: '/features/two-phase-generation' },
+            { text: 'Cleanup', link: '/features/smart-cleanup' },
             { text: 'Content Protection', link: '/features/content-protection' }
           ]
         }
@@ -106,7 +109,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Architecture', link: '/technical/' },
-            { text: 'Templates', link: '/technical/templates' },
+            { text: 'Project Profiles', link: '/technical/templates' },
             { text: 'Deterministic Generation', link: '/technical/deterministic-generation' }
           ]
         }

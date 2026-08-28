@@ -9,12 +9,14 @@ echo "=== Check Command Exit Code Tests ==="
 echo ""
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TEST_TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/claudux-check-test.XXXXXX") || exit 1
+trap 'rm -rf "$TEST_TMP_ROOT"' EXIT
 
 # Build a stub PATH so the result never depends on what this machine has
 # installed. Stubs cover every external the check path touches; the failure
 # case simply omits the backend CLI stub.
-STUB_DIR=$(mktemp -d /tmp/claudux-check-test-XXXXXX)
-trap 'rm -rf "$STUB_DIR"' EXIT
+STUB_DIR="$TEST_TMP_ROOT/stubs"
+mkdir -p "$STUB_DIR"
 
 make_stub() {
     printf '#!/bin/sh\necho "%s"\n' "$2" > "$STUB_DIR/$1"
@@ -24,7 +26,24 @@ make_stub() {
 make_stub node "v20.0.0"
 
 # ── All dependencies present → exit 0 ────────────────────────────────
-make_stub claude "1.0.0 (stub)"
+cat > "$STUB_DIR/claude" <<'EOF'
+#!/bin/sh
+case "${1:-}" in
+    --version)
+        echo "1.0.0 (stub)"
+        ;;
+    auth)
+        if [ "${2:-}" = "status" ] && [ "${CLAUDE_STUB_AUTH:-authenticated}" = "authenticated" ]; then
+            exit 0
+        fi
+        exit 1
+        ;;
+    config)
+        echo "sonnet"
+        ;;
+esac
+EOF
+chmod +x "$STUB_DIR/claude"
 output=$(cd "$STUB_DIR" && PATH="$STUB_DIR:/usr/bin:/bin" bash "$REPO_ROOT/bin/claudux" check 2>&1)
 rc=$?
 assert_exit_code "check passes with node + claude present" 0 "$rc"
@@ -43,6 +62,13 @@ assert_contains "FORCE_MODEL overrides configured model" "$output" "Model: opus"
 rm -f "$STUB_DIR/claudux.json"
 output=$(cd "$STUB_DIR" && PATH="$STUB_DIR:/usr/bin:/bin" bash "$REPO_ROOT/bin/claudux" check 2>&1)
 assert_contains "check falls back to sonnet with no config" "$output" "Model: sonnet"
+
+# ── Backend CLI unauthenticated → exit 1 ─────────────────────────────
+output=$(cd "$STUB_DIR" && PATH="$STUB_DIR:/usr/bin:/bin" CLAUDE_STUB_AUTH=unauthenticated bash "$REPO_ROOT/bin/claudux" check 2>&1)
+rc=$?
+assert_exit_code "check fails when Claude CLI is unauthenticated" 1 "$rc"
+assert_contains "check names the authentication failure" "$output" "Claude CLI is not authenticated"
+assert_contains "unauthenticated check reports failure" "$output" "Environment check failed"
 
 # ── Backend CLI missing → exit 1 ─────────────────────────────────────
 # /usr/bin:/bin stay on PATH for coreutils; no platform installs the

@@ -1,338 +1,176 @@
-# Template System
+# Project Profiles
 
-Claudux uses a flexible template system to generate project-appropriate documentation structures based on project type and patterns.
+Claudux ships project-type JSON files under `lib/templates/`. Their job is
+narrow: the generation prompt tells the backend to read the selected file for
+framework-specific context and suggested documentation focus.
 
-## Template Architecture
+They are **project profiles**, not a deterministic template engine.
 
-### Template Hierarchy
+## What a profile does
 
-Templates are organized by project type with fallback support:
+A profile can influence model-authored documentation by describing:
 
+- Project type and common technology assumptions
+- Files and directories worth inspecting
+- Suggested documentation focus areas
+- A possible navigation shape
+- Testing, packaging, and deployment concepts that may be relevant
+
+Those values are prompt context. The backend must still inspect the actual
+repository, and the generated result still needs review.
+
+## What a profile does not do
+
+Claudux does not:
+
+- Parse profile fields into a validated runtime schema
+- Render Markdown pages from profile JSON
+- Deterministically create the profile's suggested sidebar
+- Execute `conditional_sections`
+- Perform variable substitution inside profile JSON
+- Reject unknown profile fields
+- Verify that referenced frameworks or files exist
+- Use `ai.default_model` or `ai.fast_model` to select the runtime model
+
+Model selection comes from environment and project configuration:
+
+```text
+Claude: FORCE_MODEL -> claudux.json project.model -> sonnet
+Codex:  CODEX_MODEL and CODEX_REASONING_EFFORT
 ```
-lib/templates/
-├── generic/config.json          # Universal fallback
-├── javascript-project-config.json
-├── react-project-config.json    # Extends javascript patterns
-├── nextjs-project-config.json   # Extends react patterns  
-├── ios-project-config.json      # iOS-specific structure
-├── python-project-config.json
-├── rust-project-config.json
-└── go-project-config.json
+
+## Selection order
+
+For a detected or configured type such as `react`, the generation prompt uses
+the first file that exists:
+
+1. `lib/templates/react/config.json`
+2. `lib/templates/react-project-config.json`
+3. `lib/templates/react-config.json`
+4. `lib/templates/generic/config.json`
+
+This order matters because the repository currently contains both directory
+and flat naming styles for some project types.
+
+## Project-type resolution
+
+`lib/project.sh` first reads `project.type` from `claudux.json` or the legacy
+flat type from `.claudux.json`.
+
+Accepted built-in values are:
+
+```text
+ios
+nextjs
+react
+nodejs
+javascript
+rust
+python
+go
+java
+generic
 ```
 
-### Template Selection Logic
+An additional type is accepted when
+`lib/templates/<type>-project-config.json` exists. Otherwise claudux warns and
+falls back to file-based detection.
 
-**Selection process** (`lib/docs-generation.sh:24-32`):
-1. Try exact project type match: `{type}-project-config.json`
-2. Try alternative naming: `{type}-config.json`  
-3. Try directory structure: `{type}/config.json`
-4. Fall back to: `generic/config.json`
+Detection currently checks, in order:
 
-Example for Next.js project:
-```bash
-PROJECT_TYPE="nextjs"
-# Looks for: nextjs-project-config.json ✅
-# Falls back to: generic/config.json if not found
-```
+- Xcode project or workspace markers
+- Next.js configuration or dependency
+- React dependency
+- Node type dependency
+- Generic `package.json`
+- Cargo
+- Python package markers
+- Go module
+- Maven or Gradle
+- Generic fallback
 
-## Template Configuration Format
+Because order is significant, a Next.js project is classified before the more
+general React check.
 
-### Basic Structure
+## Shell-level project configuration
+
+The main CLI reads only these `claudux.json` values:
 
 ```json
 {
   "project": {
-    "name": "Project Name Pattern",
-    "type": "project_type", 
-    "description": "Default description pattern"
-  },
-  "ai": {
-    "default_model": "sonnet",
-    "fast_model": "sonnet",
-    "timeout_seconds": 90
-  },
-  "documentation": {
-    "framework": "vitepress",
-    "sidebar_structure_guide": { },
-    "serve_port": 5173
-  },
-  "claude_instructions": {
-    "focus_areas": [
-      "Specific documentation priorities"
-    ]
+    "name": "My Project",
+    "type": "react",
+    "model": "sonnet"
   }
 }
 ```
 
-### Sidebar Structure Guide
+Do not assume arbitrary `documentation`, `features`, or
+`claude_instructions` keys in `claudux.json` are interpreted by the shell.
+Use `claudux.md` for free-form documentation preferences that should enter the
+generation prompt.
 
-Templates define expected navigation hierarchy:
+The separate VitePress setup script can also read `deployment.base` and
+`deployment.siteUrl` when `jq` is available.
 
-```json
-"sidebar_structure_guide": {
-  "/": [
-    {
-      "text": "Getting Started", 
-      "items": [
-        { "text": "Overview", "link": "/guide/" },
-        { "text": "Installation", "link": "/guide/installation" },
-        { "text": "Quick Start", "link": "/guide/quickstart" }
-      ]
-    },
-    {
-      "text": "User Guide",
-      "items": [
-        { "text": "Core Features", "link": "/features/" },
-        { "text": "Configuration", "link": "/guide/configuration" }
-      ]
-    }
-  ]
-}
-```
+## VitePress scaffolding is separate
 
-## Project-Specific Templates
+`lib/vitepress/setup.sh` is the deterministic scaffolding path. It is not the
+JSON project-profile loader.
 
-### React Template Example
+When invoked by `serve`, setup can:
 
-`react-project-config.json` emphasizes component documentation:
+- Create `docs/.vitepress/config.ts` only when it is missing
+- Copy the bundled theme
+- Copy isolated Vite and PostCSS configuration
+- Detect and copy a logo
+- Write `docs/package.json`
+- Derive the GitHub Pages base
+- Replace a small fixed set of placeholders when those placeholders already
+  exist in the VitePress config
 
-```json
-{
-  "claude_instructions": {
-    "focus_areas": [
-      "Component API documentation with props and examples",
-      "React hooks usage patterns", 
-      "State management patterns (Redux, Context)",
-      "Testing with React Testing Library",
-      "Build and deployment with Vite/Webpack"
-    ]
-  },
-  "documentation": {
-    "sidebar_structure_guide": {
-      "/": [
-        {
-          "text": "Components",
-          "items": [
-            { "text": "Component Library", "link": "/components/" },
-            { "text": "Styling Guide", "link": "/components/styling" }
-          ]
-        }
-      ]
-    }
-  }
-}
-```
+The supported config placeholders are implementation-specific:
 
-### iOS Template Example
+- `{{PROJECT_NAME}}`
+- `{{PROJECT_DESCRIPTION}}`
+- `{{LOGO_CONFIG_LINE}}`
+- `{{FAVICON_TAG}}`
+- `{{SITE_URL}}`
 
-`ios-project-config.json` focuses on app-specific documentation:
+This substitution happens in the VitePress setup script, not in project
+profiles or generated Markdown.
 
-```json
-{
-  "claude_instructions": {
-    "focus_areas": [
-      "App architecture and SwiftUI patterns",
-      "Data persistence (Core Data, SwiftData)",
-      "App Store deployment process",
-      "Testing with XCTest framework",
-      "Dependency management with SPM/CocoaPods"
-    ]
-  }
-}
-```
+## Adding a project profile
 
-## Template Customization
+1. Add valid JSON at `lib/templates/<type>-project-config.json`, or use the
+   directory form `lib/templates/<type>/config.json`.
+2. Keep the content advisory: focus areas and plausible defaults, not claims
+   that every target repository shares.
+3. Set `project.type` in a disposable target while testing.
+4. If auto-detection is required, add the specific detector before broader
+   fallbacks in `lib/project.sh`.
+5. Verify the built prompt points to the expected file.
+6. Run the focused tests and a disposable real-target generation.
 
-### Creating Custom Templates
-
-1. **Copy existing template:**
-   ```bash
-   cp lib/templates/generic/config.json lib/templates/mytype-project-config.json
-   ```
-
-2. **Modify for your project type:**
-   ```json
-   {
-     "project": {
-       "type": "mytype",
-       "description": "Custom project type documentation"
-     },
-     "claude_instructions": {
-       "focus_areas": [
-         "Domain-specific patterns",
-         "Framework-specific documentation",
-         "Custom deployment processes"
-       ]
-     }
-   }
-   ```
-
-3. **Add detection logic:**
-   
-   Update `lib/project.sh:33-64` to detect your project type:
-   ```bash
-   detect_project_type() {
-       # Add your detection logic
-       if [[ -f "myframework.config.js" ]]; then
-           echo "mytype"
-       # ... existing detection logic
-   }
-   ```
-
-### Project-Level Override
-
-Override templates with project-specific configuration in `claudux.json`:
-
-```json
-{
-  "project": {
-    "name": "My Custom Project",
-    "type": "react"
-  },
-  "documentation": {
-    "custom_sections": ["deployment", "monitoring"],
-    "omit_sections": ["examples"]
-  },
-  "claude_instructions": {
-    "focus_areas": [
-      "Custom focus area 1",
-      "Custom focus area 2"  
-    ]
-  }
-}
-```
-
-## Template Preprocessing
-
-### Variable Substitution
-
-Templates support dynamic variable replacement:
-
-**VitePress config template** (`lib/vitepress/config.template.ts`):
-```typescript
-export default defineConfig({
-  title: '{{PROJECT_NAME}}',
-  description: '{{PROJECT_DESCRIPTION}}',
-  logo: { src: '{{LOGO_PATH}}' },
-  // ...
-})
-```
-
-**Runtime substitution:**
-- `{{PROJECT_NAME}}` → Value from `package.json` or `claudux.json`
-- `{{PROJECT_DESCRIPTION}}` → Auto-detected or configured description
-- `{{LOGO_PATH}}` → Auto-detected logo file or empty if none found
-
-### Conditional Content
-
-Templates can include conditional logic:
-
-```json
-{
-  "conditional_sections": {
-    "if_testing_framework": {
-      "jest": ["testing/jest-setup.md"],
-      "mocha": ["testing/mocha-setup.md"]
-    },
-    "if_has_api": {
-      "express": ["api/express-routes.md"],
-      "fastapi": ["api/fastapi-endpoints.md"]
-    }
-  }
-}
-```
-
-## Template Development
-
-### Testing Templates
-
-Re-run generation to pick up template changes:
+There is no profile-schema validator today. Use a JSON parser to catch syntax
+errors before relying on a new file:
 
 ```bash
-claudux update  # Regenerate docs with the updated template
+node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' \
+  lib/templates/mytype-project-config.json
 ```
 
-### Template Validation
+## Testing expectations
 
-Templates are validated during prompt construction:
+A profile change is not proven by a successful JSON parse alone. Useful proof
+includes:
 
-```bash
-📝 Building prompt for react project...
-✅ Template loaded: react-project-config.json
-✅ Sidebar structure validated  
-✅ Focus areas configured (5 items)
-```
+- Correct project-type detection or explicit type selection
+- Correct profile path in the generated prompt
+- No runtime-model change from inert profile fields
+- A target repository whose generated docs reflect real source facts
+- Link validation and VitePress build success
 
-**Validation checks:**
-- JSON syntax correctness
-- Required fields present
-- Sidebar structure validity
-- Link target reachability
-
-### Contributing Templates
-
-1. **Identify gap**: What project type lacks good documentation structure?
-2. **Analyze patterns**: What are the common documentation needs for that type?
-3. **Create template**: Follow existing template patterns
-4. **Test thoroughly**: Generate docs for multiple projects of that type
-5. **Submit PR**: Include template and detection logic updates
-
-## Template Best Practices
-
-### 1. Focus Areas
-
-Define specific, actionable focus areas:
-
-```json
-"focus_areas": [
-  "Component props and TypeScript interfaces",      // ✅ Specific  
-  "Authentication and authorization patterns",      // ✅ Specific
-  "Docker deployment configuration"                 // ✅ Specific
-]
-
-// Avoid generic focus areas:
-"focus_areas": [
-  "Write good documentation",                       // ❌ Too generic
-  "Document the code"                               // ❌ Not helpful
-]
-```
-
-### 2. Sidebar Organization
-
-Organize by user journey, not internal code structure:
-
-```json
-// ✅ User-focused organization
-"sidebar_structure_guide": {
-  "/": [
-    { "text": "Getting Started", "items": [...] },
-    { "text": "Using the API", "items": [...] },  
-    { "text": "Deploying", "items": [...] }
-  ]
-}
-
-// ❌ Code-focused organization  
-"sidebar_structure_guide": {
-  "/": [
-    { "text": "src/ Directory", "items": [...] },
-    { "text": "lib/ Directory", "items": [...] }
-  ]
-}
-```
-
-### 3. Progressive Disclosure
-
-Structure information from basic to advanced:
-
-```json
-{
-  "text": "API Reference",
-  "items": [
-    { "text": "Quick Start", "link": "/api/" },          // Basic usage
-    { "text": "Authentication", "link": "/api/auth" }, // Common need  
-    { "text": "Advanced", "link": "/api/advanced" }    // Power users
-  ]
-}
-```
-
-This template system enables claudux to generate documentation that feels native to each project type while maintaining consistency and quality.
+Project profiles guide the backend. The manifest and deterministic validators
+remain the enforcement layer.

@@ -40,7 +40,7 @@ assert_contains() {
     local haystack="$2"
     local needle="$3"
     ((TESTS_RUN++))
-    if echo "$haystack" | grep -qF -- "$needle"; then
+    if grep -qF -- "$needle" <<< "$haystack"; then
         ((TESTS_PASSED++))
         printf "${_GREEN}  PASS${_NC} %s\n" "$label"
     else
@@ -48,7 +48,7 @@ assert_contains() {
         FAIL_MESSAGES+=("$label: output does not contain '$needle'")
         printf "${_RED}  FAIL${_NC} %s\n" "$label"
         printf "       needle:   %s\n" "$needle"
-        printf "       haystack: %s\n" "$(echo "$haystack" | head -5)"
+        printf "       haystack: %s\n" "$(head -5 <<< "$haystack")"
     fi
 }
 
@@ -57,7 +57,7 @@ assert_not_contains() {
     local haystack="$2"
     local needle="$3"
     ((TESTS_RUN++))
-    if ! echo "$haystack" | grep -qF -- "$needle"; then
+    if ! grep -qF -- "$needle" <<< "$haystack"; then
         ((TESTS_PASSED++))
         printf "${_GREEN}  PASS${_NC} %s\n" "$label"
     else

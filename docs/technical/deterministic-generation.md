@@ -60,7 +60,7 @@ The extracted payload is staged at `.claudux/index/section-patches.json` by defa
 - Pinned sections and `generated: false` sections require both `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` and per-patch `unlock_pinned: true`.
 - Incremental runs enforce the impacted-doc allowlist; full scans can touch any non-pinned generated section in the manifest.
 - Transient cache provenance is rejected from patch bodies. The prompt can use run-specific facts for scope, but committed prose must describe stable behavior.
-- Validation is all-or-nothing. One invalid, duplicate, read-only, out-of-scope, provenance-leaking, or boundary-escaping patch leaves every file unchanged.
+- Patch validation and application are all-or-nothing. One invalid, duplicate, read-only, out-of-scope, provenance-leaking, or boundary-escaping patch prevents the target documentation files from changing. Later guard, link, cache, and checkpoint stages remain separate.
 
 After patches land, `update()` runs post-generation manifest validation, validates the pre-generation guard snapshot, runs link validation, refreshes deterministic caches, and only then saves the checkpoint. If extraction or application fails, `retain_generation_debug_log()` keeps the backend JSONL log available for inspection while the docs tree stays untouched.
 
@@ -160,7 +160,7 @@ During guard validation, claudux tracks every pinned section plus every section 
 
 An intentional pinned rewrite needs two signals in the same run: `CLAUDUX_UNLOCK_PINNED_SECTIONS=1` in the environment and `unlock_pinned: true` on the individual patch. That keeps model-only runs from silently editing doctrine.
 
-Page deletion is guarded separately from section editing. With a manifest present, the internal cleanup helper that `update` runs refuses manifest-owned deletion unless `CLAUDUX_ALLOW_MANIFEST_CLEANUP=1` is set. That guard runs during the update flow so a missing backend, auth failure, or unsupported model cannot mask the more important fact that a manifest-owned docs tree would otherwise be deleted.
+Page deletion is separate from section editing. The `cleanup_docs_silent` hook called by `update` is a no-op, so the normal generation path does not run a hidden deletion pass. The legacy interactive `cleanup_docs` helper refuses manifest-owned deletion unless `CLAUDUX_ALLOW_MANIFEST_CLEANUP=1` is set and the manifest validates.
 
 ## Content Protection Markers
 
@@ -244,7 +244,7 @@ The guard snapshot enforces preservation rules that schema validation cannot pro
 - Files that carried recorded protected blocks must still exist on disk.
 - Recorded skip-marker blocks must keep at least the captured block count, and each captured block must keep the same content hash in order across docs and source files.
 
-The internal cleanup step the update flow runs uses the same manifest deletion posture and checks it before backend validation. A manifest-owned docs tree is refused before Codex or Claude availability is consulted.
+The update path does not perform semantic cleanup: its `cleanup_docs_silent` call is intentionally empty. The separate legacy `cleanup_docs` helper has its own manifest deletion guard, but that helper is not part of normal `claudux update` validation.
 
 ### VitePress proof
 
@@ -254,7 +254,7 @@ The checked-in VitePress config follows the project preferences:
 - The top nav order is Guide, Features, Technical, and API, matching the manifest navigation order.
 - The sidebar defines a root `/` entry so the sidebar appears on the homepage and provides the site-wide fallback.
 - Section-specific sidebar entries exist for Guide, Features, and Technical.
-- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Two-Phase Generation, Smart Cleanup, Content Protection, Technical, Templates, Deterministic Generation, Examples, API, and Troubleshooting.
+- Current internal nav/sidebar targets resolve to checked-in docs pages: Guide, Installation, Commands, Configuration, Features, Generation Pipeline, Cleanup, Content Protection, Technical, Project Profiles, Deterministic Generation, Examples, API, and Troubleshooting.
 - Social links are absolute GitHub and npm URLs.
 
 `lib/validate-links.sh` proves config targets by extracting `link:` entries from the VitePress config, resolving `/` to `docs/index.md`, `/path/` to `docs/path/index.md`, and `/path` to `docs/path.md`. Before route checking it also rejects duplicate explicit markdown `{#id}` anchors. Hash fragments are stripped for file existence checks, so the validator proves route targets and explicit anchor uniqueness rather than arbitrary heading text.
@@ -275,7 +275,7 @@ Verification intentionally distinguishes between configuration echo, backend pre
 - `show_header` and `claudux check` report the active backend plus selected Codex settings, but they do not prove that the installed Codex CLI supports the selected model.
 - Commands that invoke a model go through `check_generation_backend()`. On the Codex path, `check_codex()` must find the CLI and verify auth before generation starts.
 - Modern Codex CLI builds use `codex login status` for a zero-token auth probe; older builds fall back to an exec probe.
-- The manifest deletion guard runs inside the update flow before backend checks, so a protected manifest-owned docs tree is refused before Codex or Claude availability is consulted.
+- Manifest validation, static-index construction, and guard capture run before backend invocation. The legacy cleanup helper's deletion guard is a separate path and does not run during a normal update.
 - If a backend or patch-mode run fails after launch, `update()` retains the raw JSONL log and prints backend-specific recovery steps instead of checkpointing a misleading success.
 
 ## Pinned Harness Example

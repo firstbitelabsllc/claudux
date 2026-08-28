@@ -17,11 +17,12 @@ claudux update --with "Focus on the authentication module"
 ```
 
 **Process:**
-1. Scans source code for structure and patterns
-2. Analyzes existing documentation for outdated content
-3. Generates new pages and updates existing ones
-4. Validates internal links (external URLs are skipped) to prevent 404s
-5. Shows detailed change summary
+1. Loads project configuration and selects a project profile
+2. Validates `docs-structure.json` when present and builds the static index
+3. Invokes the selected backend once
+4. Enforces the default source boundary or applies the manifest patch batch
+5. Validates local routes, Markdown links, assets, and anchors
+6. Refreshes deterministic state only after the successful path completes
 
 **Options:**
 ```bash
@@ -40,8 +41,9 @@ claudux serve
 
 - Opens at `http://localhost:5173`
 - Hot reload when files change
-- Full-text search enabled
-- Mobile-responsive design
+- Never invokes Claude or Codex
+- Creates missing VitePress support files when needed
+- Runs `npm install --no-audit --no-fund` when docs dependencies are missing
 
 ## Utility Commands
 
@@ -58,6 +60,10 @@ Checks:
 - Active backend (Claude or Codex)
 - Backend CLI installation and authentication
 - Documentation directory status
+
+For current Codex CLIs, authentication uses `codex login status`. The
+compatibility path for older CLIs may run a small `codex exec` probe, which can
+consume provider tokens even though `check` never generates documentation.
 
 ### `claudux --help`
 

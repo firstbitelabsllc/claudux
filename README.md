@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/claudux-banner.svg" alt="claudux banner" width="100%" />
+  <img src="assets/claudux-banner.svg" alt="claudux turns source code into a VitePress docs site with structure pinned and links checked" width="100%" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/firstbitelabsllc/claudux/actions/workflows/ci.yml"><img src="https://github.com/firstbitelabsllc/claudux/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/firstbitelabsllc/claudux/actions/workflows/ci.yml"><img src="https://github.com/firstbitelabsllc/claudux/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <a href="https://github.com/firstbitelabsllc/claudux/stargazers"><img src="https://img.shields.io/github/stars/firstbitelabsllc/claudux?style=flat" alt="GitHub stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A518-5fa04e?style=flat" alt="Node ≥ 18" />
@@ -11,71 +11,116 @@
 
 # claudux
 
-Generate a VitePress docs site from your codebase, preview it locally, and update it in place as the code changes.
+Code changes faster than its documentation. Asking a model to catch up fixes the
+drift, but without a write boundary it can also rewrite the wrong page—or the
+wrong part of the repository.
 
-claudux scans your code and drafts a full VitePress docs site with your authenticated Claude CLI (or Codex CLI). Without a manifest, that's a full generation pass; commit a `docs-structure.json` and it stops being one — the repo owns the structure, the model is restricted to proposing section-scoped patches, and code applies them behind deterministic guards: path boundaries, all-or-nothing validation, and sha256 hashes that refuse silent edits to protected sections.
+**claudux uses your authenticated Claude CLI or Codex CLI to draft and update a
+VitePress site, then validates what changed before you keep it.**
 
-## Why this exists
-
-Anyone can ask a model to write docs. The hard part is keeping the model on rails: not reorganizing your navigation, not rewriting sections that didn't change, not touching content you marked as yours. claudux puts those rails in the repo — a committed manifest owns page structure, skip markers protect blocks, and link validation catches 404s before your readers do.
+On a first run, the backend may edit documentation paths directly. claudux
+snapshots `HEAD` and every unrelated Git path; if the backend changes or commits
+outside the documentation, local-state, and manifest boundaries, the run fails
+and restores the source while leaving the docs diff for review. Commit a
+`docs-structure.json` for the stricter path: the backend becomes read-only,
+returns section-patch JSON, and claudux validates and transactionally applies
+only the manifest-approved batch.
 
 <p align="center">
-  <img src="assets/claudux-rails.svg" alt="How claudux keeps the model on rails during claudux update: the repo owns the docs structure in a committed manifest; the model proposes section-scoped patches it cannot write itself; and code checks every patch against deterministic guards — impact allowlist, single-section span, sha256 protected-block hashes, and a path boundary — applying them all-or-nothing before any file is written." width="820" />
+  <img src="assets/claudux-rails.svg" alt="How manifest mode applies a section-patch batch: the repository declares writable sections, the backend returns patch JSON without direct file access, and claudux validates every target, boundary, impact rule, and protected hash before transactionally committing the target documentation files." width="820" />
 </p>
 
-## Install
+## 90-second quick start
 
-claudux installs straight from GitHub — no npm account, no registry. The script clones the repo into `~/.local/share/claudux` and symlinks `bin/claudux` onto your PATH:
+Requirements: Node 18+ and an authenticated Claude CLI (default) or Codex CLI
+on the machine. There is no hosted API-key path.
 
 ```bash
-# latest main
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
-
-# pin the current release
-curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.7/install.sh | CLAUDUX_REF=v2.0.7 sh
+cd your-project
+claudux check    # verify Node and backend authentication
+claudux update   # generate or update docs
+claudux serve    # preview at http://localhost:5173
 ```
 
-Or run it once without installing: `npx github:firstbitelabsllc/claudux update`.
+Those five commands are the setup; model generation can take longer depending
+on the repository and backend. Inspect `git diff` before committing the docs.
 
-Default install tracks `main`. Pin a branch, tag, or commit with `CLAUDUX_REF=<ref>` — a ref that doesn't exist fails the install instead of silently giving you `main`. Re-run it any time to update. Release notes: [v2.0.7](https://github.com/firstbitelabsllc/claudux/releases/tag/v2.0.7).
-
-Requirements: Node 18+ and an authenticated Claude CLI (default) or Codex CLI on the machine; there is no hosted API key path.
-
-## Quick start
+The installer clones GitHub into `~/.local/share/claudux` and symlinks the CLI
+onto your PATH. It tracks `main` by default. Pin the current release with:
 
 ```bash
-cd your-project
-
-claudux update   # generate or update the VitePress docs
-claudux serve    # preview the site locally
+curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/v2.0.7/install.sh \
+  | CLAUDUX_REF=v2.0.7 sh
 ```
 
-Run `claudux` with no arguments for an interactive menu.
+A missing ref fails instead of silently falling back to `main`. For one run
+without installing, use `npx github:firstbitelabsllc/claudux update`. Run
+`claudux` with no arguments for the interactive menu.
 
 <p align="center">
   <img src="assets/claudux-terminal-demo.svg" alt="A real claudux session: claudux update detects the project type, generates VitePress docs with Claude, and validates links; claudux serve previews them at localhost:5173" width="780" />
 </p>
 
-Reconstructed from a real claudux run against a two-file Node CLI — detection, generation, link validation, and the VitePress preview.
+Reconstructed from a real run against a two-file Node CLI: project detection,
+generation, link validation, and the VitePress preview.
 
-## What it does
+## One real bounded update
 
-**Generation.** `claudux update` drafts a full VitePress docs site straight from your code, so you start from a real draft instead of an empty `docs/` folder. It uses your authenticated Claude CLI by default (Sonnet); set `CLAUDUX_BACKEND=codex` for the Codex CLI (gpt-5.4). It is not an API-reference generator, so pair it with TypeDoc or JSDoc if you need one. Model output can be wrong; link checks and manifests shrink the blast radius, they do not replace review.
+In a disposable Node package, the initial API page documented `addCents` and
+`formatUsd`. The source and tests then added `allocateCents(total, parts)`.
+With a committed manifest, this command ran the backend read-only:
 
-**Deterministic manifest mode.** A committed `docs-structure.json` owns page structure and declares which source files each doc section describes. claudux applies bounded section patches instead of broad rewrites, and guards content through skip markers and path denylists.
+```bash
+claudux update -m "Document the new allocateCents API from its source and tests."
+```
 
-**Link validation.** After each update, claudux checks the internal links in your VitePress nav and sidebar against the files on disk and tries one auto-fix pass. By default it continues with a warning if any remain; pass `--strict` to make broken links fail the build.
+Before the run, the API page had no `allocateCents` entry and the guide's
+quick-start section was pinned. After the run, the API page contained the new
+signature, examples, and error behavior; the pinned guide remained
+byte-identical:
 
-**Focused updates.** `claudux update -m "document the new auth flow"` steers a regeneration at one area instead of the whole site.
+```text
+$ git diff --name-only HEAD^
+docs/api/index.md
+```
 
-## How it works
+The [full lifecycle receipt](evidence/real-target-lifecycle.md) records the
+install commit, manifest hashes, rejected unrelated-source mutation, docs
+build, link check, dependency audit, and browser result.
 
-- The repo owns structure. `docs-structure.json` holds page IDs, navigation order, and which source each section describes, so the model rewrites wording and never reorganizes your docs.
-- Generation is bounded. claudux applies validated section patches, so an incremental regen touches only the sections a changed source owns instead of rewriting whole pages.
-- Your content stays put. Pinned sections, read-only sections, and skip-marker blocks are hashed before and after generation, so protected text cannot change silently.
-- Only `update` and the interactive menu call the model. `serve` and `check` never call a backend.
+## Safety model
 
-## Commands
+| Mode | Backend access | Mechanical boundary | On failure |
+| --- | --- | --- | --- |
+| First run / no manifest | May write documentation paths directly | claudux rejects new worktree, index, or commit mutations outside documentation, local state, and manifest paths | Restores unrelated source and `HEAD`; leaves the docs diff for review |
+| Committed `docs-structure.json` | Read-only | Page IDs, source ownership, writable sections, deletion rules, impact limits, and protected hashes | Rejects the whole patch batch or restores every target file |
+
+Manifest mode also hash-guards pinned sections, explicit read-only sections,
+and skip-marker blocks:
+
+```markdown
+<!-- skip -->
+This block is hash-guarded by claudux.
+<!-- /skip -->
+```
+
+Language-specific marker pairs include `// skip`, `# skip`, `/* skip */`, and
+`-- skip`.
+
+After generation, claudux checks VitePress routes, Markdown links, local
+assets, anchors, traversal, and symlink escapes. External URLs are skipped.
+Unresolved links warn by default; `--strict` fails the update.
+
+`claudux update -m "document the new auth flow"` focuses a run on one area.
+Model output can still be wrong, so the generated diff remains the review
+surface. `serve` never invokes a model, though it may scaffold VitePress files
+and run `npm install`. `check` never generates docs, but it does verify the
+selected backend's authentication.
+
+## Command and configuration reference
+
+These are the supported CLI entry points:
 
 ```bash
 claudux                 # Interactive menu
@@ -87,9 +132,8 @@ claudux help            # Show help
 claudux --version       # Show installed version
 ```
 
-## Configuration
-
-Optional `claudux.json` in the project root:
+Project-level configuration is optional. Put `claudux.json` in the project
+root:
 
 ```json
 {
@@ -105,20 +149,6 @@ Optional `claudux.json` in the project root:
 - `docs-structure.json` is the deterministic manifest for pinned pages, source-owned sections, bounded patching, and deletion guards.
 
 claudux auto-detects iOS, Next.js, React, Node.js, JavaScript, Java, Python, Go, and Rust. Anything else falls back to a generic profile, or set `project.type` in `claudux.json` to one of the exact strings: `ios`, `nextjs`, `react`, `nodejs`, `javascript`, `rust`, `python`, `go`, `java`, `generic` — or any type with a template under `lib/templates/` (`flutter`, `android`, and `rails` ship today). An unrecognized value (like `node`) warns and falls back to auto-detection rather than silently degrading to the generic profile.
-
-## Content protection
-
-Protection is strongest with a committed `docs-structure.json`: the model runs read-only, docs writes are section-bounded and applied all-or-nothing, and skip-marker and pinned blocks are sha256-hashed in the guard snapshot — generation aborts if a protected block changed. Mark blocks like this:
-
-```markdown
-<!-- skip -->
-This block is hash-guarded by claudux.
-<!-- /skip -->
-```
-
-Language-specific pairs are supported, including `// skip`, `# skip`, `/* skip */`, and `-- skip`.
-
-Without a manifest, the generation pass runs with write access and path rules are prompt guidance, not an enforced barrier: prompts steer the model away from `notes/`, `private/`, secrets, and build output, and `Bash` is mechanically disallowed so it cannot run shell commands or `git commit` — but there is no code-level check on which files it writes. If that distinction matters to you, commit a manifest.
 
 ## Project docs
 

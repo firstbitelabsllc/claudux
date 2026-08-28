@@ -10,6 +10,10 @@ docs/node_modules/
 # Node modules (if VitePress is installed locally)
 node_modules/
 
+# Python bytecode
+__pycache__/
+*.py[cod]
+
 # VitePress cache
 .vitepress/cache/
 .vitepress/dist/
@@ -34,6 +38,7 @@ documents/.cursorrules
 .cursorrules
 documents/
 .npmrc
+!docs/.npmrc
 
 # Secrets / environment
 .env
