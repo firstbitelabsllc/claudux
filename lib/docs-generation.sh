@@ -1114,6 +1114,7 @@ update() {
     local user_message="${CLAUDUX_MESSAGE:-}"
     local already_autofixed="${CLAUDUX_AUTOFIXED:-}" # env guard to avoid loops
     local strict_mode=false
+    local check_mode=false
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -m|--message|--with)
@@ -1131,10 +1132,14 @@ update() {
                 strict_mode=true
                 shift
                 ;;
+            --check)
+                check_mode=true
+                shift
+                ;;
             --)
                 shift; break ;;
             -*)
-                error_exit "Unknown option for 'update': $1. Usage: claudux update [--with|-m \"message\"] [--strict]" 2
+                error_exit "Unknown option for 'update': $1. Usage: claudux update [--with|-m \"message\"] [--strict] [--check]" 2
                 ;;
             *)
                 error_exit "Unexpected argument: $1" 2
@@ -1188,6 +1193,13 @@ update() {
         section_patch_mode=true
         export CLAUDUX_SECTION_PATCH_MODE=1
         section_patch_context=$(format_section_patch_contract)
+    fi
+
+    if $check_mode && ! $section_patch_mode; then
+        error_exit "update --check requires a committed docs-structure.json (manifest mode) so the backend runs read-only" 2
+    fi
+    if $check_mode; then
+        export CLAUDUX_CHECK_MODE=1
     fi
 
     if declare -F capture_docs_structure_guard_snapshot >/dev/null 2>&1; then
@@ -1476,6 +1488,17 @@ $base_prompt"
             local patch_apply_out patch_apply_rc=0
             patch_apply_out=$(apply_manifest_section_patches "$section_patch_file" 2>&1) || patch_apply_rc=$?
             printf '%s\n' "$patch_apply_out"
+            if $check_mode; then
+                if [[ $patch_apply_rc -eq 2 ]]; then
+                    echo ""
+                    error_exit "Docs drift detected — run 'claudux update' to regenerate (rc=2)" 2
+                elif [[ $patch_apply_rc -ne 0 ]]; then
+                    error_exit "Section patch validation failed during --check"
+                fi
+                success "No docs drift: documentation matches sources"
+                echo ""
+                return 0
+            fi
             if [[ $patch_apply_rc -ne 0 ]]; then
                 error_exit "Section patch application failed"
             fi

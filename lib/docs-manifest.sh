@@ -1449,6 +1449,21 @@ const changedFiles = [...fileStates.values()]
     ...state,
     finalBytes: Buffer.from(`${state.lines.join('\n').trimEnd()}\n`),
   }));
+if (process.env.CLAUDUX_CHECK_MODE === '1') {
+  const driftFiles = changedFiles.filter(state =>
+    !state.originalBytes ||
+    !Buffer.from(`${state.lines.join('\n').trimEnd()}\n`).equals(state.originalBytes));
+  if (driftFiles.length === 0) {
+    console.log('[claudux:check] no drift: documentation matches sources');
+    process.exit(0);
+  }
+  console.log(`[claudux:check] drift detected: ${driftFiles.length} file(s) would change`);
+  for (const state of driftFiles) {
+    console.log(`[claudux:check]   ${state.pagePath}`);
+  }
+  process.exit(2);
+}
+
 const stagedFiles = [];
 const committedFiles = [];
 let transactionPhase = 'staging';

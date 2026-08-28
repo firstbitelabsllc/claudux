@@ -386,4 +386,11 @@ assert_contains "invalid update backend reports the configuration error" \
 assert_eq "invalid backend never enters generation" "0" "$(wc -l < "$UPDATE_LOG" | tr -d ' ')"
 assert_eq "invalid backend never acquires the project lock" "absent" "$( [[ -e "$LOCK_PATH" ]] && echo present || echo absent )"
 
+# `update --check` is a recognized flag; a bogus sibling still fails validation.
+output=$(run_cli update --check --bogus-flag 2>&1)
+rc=$?
+assert_exit_code "update --check parses while bogus flag fails" 2 "$rc"
+assert_contains "update usage documents --check" "$output" "[--strict] [--check]"
+assert_not_contains "update --check is not rejected as unknown" "$output" "Unknown option for 'update': --check"
+
 test_summary

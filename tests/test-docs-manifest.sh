@@ -1119,5 +1119,81 @@ assert_contains "unsafe nav group fails validation" "$(cat "$TEST_TMP_ROOT/claud
 assert_contains "unsafe section id fails validation" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t27")" "pipeline#rewrite: id must be a stable manifest key"
 rm -rf "$TEST_DIR"
 
+# --- Test 28: check mode reports drift and writes nothing ---
+TEST_DIR=$(setup_manifest_repo)
+(
+    cd "$TEST_DIR"
+    source "$LIB_DIR/docs-manifest.sh"
+    printf '%s\n' \
+        '{' \
+        '  "patches": [' \
+        '    {' \
+        '      "page_id": "technical.deterministic-generation",' \
+        '      "section_id": "generated-details",' \
+        '      "body_markdown": "New generated body that differs from disk."' \
+        '    }' \
+        '  ]' \
+        '}' > "$TEST_TMP_ROOT/claudux-section-patches-t28.json"
+    rc=0
+    CLAUDUX_CHECK_MODE=1 apply_manifest_section_patches "$TEST_TMP_ROOT/claudux-section-patches-t28.json" >"$TEST_TMP_ROOT/claudux-manifest-t28-output" 2>&1 || rc=$?
+    echo "rc=$rc"
+    cat "$TEST_TMP_ROOT/claudux-manifest-t28-output"
+    echo "-- disk state --"
+    cat docs/technical/deterministic-generation.md
+) > "$TEST_TMP_ROOT/claudux-manifest-t28" 2>&1
+assert_contains "check mode exits 2 on drift" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28")" "rc=2"
+assert_contains "check mode reports drift" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28")" "drift detected"
+assert_contains "check mode names the drifting file" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28")" "docs/technical/deterministic-generation.md"
+assert_contains "check mode leaves old body on disk" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28")" "Old generated body."
+assert_not_contains "check mode never writes the new body" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28")" "New generated body that differs from disk."
+rm -rf "$TEST_DIR"
+
+# --- Test 28b: check mode exits 0 when docs match sources ---
+TEST_DIR=$(setup_manifest_repo)
+(
+    cd "$TEST_DIR"
+    source "$LIB_DIR/docs-manifest.sh"
+    printf '%s\n' \
+        '{' \
+        '  "patches": [' \
+        '    {' \
+        '      "page_id": "technical.deterministic-generation",' \
+        '      "section_id": "generated-details",' \
+        '      "body_markdown": "Old generated body."' \
+        '    }' \
+        '  ]' \
+        '}' > "$TEST_TMP_ROOT/claudux-section-patches-t28b.json"
+    rc=0
+    CLAUDUX_CHECK_MODE=1 apply_manifest_section_patches "$TEST_TMP_ROOT/claudux-section-patches-t28b.json" >"$TEST_TMP_ROOT/claudux-manifest-t28b-output" 2>&1 || rc=$?
+    echo "rc=$rc"
+    cat "$TEST_TMP_ROOT/claudux-manifest-t28b-output"
+) > "$TEST_TMP_ROOT/claudux-manifest-t28b" 2>&1
+assert_contains "check mode exits 0 when clean" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28b")" "rc=0"
+assert_contains "check mode reports no drift" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28b")" "no drift"
+rm -rf "$TEST_DIR"
+
+# --- Test 28c: check mode still fails hard on pinned violations ---
+TEST_DIR=$(setup_manifest_repo)
+(
+    cd "$TEST_DIR"
+    source "$LIB_DIR/docs-manifest.sh"
+    printf '%s\n' \
+        '{' \
+        '  "patches": [' \
+        '    {' \
+        '      "page_id": "technical.deterministic-generation",' \
+        '      "section_id": "pipeline",' \
+        '      "body_markdown": "Rewrite pinned doctrine."' \
+        '    }' \
+        '  ]' \
+        '}' > "$TEST_TMP_ROOT/claudux-section-patches-t28c.json"
+    rc=0
+    CLAUDUX_CHECK_MODE=1 apply_manifest_section_patches "$TEST_TMP_ROOT/claudux-section-patches-t28c.json" >"$TEST_TMP_ROOT/claudux-manifest-t28c-output" 2>&1 || rc=$?
+    echo "rc=$rc"
+    cat "$TEST_TMP_ROOT/claudux-manifest-t28c-output"
+) > "$TEST_TMP_ROOT/claudux-manifest-t28c" 2>&1
+assert_contains "check mode rejects pinned edits with error rc" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28c")" "rc=1"
+assert_contains "check mode rejects pinned edits" "$(cat "$TEST_TMP_ROOT/claudux-manifest-t28c")" "is pinned/read-only"
+rm -rf "$TEST_DIR"
 
 test_summary
