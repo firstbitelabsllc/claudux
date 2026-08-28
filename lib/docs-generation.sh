@@ -412,7 +412,15 @@ claudux_path_in_args() {
 
 claudux_path_mode() {
     local path="$1"
-    stat -f '%Lp' "$path" 2>/dev/null || stat -c '%a' "$path" 2>/dev/null || printf 'unknown'
+    # GNU stat -f reports the containing FILESYSTEM (with live free-block and
+    # free-inode counters), not the file's permission bits, and still exits
+    # successfully enough to shadow the fallback. Detect GNU first so the mode
+    # string is deterministic on both stat flavors.
+    if stat --version >/dev/null 2>&1; then
+        stat -c '%a' "$path" 2>/dev/null || printf 'unknown'
+    else
+        stat -f '%Lp' "$path" 2>/dev/null || printf 'unknown'
+    fi
 }
 
 claudux_path_kind() {
