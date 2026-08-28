@@ -108,6 +108,25 @@ This block is hash-guarded by claudux.
 Language-specific marker pairs include `// skip`, `# skip`, `/* skip */`, and
 `-- skip`.
 
+## CI docs-drift gate
+
+With a committed `docs-structure.json`, `claudux update --check` runs the
+backend read-only and compares its proposed section patches against the docs
+on disk, writing nothing. Exit codes: `0` when docs match sources, `2` when
+drift is detected (the drifting files are listed), `1` on a validation or
+backend error. Wire it into CI so a pull request fails when its docs fall
+behind its code:
+
+```yaml
+- run: claudux update --check
+```
+
+The gate proposes through the same model that `claudux update` uses, so a
+drift verdict reflects what an update would change rather than a text diff;
+a no-op proposal exits `0`. Because the proposal is model-generated, treat
+the gate as a boundary-enforced reviewer: a false positive costs one re-run,
+a false negative costs nothing the next update would not also miss.
+
 After generation, claudux checks VitePress routes, Markdown links, local
 assets, anchors, traversal, and symlink escapes. External URLs are skipped.
 Unresolved links warn by default; `--strict` fails the update.

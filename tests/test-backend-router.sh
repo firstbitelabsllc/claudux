@@ -270,5 +270,29 @@ assert_contains "backend nonzero failure retains the backend log" \
     "$fail_block" \
     'retain_generation_debug_log "$claude_log" "backend-failure"'
 
+# --- Test 21: update() check-mode plumbing stays wired ---
+assert_contains "update() parses --check" \
+    "$update_fn" \
+    '--check)'
+assert_contains "update() requires manifest mode for --check" \
+    "$update_fn" \
+    'update --check requires a committed docs-structure.json (manifest mode) so the backend runs read-only'
+assert_contains "update() exports CLAUDUX_CHECK_MODE in check mode" \
+    "$update_fn" \
+    'export CLAUDUX_CHECK_MODE=1'
+assert_contains "update() maps patch rc 2 to the drift exit" \
+    "$update_fn" \
+    '[[ $patch_apply_rc -eq 2 ]]'
+assert_contains "update() drift exit tells the operator the remedy" \
+    "$update_fn" \
+    "Docs drift detected"
+check_exit_block=$(sed -n '/^            if \$check_mode; then$/,/^            fi$/p' <<< "$update_fn")
+assert_contains "update() check mode returns before link validation" \
+    "$check_exit_block" \
+    'return 0'
+assert_contains "update() check mode success line names the clean state" \
+    "$check_exit_block" \
+    'No docs drift: documentation matches sources'
+
 # Cleanup
 test_summary
