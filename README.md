@@ -34,7 +34,9 @@ python3 examples/demo.py
 
 ## Use it in your project
 
-Install with Node 18+ and a Claude Code or Codex CLI you are logged into:
+Install with Node 18+ and a Claude Code or Codex CLI you are logged into. Tell
+your coding agent what changed and what readers need to understand; Claudux
+uses the authenticated CLI to prepare the bounded documentation patch.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/firstbitelabsllc/claudux/main/install.sh | sh
@@ -43,6 +45,11 @@ claudux check
 claudux update -m "Document the API changes in this branch."
 claudux serve
 ```
+
+For a complete, committed example where Claude Code generates an API section
+while a human paragraph remains pinned, see
+[`examples/agent-demo`](examples/agent-demo/README.md). The command reference
+below is useful when you need a specific CLI option.
 
 `update` uses your model allowance. `serve` opens a local preview.
 Before your first update, read the [manifest guide](docs/technical/deterministic-generation.md)

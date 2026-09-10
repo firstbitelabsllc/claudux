@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "deletion_policy": "manifest_pages_require_manifest_change",
+  "generated_sections_default": "bounded_patch",
+  "navigation": [
+    { "id": "home", "title": "Home", "link": "/", "order": 1 }
+  ],
+  "pages": [
+    {
+      "id": "home.index",
+      "path": "docs/index.md",
+      "title": "Pocket Greeting",
+      "nav_group": "home",
+      "order": 1,
+      "deletion_policy": "never_delete_without_manifest_change",
+      "source_patterns": ["src/greet.js"],
+      "sections": [
+        { "id": "quick-start", "heading": "Quick start", "level": 2, "pinned": true },
+        { "id": "api", "heading": "API", "level": 2, "source_patterns": ["src/greet.js"] }
+      ]
+    }
+  ]
+}

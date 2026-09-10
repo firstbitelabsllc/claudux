@@ -7,8 +7,8 @@ import { withBase } from 'vitepress'
     <section class="intro">
       <div>
         <h1>Update the docs.<br />Keep your words.</h1>
-        <p class="lead">Turn code changes into documentation with Claude Code or Codex. Pin the sections you wrote. Review what changed.</p>
-        <a class="action" href="#try-it">Run the local demo</a>
+        <p class="lead">Ask Claude Code or Codex to document a code change. Pin the sections you wrote, then review the bounded patch.</p>
+        <a class="action" href="#try-it">Run an authenticated demo</a>
       </div>
       <img class="mark" :src="withBase('/claudux-icon.png')" alt="A paper stack with a violet clip" />
     </section>
@@ -17,29 +17,29 @@ import { withBase } from 'vitepress'
         <source :src="withBase('/claudux-demo.mp4')" type="video/mp4" />
         <a :href="withBase('/claudux-demo.mp4')">Watch the demo</a>
       </video>
-      <figcaption>The real section patcher rejects a pinned edit, then updates an allowed section. Supplied proposals; no model calls.</figcaption>
+      <figcaption>The section patcher rejects a pinned edit, then applies an allowed change. The demo uses an authenticated coding agent.</figcaption>
     </figure>
     <section class="try" id="try-it">
       <div>
-        <h2>See what stays yours.</h2>
-        <p>The example creates a temporary page with a pinned Quick start and an editable API section. It checks the result and cleans up.</p>
+        <h2>Give your agent one clear job.</h2>
+        <p>The example creates a temporary Git project with a pinned Quick start and an editable API section. Claude Code or Codex reads the source, returns a bounded patch, and Claudux checks the result.</p>
         <p>Python 3, Node 18+, and Bash.</p>
       </div>
       <div>
         <pre>git clone https://github.com/firstbitelabsllc/claudux.git
 cd claudux
-python3 examples/demo.py</pre>
+examples/agent-demo/prepare-scratch.sh</pre>
         <a :href="withBase('/guide/installation')">Install Claudux for your project ↗</a>
       </div>
     </section>
     <section class="explain">
       <h2>You decide what can change.</h2>
-      <p>A committed manifest identifies the pages, generated sections, and pinned text. In manifest mode, the model returns patches and Claudux checks the batch before writing.</p>
+      <p>A committed manifest identifies the pages, generated sections, and pinned text. In manifest mode, the coding agent returns patches and Claudux checks the batch before writing.</p>
       <p>Without a manifest, the backend writes docs directly. With either approach, a reviewable diff is the result: you still check that the explanation is right.</p>
       <p><a :href="withBase('/technical/deterministic-generation')">Read the manifest guide ↗</a></p>
     </section>
     <footer>
-      <a :href="withBase('/guide/commands')">Command reference</a>
+      <a :href="withBase('/guide/commands')">CLI command reference</a>
       <span><a href="https://github.com/firstbitelabsllc/claudux/blob/main/LICENSE">MIT license</a> · <a href="https://github.com/firstbitelabsllc/claudux/issues">Report a problem</a></span>
     </footer>
   </main>
