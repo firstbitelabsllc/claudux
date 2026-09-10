@@ -31,7 +31,12 @@ check_codex() {
         # Legacy codex CLI without `login status` subcommand. Fall back to an
         # exec probe but flag it so users upgrade.
         warn "codex CLI lacks 'login status' subcommand — falling back to exec probe (wastes ~28K tokens). Upgrade: npm install -g @openai/codex"
-        probe_out=$(codex exec -m "${CODEX_MODEL:-gpt-5.4}" --json 'echo hello' 2>&1) || probe_rc=$?
+        local probe_args=(exec)
+        if [[ -n "${CODEX_MODEL:-}" ]]; then
+            probe_args+=(-m "$CODEX_MODEL")
+        fi
+        probe_args+=(--json 'echo hello')
+        probe_out=$(codex "${probe_args[@]}" 2>&1) || probe_rc=$?
         probe_rc=${probe_rc:-0}
         if [[ $probe_rc -ne 0 ]]; then
             if echo "$probe_out" | grep -qiE 'auth|api.key|unauthorized|401|login|token'; then

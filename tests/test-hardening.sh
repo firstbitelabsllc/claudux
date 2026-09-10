@@ -469,6 +469,37 @@ assert_eq "check_codex error message mentions remedy" "has-remedy" "$(cat "$TEST
 ) > "$TEST_TMP_ROOT/t28b" 2>&1
 assert_eq "check_codex prefers zero-token login-status probe" "modern-probe-first" "$(cat "$TEST_TMP_ROOT/t28b")"
 
+# --- Test 28c: legacy auth fallback also respects the optional model override ---
+legacy_probe_argv() {
+    local output="$1"
+    local setup="$2"
+    (
+        unset CODEX_MODEL
+        eval "$setup"
+        codex() {
+            if [[ "${1:-}" == "--version" ]]; then
+                printf 'codex test\n'
+            elif [[ "${1:-}" == "login" && "${2:-}" == "status" && "${3:-}" == "--help" ]]; then
+                return 1
+            elif [[ "${1:-}" == "exec" ]]; then
+                printf '%s\n' "$@" > "$output"
+                printf 'ok\n'
+            fi
+        }
+        source "$LIB_DIR/codex-utils.sh"
+        check_codex >/dev/null
+    )
+}
+
+legacy_probe_argv "$TEST_TMP_ROOT/codex-legacy-default" ':'
+legacy_default=$(cat "$TEST_TMP_ROOT/codex-legacy-default")
+assert_not_contains "legacy fallback omits an unset model" "$legacy_default" "-m"
+assert_not_contains "legacy fallback does not force gpt-5.4" "$legacy_default" "gpt-5.4"
+
+legacy_probe_argv "$TEST_TMP_ROOT/codex-legacy-explicit" 'export CODEX_MODEL=gpt-6-astra'
+legacy_explicit=$(cat "$TEST_TMP_ROOT/codex-legacy-explicit")
+assert_contains "legacy fallback forwards explicit model" "$legacy_explicit" "gpt-6-astra"
+
 # ═══════════════════════════════════════════
 # Timeout handling in run_codex_exec()
 # ═══════════════════════════════════════════
