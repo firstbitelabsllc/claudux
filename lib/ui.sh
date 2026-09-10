@@ -7,9 +7,11 @@ show_header() {
     local backend="${CLAUDUX_BACKEND:-claude}"
     local powered_by="Claude AI"
     if [[ "$backend" == "codex" ]]; then
-        local codex_model="${CODEX_MODEL:-gpt-5.4}"
-        local codex_effort="${CODEX_REASONING_EFFORT:-xhigh}"
-        powered_by="Codex (${codex_model}, ${codex_effort} reasoning)"
+        local codex_model codex_effort
+        IFS='|' read -r codex_model _ _ codex_effort <<< "$(get_codex_model_settings)"
+        powered_by="Codex (${codex_model:-configured default}"
+        [[ -n "$codex_effort" ]] && powered_by+=", ${codex_effort} reasoning"
+        powered_by+=")"
     fi
     echo "📚 claudux - ${PROJECT_NAME} Documentation"
     echo "Generate docs from your codebase · powered by $powered_by"
@@ -46,8 +48,8 @@ show_help() {
     echo "Environment:"
     echo "  FORCE_MODEL=fable|opus|sonnet - Select Claude model (default: claudux.json project.model, else sonnet)"
     echo "  CLAUDUX_BACKEND=codex    - Use Codex instead of Claude"
-    echo "  CODEX_MODEL=...          - Select Codex model (default: gpt-5.4)"
-    echo "  CODEX_REASONING_EFFORT=... - Select Codex reasoning effort (default: xhigh)"
+    echo "  CODEX_MODEL=...          - Override Codex's configured account model"
+    echo "  CODEX_REASONING_EFFORT=... - Override Codex reasoning effort"
     echo "  CLAUDUX_MESSAGE=...      - Default directive if -m/--with not provided"
     echo ""
     echo "💡 The main update command automatically:"

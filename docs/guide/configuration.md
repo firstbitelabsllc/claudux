@@ -117,16 +117,17 @@ appears in the result. Review the generated diff.
 |----------|---------|--------|
 | `CLAUDUX_BACKEND` | `claude` | Selects `claude` or `codex` |
 | `FORCE_MODEL` | `project.model`, then `sonnet` | Selects the Claude model |
-| `CODEX_MODEL` | `gpt-5.4` | Selects the Codex model |
-| `CODEX_REASONING_EFFORT` | `xhigh` | Selects Codex reasoning effort |
+| `CODEX_MODEL` | Codex account default | Optionally overrides the Codex model |
+| `CODEX_REASONING_EFFORT` | Codex account default | Optionally overrides Codex reasoning effort |
 | `CLAUDUX_TIMEOUT` | `600` | Codex timeout in seconds when `timeout` or `gtimeout` is available; `0` disables it |
 
 ```bash
-CLAUDUX_BACKEND=codex \
-CODEX_MODEL=gpt-5.4 \
-CODEX_REASONING_EFFORT=xhigh \
-claudux update
+CLAUDUX_BACKEND=codex claudux update
 ```
+
+When the variables are unset or empty, Claudux leaves model selection to the
+authenticated Codex CLI. Set either variable only when you know that value is
+available to the current account; each override is passed independently.
 
 ### Generation and manifest
 

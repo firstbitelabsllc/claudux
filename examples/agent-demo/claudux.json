@@ -1,0 +1,7 @@
+{
+  "project": {
+    "name": "Pocket Greeting",
+    "type": "javascript",
+    "description": "A one-function JavaScript greeting library"
+  }
+}

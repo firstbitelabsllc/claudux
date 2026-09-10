@@ -31,7 +31,12 @@ check_codex() {
         # Legacy codex CLI without `login status` subcommand. Fall back to an
         # exec probe but flag it so users upgrade.
         warn "codex CLI lacks 'login status' subcommand — falling back to exec probe (wastes ~28K tokens). Upgrade: npm install -g @openai/codex"
-        probe_out=$(codex exec -m "${CODEX_MODEL:-gpt-5.4}" --json 'echo hello' 2>&1) || probe_rc=$?
+        local probe_args=(exec)
+        if [[ -n "${CODEX_MODEL:-}" ]]; then
+            probe_args+=(-m "$CODEX_MODEL")
+        fi
+        probe_args+=(--json 'echo hello')
+        probe_out=$(codex "${probe_args[@]}" 2>&1) || probe_rc=$?
         probe_rc=${probe_rc:-0}
         if [[ $probe_rc -ne 0 ]]; then
             if echo "$probe_out" | grep -qiE 'auth|api.key|unauthorized|401|login|token'; then
@@ -46,12 +51,16 @@ check_codex() {
 
 # Get model name and settings for Codex
 get_codex_model_settings() {
-    local model="${CODEX_MODEL:-gpt-5.4}"
-    local effort="${CODEX_REASONING_EFFORT:-xhigh}"
+    local model="${CODEX_MODEL:-}"
+    local effort="${CODEX_REASONING_EFFORT:-}"
     local model_name=""
     local timeout_msg=""
 
-    case "$model" in
+    if [[ -z "$model" ]]; then
+        model_name="Configured Codex default"
+        timeout_msg="Codex selects the authenticated account's configured model..."
+    else
+        case "$model" in
         "gpt-5.4")
             model_name="GPT-5.4 (${effort} reasoning)"
             timeout_msg="This may take 60-180 seconds with GPT-5.4 xhigh..."
@@ -64,7 +73,8 @@ get_codex_model_settings() {
             model_name="Codex $model (${effort} reasoning)"
             timeout_msg="Processing time varies by model..."
             ;;
-    esac
+        esac
+    fi
 
     echo "$model|$model_name|$timeout_msg|$effort"
 }
@@ -103,8 +113,8 @@ codex_stderr_log_path() {
 run_codex_exec() {
     local prompt="$1"
     local output_file="${2:-}"
-    local model="${CODEX_MODEL:-gpt-5.4}"
-    local effort="${CODEX_REASONING_EFFORT:-xhigh}"
+    local model="${CODEX_MODEL:-}"
+    local effort="${CODEX_REASONING_EFFORT:-}"
     local stderr_log
     stderr_log="$(codex_stderr_log_path)"
     local timeout_secs="${CLAUDUX_TIMEOUT:-600}"
@@ -117,10 +127,14 @@ run_codex_exec() {
         sandbox_mode="${CODEX_SANDBOX_MODE:-read-only}"
     fi
 
-    local codex_args=(
-        exec
-        -m "$model"
-        -c "model_reasoning_effort=\"$effort\""
+    local codex_args=(exec)
+    if [[ -n "$model" ]]; then
+        codex_args+=(-m "$model")
+    fi
+    if [[ -n "$effort" ]]; then
+        codex_args+=(-c "model_reasoning_effort=\"$effort\"")
+    fi
+    codex_args+=(
         -c "approval_policy=\"never\""
         -c "sandbox_mode=\"$sandbox_mode\""
         --json

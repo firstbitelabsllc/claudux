@@ -1,7 +1,7 @@
 {
   "commands": [
-    "python3 examples/demo.py"
+    "Claude Code runs examples/agent-demo/run.sh; Claudux asks configured Codex to update only the API section"
   ],
   "browser": "151.0.7922.34",
-  "recordedAt": "2026-09-09T23:30:27.586Z"
+  "recordedAt": "2026-09-10T14:25:29.079Z"
 }

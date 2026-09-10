@@ -36,7 +36,7 @@ Model selection comes from environment and project configuration:
 
 ```text
 Claude: FORCE_MODEL -> claudux.json project.model -> sonnet
-Codex:  CODEX_MODEL and CODEX_REASONING_EFFORT
+Codex:  CODEX_MODEL and CODEX_REASONING_EFFORT are optional overrides; otherwise the authenticated CLI selects its configured default
 ```
 
 ## Selection order
