@@ -520,8 +520,10 @@ main() {
                 if command -v codex >/dev/null 2>&1; then
                     backend_cli_present=true
                     echo "• Codex CLI: $(codex --version 2>/dev/null || echo 'installed')"
-                    echo "• Model: ${CODEX_MODEL:-gpt-5.4}"
-                    echo "• Reasoning effort: ${CODEX_REASONING_EFFORT:-xhigh}"
+                    local codex_model codex_effort
+                    IFS='|' read -r codex_model _ _ codex_effort <<< "$(get_codex_model_settings)"
+                    echo "• Model: ${codex_model:-configured Codex default}"
+                    echo "• Reasoning effort: ${codex_effort:-configured Codex default}"
                 else
                     warn "Codex CLI not found. Install: npm install -g @openai/codex"
                     check_failures=$((check_failures + 1))

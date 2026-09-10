@@ -121,8 +121,9 @@ CLAUDUX_BACKEND=codex claudux update
 
 # Or export for the session
 export CLAUDUX_BACKEND=codex
-export CODEX_MODEL=gpt-5.4            # default
-export CODEX_REASONING_EFFORT=xhigh   # default
+# Optional overrides; omit both to use the authenticated Codex default.
+export CODEX_MODEL=gpt-6-astra
+export CODEX_REASONING_EFFORT=xhigh
 claudux update
 ```
 

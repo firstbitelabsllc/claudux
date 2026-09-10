@@ -175,8 +175,8 @@ preview path.
 |----------|---------|---------|
 | `CLAUDUX_BACKEND` | `claude` | Select `claude` or `codex` |
 | `FORCE_MODEL` | Project model or `sonnet` | Select the Claude model |
-| `CODEX_MODEL` | `gpt-5.4` | Select the Codex model |
-| `CODEX_REASONING_EFFORT` | `xhigh` | Set Codex reasoning effort |
+| `CODEX_MODEL` | Codex account default | Optionally overrides the Codex model |
+| `CODEX_REASONING_EFFORT` | Codex account default | Optionally overrides Codex reasoning effort |
 | `CLAUDUX_TIMEOUT` | `600` | Codex timeout in seconds when `timeout` or `gtimeout` is available; `0` disables it |
 
 ### Prompt and docs behavior

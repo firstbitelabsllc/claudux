@@ -67,7 +67,7 @@ assert_eq "CODEX_UTILS_MISSING set when lib missing" "true" "$(cat "$TEST_TMP_RO
 # --- Test 10: check command shows correct backend info ---
 check_block=$(sed -n '/"check"|"--check"/,/;;/p' "$REPO_ROOT/bin/claudux")
 assert_contains "check shows backend" "$check_block" 'CLAUDUX_BACKEND'
-assert_contains "check shows codex model" "$check_block" 'CODEX_MODEL'
+assert_contains "check resolves Codex model settings" "$check_block" 'get_codex_model_settings'
 
 # --- Test 11: show_header says "Claude AI" under default backend ---
 (
@@ -169,7 +169,7 @@ assert_contains "codex failure points at Codex auth" \
     'codex login status'
 assert_contains "codex failure suggests supported model fallback" \
     "$fail_block" \
-    'CODEX_MODEL=gpt-5.4'
+    'Codex account'
 assert_contains "codex failure suggests Codex CLI upgrade" \
     "$fail_block" \
     'npm install -g @openai/codex'

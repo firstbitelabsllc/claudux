@@ -56,7 +56,7 @@ assert_eq "codex-utils.sh sources without error" "sourced-ok" "$(tail -1 "$TEST_
 ) > "$TEST_TMP_ROOT/t2" 2>&1
 assert_eq "get_codex_model_settings returns 4 fields" "4" "$(cat "$TEST_TMP_ROOT/t2")"
 
-# --- Test 3: get_codex_model_settings defaults to gpt-5.4 ---
+# --- Test 3: unset Codex settings defer to the authenticated CLI ---
 (
     unset CODEX_MODEL 2>/dev/null || true
     unset CODEX_REASONING_EFFORT 2>/dev/null || true
@@ -64,7 +64,7 @@ assert_eq "get_codex_model_settings returns 4 fields" "4" "$(cat "$TEST_TMP_ROOT
     IFS='|' read -r model name timeout effort <<< "$(get_codex_model_settings)"
     echo "$model"
 ) > "$TEST_TMP_ROOT/t3" 2>&1
-assert_eq "default codex model is gpt-5.4" "gpt-5.4" "$(cat "$TEST_TMP_ROOT/t3")"
+assert_eq "unset Codex model has no forced override" "" "$(cat "$TEST_TMP_ROOT/t3")"
 
 # --- Test 4: get_codex_model_settings respects CODEX_MODEL env var ---
 (
@@ -92,6 +92,44 @@ assert_eq "CODEX_REASONING_EFFORT override works" "medium" "$(cat "$TEST_TMP_ROO
     echo "$name"
 ) > "$TEST_TMP_ROOT/t6" 2>&1
 assert_contains "unknown model gets a name" "$(cat "$TEST_TMP_ROOT/t6")" "some-future-model"
+
+# --- Test 6b: argv does not force an unavailable model; explicit overrides are independent ---
+argv_witness() {
+    local output="$1"
+    local setup="$2"
+    (
+        unset CODEX_MODEL CODEX_REASONING_EFFORT
+        export CLAUDUX_TIMEOUT=0
+        eval "$setup"
+        codex() { printf '%s\n' "$@" > "$output"; cat >/dev/null; }
+        source "$LIB_DIR/codex-utils.sh"
+        run_codex_exec "document greet"
+    )
+}
+
+argv_witness "$TEST_TMP_ROOT/codex-argv-default" ':'
+default_argv=$(cat "$TEST_TMP_ROOT/codex-argv-default")
+assert_not_contains "unset model omits -m" "$default_argv" "-m"
+assert_not_contains "unset model does not force rejected gpt-5.4" "$default_argv" "gpt-5.4"
+assert_not_contains "unset effort omits model reasoning config" "$default_argv" "model_reasoning_effort"
+assert_contains "default argv preserves approval policy" "$default_argv" 'approval_policy="never"'
+assert_contains "default argv preserves sandbox mode" "$default_argv" 'sandbox_mode="workspace-write"'
+assert_contains "default argv preserves JSON output" "$default_argv" "--json"
+
+argv_witness "$TEST_TMP_ROOT/codex-argv-empty" 'export CODEX_MODEL="" CODEX_REASONING_EFFORT=""'
+empty_argv=$(cat "$TEST_TMP_ROOT/codex-argv-empty")
+assert_not_contains "empty model omits -m" "$empty_argv" "-m"
+assert_not_contains "empty effort omits model reasoning config" "$empty_argv" "model_reasoning_effort"
+
+argv_witness "$TEST_TMP_ROOT/codex-argv-model" 'export CODEX_MODEL=gpt-6-astra'
+model_argv=$(cat "$TEST_TMP_ROOT/codex-argv-model")
+assert_contains "explicit model passes unchanged" "$model_argv" "gpt-6-astra"
+assert_not_contains "model-only override omits effort" "$model_argv" "model_reasoning_effort"
+
+argv_witness "$TEST_TMP_ROOT/codex-argv-effort" 'export CODEX_REASONING_EFFORT=medium'
+effort_argv=$(cat "$TEST_TMP_ROOT/codex-argv-effort")
+assert_not_contains "effort-only override omits model" "$effort_argv" "-m"
+assert_contains "explicit effort passes unchanged" "$effort_argv" 'model_reasoning_effort="medium"'
 
 # --- Test 7: format_codex_output_stream handles empty input ---
 (
