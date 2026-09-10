@@ -17,18 +17,16 @@ import { withBase } from 'vitepress'
         <source :src="withBase('/claudux-demo.mp4')" type="video/mp4" />
         <a :href="withBase('/claudux-demo.mp4')">Watch the demo</a>
       </video>
-      <figcaption>The section patcher rejects a pinned edit, then applies an allowed change. The demo uses an authenticated coding agent.</figcaption>
+      <figcaption>The recorded run updates the API section while the source, pinned Quick start, and original fixture stay unchanged.</figcaption>
     </figure>
     <section class="try" id="try-it">
       <div>
         <h2>Give your agent one clear job.</h2>
-        <p>The example creates a temporary Git project with a pinned Quick start and an editable API section. Claude Code or Codex reads the source, returns a bounded patch, and Claudux checks the result.</p>
-        <p>Python 3, Node 18+, and Bash.</p>
+        <p>Open the checkout in Claude Code or Codex and give it the prompt below. The helper creates a temporary Git project with a pinned Quick start and editable API section; Claudux checks the returned patch.</p>
+        <p>Python 3, Node 18+, Bash, and an authenticated Claude Code or Codex CLI.</p>
       </div>
       <div>
-        <pre>git clone https://github.com/firstbitelabsllc/claudux.git
-cd claudux
-examples/agent-demo/prepare-scratch.sh</pre>
+        <pre>Run examples/agent-demo/run.sh. In two bullets, 35 words maximum: state the API change, then whether source, pinned Quick start, and original fixture stayed unchanged.</pre>
         <a :href="withBase('/guide/installation')">Install Claudux for your project ↗</a>
       </div>
     </section>

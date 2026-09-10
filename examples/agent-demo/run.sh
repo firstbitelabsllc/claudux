@@ -12,12 +12,12 @@ case "$backend" in
   *) printf 'unsupported CLAUDUX_BACKEND: %s\n' "$backend" >&2; exit 2 ;;
 esac
 
-if ! git -C "$checkout_root" diff --quiet -- examples/agent-demo/docs/index.md examples/agent-demo/src/greet.js; then
+if ! git -C "$checkout_root" diff --quiet HEAD -- examples/agent-demo; then
   printf 'original fixture must be unchanged before this run\n' >&2
   exit 1
 fi
 
-scratch_dir="$($fixture_dir/prepare-scratch.sh)"
+scratch_dir="$("$fixture_dir/prepare-scratch.sh")"
 scratch_dir="$(cd "$scratch_dir" && pwd)"
 printf 'checkout root: %s\n' "$checkout_root"
 printf 'scratch path: %s\n' "$scratch_dir"
@@ -38,7 +38,7 @@ printf 'running from: %s\n' "$PWD"
 ./verify-result.sh
 git diff -- docs/index.md
 
-if ! git -C "$checkout_root" diff --quiet -- examples/agent-demo/docs/index.md examples/agent-demo/src/greet.js; then
+if ! git -C "$checkout_root" diff --quiet HEAD -- examples/agent-demo; then
   printf 'original fixture changed during this run\n' >&2
   exit 1
 fi

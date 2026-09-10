@@ -11,17 +11,27 @@ Claudux builds VitePress documentation using the CLI you are logged into.
 Commit a manifest to choose which sections may change and which must stay
 byte-for-byte intact. Review the resulting diff before you commit.
 
-[Try the local demo](#try-it-without-a-model-call) ·
+[Try it with your coding agent](#try-it-with-your-coding-agent) ·
 [Read the guide](https://firstbitelabsllc.github.io/claudux/) ·
 [Report a problem](https://github.com/firstbitelabsllc/claudux/issues)
 
-![The local demo rejects a pinned-section edit, then applies an allowed API update.](docs/public/claudux-demo.png)
+![An authenticated Codex run updates the API section while preserving the source, pinned Quick start, and original fixture.](docs/public/claudux-demo.png)
 
-## Try it without a model call
+## Try it with your coding agent
 
-Python 3, Node 18+, and Bash. This example runs the real section patcher with
-two supplied proposals in a temporary folder. It rejects an edit to a pinned
-Quick start, then updates the API section and checks the preserved bytes.
+Clone the repository, open it in Claude Code or Codex, and send this prompt:
+
+```text
+Run examples/agent-demo/run.sh. In two bullets, 35 words maximum: state the API change, then whether source, pinned Quick start, and original fixture stayed unchanged.
+```
+
+The helper creates a retained temporary Git project, asks your authenticated
+configured coding CLI to document the API section, and proves the source,
+pinned Quick start, and original fixture stayed unchanged. It uses your model
+allowance. [Watch Claude Code run Claudux with Codex](docs/public/claudux-demo.mp4) or
+[read the example details](examples/agent-demo/README.md).
+
+For a deterministic local patcher example with no model call, run:
 
 ```bash
 git clone https://github.com/firstbitelabsllc/claudux.git
@@ -29,8 +39,7 @@ cd claudux
 python3 examples/demo.py
 ```
 
-[Watch the recording](docs/public/claudux-demo.mp4) ·
-[Reproduce the capture](docs/capture.md)
+[Reproduce the authenticated capture](docs/capture.md)
 
 ## Use it in your project
 
@@ -46,8 +55,8 @@ claudux update -m "Document the API changes in this branch."
 claudux serve
 ```
 
-For a complete, committed example where Claude Code generates an API section
-while a human paragraph remains pinned, see
+For a complete, committed example where the configured Codex CLI updates an
+API section while a human paragraph remains pinned, see
 [`examples/agent-demo`](examples/agent-demo/README.md). The command reference
 below is useful when you need a specific CLI option.
 
