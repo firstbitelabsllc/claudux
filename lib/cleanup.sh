@@ -1,5 +1,4 @@
 #!/bin/bash
-# Documentation cleanup functions
 
 manifest_deletion_guard_required() {
     local manifest="docs-structure.json"
@@ -50,12 +49,10 @@ if (protectedPages.length > 12) {
 NODE
 }
 
-# AI-powered cleanup of obsolete documentation files
 cleanup_docs() {
     info "🧹 Using AI to intelligently detect obsolete documentation..."
     echo ""
     
-    # Check if docs exist
     if [[ ! -d "docs" ]] || [[ -z "$(find docs -name "*.md" -not -path "*/node_modules/*" 2>/dev/null | head -1)" ]]; then
         warn "📄 No documentation files found to clean"
         return
@@ -73,7 +70,6 @@ cleanup_docs() {
         validate_docs_structure_manifest || error_exit "docs-structure.json failed validation before cleanup"
     fi
     
-    # Use Claude to analyze docs and detect obsolete files
     local cleanup_prompt="Analyze the documentation in the docs/ folder and identify genuinely obsolete files.
 
 IMPORTANT: Use SEMANTIC ANALYSIS, not filename patterns!
@@ -106,7 +102,6 @@ DETERMINISTIC MANIFEST RULE:
 - Only unlisted docs files may be deleted, and only with 95%+ confidence."
     fi
 
-    # Run Claude for intelligent obsolescence detection
     warn "🤖 Claude analyzing documentation for obsolete content..."
     echo ""
     
@@ -129,9 +124,7 @@ DETERMINISTIC MANIFEST RULE:
     fi
 }
 
-# Silent cleanup for use during main update process
 cleanup_docs_silent() {
-    # Handled by Claude AI during the main update process; no output
     :
 }
 

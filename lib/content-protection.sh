@@ -1,7 +1,5 @@
 #!/bin/bash
-# Content protection utilities for handling sensitive content
 
-# Get protection markers for different file types
 get_protection_markers() {
     local file="$1"
     local ext="${file##*.}"
@@ -26,7 +24,6 @@ get_protection_markers() {
             printf '%s\n%s\n' "-- skip" "-- /skip"
             ;;
         *)
-            # Default to hash comment
             printf '%s\n%s\n' "# skip" "# /skip"
             ;;
     esac

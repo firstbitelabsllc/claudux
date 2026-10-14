@@ -13,3 +13,16 @@
 - Deployment base: local/dev uses `process.env.DOCS_BASE || '/'`; CI sets `DOCS_BASE=/claudux/` for Pages.
 
 If content becomes procedural, versioned, or command-specific, move it into generators/templates under `lib/**` so the docs stay consistent and up to date.
+
+## Code comments
+
+Use names, types and tests to explain code. Do not add narration, section
+banners, commented-out code or workaround history. Fix an owned workaround
+at its cause; keep behavior changes separate from comment deletion.
+
+Keep license headers, public API contracts, necessary tool or compiler
+directives, and non-obvious constraints imposed by a current external
+platform, dependency or protocol. Link the relevant issue or specification
+when it explains the constraint. Correctness or safety suppressions require
+a code fix and focused proof; deleting the directive alone is not a fix.
+Change generated or vendored comments through their source owner.
