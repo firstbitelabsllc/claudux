@@ -1,4 +1,4 @@
-<img src="docs/public/claudux-cover.png" alt="Claudux — Update the docs. Keep your words." width="1280" />
+<img src="docs/public/claudux-cover.png" alt="Claudux. Update the docs. Keep your words." width="1280" />
 
 # Claudux
 
